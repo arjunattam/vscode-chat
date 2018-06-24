@@ -5,13 +5,27 @@ import { SlackMessage, UiMessage, SlackChannel } from "./interfaces";
 class SlackMessenger {
   messages: SlackMessage[];
   manager: SlackManager;
-  uiCallback: (message: UiMessage) => void;
+  channel: SlackChannel;
   rtmClient: RTMClient;
+  uiCallback: (message: UiMessage) => void;
 
-  constructor(token: string, public channel: SlackChannel) {
-    this.rtmClient = new RTMClient(token);
+  constructor(public token: string) {
     this.manager = new SlackManager(token);
     this.messages = [];
+  }
+
+  init() {
+    return this.manager.init();
+  }
+
+  setCurrentChannel(channel: SlackChannel) {
+    if (this.rtmClient && this.rtmClient.connected) {
+      this.rtmClient.disconnect();
+      this.rtmClient = null;
+    }
+
+    this.rtmClient = new RTMClient(this.token);
+    this.channel = channel;
     this.rtmClient.start();
 
     this.rtmClient.on("message", event => {
@@ -21,10 +35,7 @@ class SlackMessenger {
         this.updateUi();
       }
     });
-  }
 
-  setCurrentChannel(channel: SlackChannel) {
-    this.channel = channel;
     this.loadHistory();
   }
 
@@ -33,7 +44,11 @@ class SlackMessenger {
   }
 
   updateUi() {
-    this.uiCallback({ messages: this.messages, users: this.manager.users });
+    this.uiCallback({
+      messages: this.messages,
+      users: this.manager.users,
+      channel: this.channel
+    });
   }
 
   loadHistory() {

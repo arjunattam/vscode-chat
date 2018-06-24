@@ -1,5 +1,5 @@
 import * as vscode from "vscode";
-import { ExtensionMessage, UiMessage } from "../slack/interfaces";
+import { ExtensionMessage, UiMessage, SlackChannel } from "../slack/interfaces";
 
 class SlackUI {
   panel: vscode.WebviewPanel;
@@ -19,8 +19,16 @@ class SlackUI {
     this.panel.webview.onDidReceiveMessage(message => msgHandler(message));
   }
 
+  updateTitle(channel: SlackChannel) {
+    const prefix = channel.type === "im" ? "@" : "#";
+    this.panel.title = prefix + channel.name;
+  }
+
   update(message: UiMessage) {
-    this.panel.webview.postMessage({ ...message });
+    this.panel.webview.postMessage({ ...message }).then(response => {
+      console.log("post message", response);
+    });
+    this.updateTitle(message.channel);
   }
 
   reveal() {

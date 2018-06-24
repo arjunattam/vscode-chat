@@ -10,8 +10,11 @@ class SlackManager {
   constructor(token: string) {
     this.client = new WebClient(token);
     this.users = {};
+  }
+
+  init() {
     this.getCurrentUser();
-    this.getAllUserInfo().then(() => this.getChannels());
+    return this.getAllUserInfo().then(() => this.getChannels());
   }
 
   getConversationHistory(channel: string) {
@@ -35,7 +38,6 @@ class SlackManager {
       // TODO(arjun): this needs some pagination
       const { members, ok } = response;
 
-      console.log(response);
       if (ok) {
         members.forEach(member => {
           this.users[member.id] = {

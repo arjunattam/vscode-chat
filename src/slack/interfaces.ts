@@ -34,4 +34,5 @@ export interface ExtensionMessage {
 export interface UiMessage {
   messages: SlackMessage[];
   users: SlackUsers;
+  channel: SlackChannel;
 }
