@@ -10,15 +10,21 @@ const token =
 const conversationId = "CBC6RU92P";
 
 export function activate(context: vscode.ExtensionContext) {
+  let ui: SlackUI | undefined = undefined;
+
   let disposable = vscode.commands.registerCommand(
     "extension.openSlack",
     () => {
-      const { extensionPath } = context;
-      const baseVuePath = path.join(extensionPath, "src", "ui");
-      const staticPath = vscode.Uri.file(baseVuePath).with({
-        scheme: "vscode-resource"
-      });
-      const ui = new SlackUI(staticPath);
+      if (ui) {
+        ui.reveal();
+      } else {
+        const { extensionPath } = context;
+        const baseVuePath = path.join(extensionPath, "src", "ui");
+        const staticPath = vscode.Uri.file(baseVuePath).with({
+          scheme: "vscode-resource"
+        });
+        ui = new SlackUI(staticPath);
+      }
 
       const messenger = new SlackMessenger(token, conversationId);
       const viewController = new ViewController(ui, messenger);
@@ -29,6 +35,14 @@ export function activate(context: vscode.ExtensionContext) {
 
       // Setup initial ui
       messenger.loadHistory();
+
+      // Handle tab switching
+      ui.panel.onDidChangeViewState(e => {
+        viewController.sendToUi({
+          messages: messenger.messages,
+          users: messenger.manager.users
+        });
+      });
     }
   );
 

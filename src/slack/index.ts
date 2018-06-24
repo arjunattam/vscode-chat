@@ -1,12 +1,12 @@
+import { RTMClient } from "@slack/client";
 import SlackManager from "./manager";
 import { SlackMessage, UiMessage } from "./interfaces";
-const { RTMClient } = require("@slack/client");
 
 class SlackMessenger {
   messages: SlackMessage[];
   manager: SlackManager;
   uiCallback: (message: UiMessage) => void;
-  rtmClient;
+  rtmClient: RTMClient;
 
   constructor(token: string, public conversationId: string) {
     this.rtmClient = new RTMClient(token);
@@ -43,7 +43,11 @@ class SlackMessenger {
     return this.rtmClient
       .sendMessage(text, this.conversationId)
       .then(result => {
-        this.messages.push({ userId: "", text: text, timestamp: result.ts });
+        this.messages.push({
+          userId: this.manager.currentUserId,
+          text: text,
+          timestamp: result.ts
+        });
         this.updateUi();
       });
   }

@@ -22,6 +22,10 @@ class SlackUI {
   update(message: UiMessage) {
     this.panel.webview.postMessage({ ...message });
   }
+
+  reveal() {
+    this.panel.reveal();
+  }
 }
 
 function getWebviewContent(staticPath) {
@@ -40,13 +44,11 @@ function getWebviewContent(staticPath) {
       ${vueImports}
   </head>
   <body>
-      <div id="app" class="vue-container">
-          <messages
+      <div id="app">
+          <app-container
             v-bind:messages="messages"
             v-bind:users="users">
-          </messages>
-
-          <form-section></form-section>
+          </app-container>
       </div>
   
       <script>

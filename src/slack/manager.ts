@@ -1,24 +1,16 @@
-// const { WebClient } = require("@slack/client");
 import { WebClient } from "@slack/client";
-import { SlackUser, SlackUsers } from "./interfaces";
+import { SlackUsers } from "./interfaces";
 
 class SlackManager {
   users: SlackUsers;
-  currentUser: SlackUser;
+  currentUserId: string;
   client: WebClient;
 
   constructor(token: string) {
     this.client = new WebClient(token);
     this.users = {};
     this.updateCurrentUser();
-  }
-
-  getUserInfo(userId: string) {
-    if (userId in this.users) {
-      return this.users[userId];
-    } else {
-      this.updateUsers();
-    }
+    this.updateUsers();
   }
 
   getConversationHistory(channel: string) {
@@ -47,7 +39,7 @@ class SlackManager {
           this.users[member.id] = {
             id: member.id,
             displayName: member.profile.display_name,
-            imageUrl: member.profile.image_32
+            imageUrl: member.profile.image_72
           };
         });
       }
@@ -55,7 +47,15 @@ class SlackManager {
   }
 
   updateCurrentUser() {
-    // TODO(arjun)
+    this.client
+      .apiCall("auth.test", {})
+      .then((response: any) => {
+        const { ok, user_id } = response;
+        if (ok) {
+          this.currentUserId = user_id;
+        }
+      })
+      .catch(error => console.error(error));
   }
 }
 

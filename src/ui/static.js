@@ -1,13 +1,28 @@
 const vscode = acquireVsCodeApi();
 
-const SAME_GROUP_TIME = 5 * 60 * 1000; // ms
+const SAME_GROUP_TIME = 5 * 60; // ms
+
+Vue.component("app-container", {
+  props: ["messages", "users"],
+  template: `
+    <div
+      class="vue-container">
+      <messages
+        v-bind:messages="messages"
+        v-bind:users="users">
+      </messages>
+
+      <form-section></form-section>
+    </div>
+  `
+});
 
 Vue.component("messages", {
   props: ["messages", "users"],
   computed: {
     messageGroups: function() {
       this.messages.sort(function(a, b) {
-        return +b.timestamp - +a.timestamp;
+        return +a.timestamp - +b.timestamp;
       });
       let groups = [];
       let currentGroup = {};
@@ -17,11 +32,11 @@ Vue.component("messages", {
           ? message.userId === currentGroup.userId
           : false;
         const isSameTime = currentGroup.timestamp
-          ? +currentGroup.timestamp - +message.timestamp < SAME_GROUP_TIME
+          ? +message.timestamp - +currentGroup.timestamp < SAME_GROUP_TIME
           : false;
 
         if (isSameTime && isSameUser) {
-          currentGroup.messages = [].concat([message], currentGroup.messages);
+          currentGroup.messages = [].concat(currentGroup.messages, [message]);
           currentGroup.timestamp = message.timestamp;
         } else {
           if (currentGroup.timestamp) {
@@ -31,7 +46,9 @@ Vue.component("messages", {
           currentGroup = {
             messages: [message],
             userId: message.userId,
-            timestamp: message.timestamp
+            user: this.users[message.userId],
+            timestamp: message.timestamp,
+            minTimestamp: message.timestamp
           };
         }
       });
@@ -49,32 +66,48 @@ Vue.component("messages", {
         v-for="group in messageGroups"
         v-bind:key="group.timestamp"
         v-bind:messages="group.messages"
-        v-bind:user="group.userId"
-        v-bind:timestamp="group.timestamp">
+        v-bind:userId="group.userId"
+        v-bind:user="group.user"
+        v-bind:timestamp="group.minTimestamp">
       </message-group>
     </div>
-  `
+  `,
+  updated() {
+    this.$el.scrollTop = this.$el.scrollHeight;
+  }
 });
 
 Vue.component("message-group", {
-  props: ["messages", "user", "timestamp"],
+  props: ["messages", "userId", "user", "timestamp"],
   computed: {
     readableTimestamp: function() {
       const d = new Date(+this.timestamp * 1000);
-      return d.toLocaleTimeString();
+      return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    },
+    userName: function() {
+      return this.user ? this.user.displayName : this.userId;
     }
   },
   template: `
-    <ul>
-      <li>{{ user }}</li>
-      <li>{{ readableTimestamp }}</li>
+    <div class="message-group">
+      <img
+        v-bind:src="user ? user.imageUrl : null">
+      </img>
+      <div>
+        <div>
+          <strong>{{ userName }}</strong>
+          <span>{{ readableTimestamp }}</span>
+        </div>
 
-      <message-item
-        v-for="message in messages"
-        v-bind:key="message.timestamp"
-        v-bind:message="message">
-      </message-item>
-    </ul>
+        <ul class="message-list">
+          <message-item
+            v-for="message in messages"
+            v-bind:key="message.timestamp"
+            v-bind:message="message">
+          </message-item>
+        </ul>
+      </div>
+    </div>
   `
 });
 
@@ -104,7 +137,11 @@ Vue.component("message-form", {
   template: `
     <form
       v-on:submit="onSubmit">
-      <input v-model="text" placeholder="Message"></input>
+      <input
+        v-model="text"
+        v-focus
+        placeholder="Message">
+      </input>
       <input type="submit"></input>
     </form>
   `,
@@ -116,5 +153,12 @@ Vue.component("message-form", {
       });
       this.text = "";
     }
+  }
+});
+
+Vue.directive("focus", {
+  // When the bound element is inserted into the DOM...
+  inserted: function(el) {
+    el.focus();
   }
 });

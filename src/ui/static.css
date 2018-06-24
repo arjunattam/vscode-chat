@@ -1,5 +1,6 @@
 html,
-body {
+body,
+#app {
   height: 100%;
 }
 
@@ -14,16 +15,41 @@ body {
 .messages-section {
   margin: 5px;
   overflow: auto;
+}
+
+.message-group {
   display: flex;
-  flex-direction: column-reverse;
+  margin: 10px 5px;
+}
+
+.message-group img {
+  width: 36px;
+  height: 36px;
+  display: block;
+  margin: 5px 10px;
+  border-radius: 3px;
+}
+
+.message-list {
+  list-style: none;
+  padding: 0;
+  margin: 5px 0;
+}
+
+.message-list li {
+  margin: 3px 0;
 }
 
 .form-section {
-  margin: 5px;
+  margin: 10px 5px;
 }
 
 .form-section input {
   width: 100%;
+  border-radius: 3px;
+  padding: 5px;
+  box-sizing: border-box;
+  font-size: inherit;
 }
 
 .form-section input[type="submit"] {
