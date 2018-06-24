@@ -14,8 +14,8 @@ export function activate(context: vscode.ExtensionContext) {
     "extension.openSlack",
     () => {
       const { extensionPath } = context;
-      const vueJsPath = path.join(extensionPath, "src", "ui", "static.js");
-      const staticPath = vscode.Uri.file(vueJsPath).with({
+      const baseVuePath = path.join(extensionPath, "src", "ui");
+      const staticPath = vscode.Uri.file(baseVuePath).with({
         scheme: "vscode-resource"
       });
       const ui = new SlackUI(staticPath);

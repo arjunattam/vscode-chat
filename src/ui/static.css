@@ -1,0 +1,31 @@
+html,
+body {
+  height: 100%;
+}
+
+.vue-container {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  height: 100%;
+  overflow: hidden;
+}
+
+.messages-section {
+  margin: 5px;
+  overflow: auto;
+  display: flex;
+  flex-direction: column-reverse;
+}
+
+.form-section {
+  margin: 5px;
+}
+
+.form-section input {
+  width: 100%;
+}
+
+.form-section input[type="submit"] {
+  display: none;
+}
