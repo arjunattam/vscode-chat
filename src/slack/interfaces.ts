@@ -1,6 +1,6 @@
 export interface SlackUser {
   id: string;
-  displayName: string;
+  name: string;
   imageUrl: string;
 }
 
@@ -12,6 +12,18 @@ export interface SlackMessage {
   timestamp: string;
   text: string;
   userId: string;
+}
+
+export enum ChannelType {
+  channel = "channel",
+  group = "group",
+  im = "im"
+}
+
+export interface SlackChannel {
+  id: string;
+  name: string;
+  type: ChannelType;
 }
 
 export interface ExtensionMessage {

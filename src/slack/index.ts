@@ -1,6 +1,6 @@
 import { RTMClient } from "@slack/client";
 import SlackManager from "./manager";
-import { SlackMessage, UiMessage } from "./interfaces";
+import { SlackMessage, UiMessage, SlackChannel } from "./interfaces";
 
 class SlackMessenger {
   messages: SlackMessage[];
@@ -8,17 +8,24 @@ class SlackMessenger {
   uiCallback: (message: UiMessage) => void;
   rtmClient: RTMClient;
 
-  constructor(token: string, public conversationId: string) {
+  constructor(token: string, public channel: SlackChannel) {
     this.rtmClient = new RTMClient(token);
     this.manager = new SlackManager(token);
     this.messages = [];
     this.rtmClient.start();
 
     this.rtmClient.on("message", event => {
-      const msg = this.getMessageFromEvent(event);
-      this.messages.push(msg);
-      this.updateUi();
+      if (this.channel.id === event.channel) {
+        const msg = this.getMessageFromEvent(event);
+        this.messages.push(msg);
+        this.updateUi();
+      }
     });
+  }
+
+  setCurrentChannel(channel: SlackChannel) {
+    this.channel = channel;
+    this.loadHistory();
   }
 
   setUiCallback(uiCallback) {
@@ -31,7 +38,7 @@ class SlackMessenger {
 
   loadHistory() {
     this.manager
-      .getConversationHistory(this.conversationId)
+      .getConversationHistory(this.channel.id)
       .then(messages => {
         this.messages = messages;
         this.updateUi();
@@ -40,16 +47,14 @@ class SlackMessenger {
   }
 
   sendMessage(text: string) {
-    return this.rtmClient
-      .sendMessage(text, this.conversationId)
-      .then(result => {
-        this.messages.push({
-          userId: this.manager.currentUserId,
-          text: text,
-          timestamp: result.ts
-        });
-        this.updateUi();
+    return this.rtmClient.sendMessage(text, this.channel.id).then(result => {
+      this.messages.push({
+        userId: this.manager.currentUserId,
+        text: text,
+        timestamp: result.ts
       });
+      this.updateUi();
+    });
   }
 
   getMessageFromEvent(event) {

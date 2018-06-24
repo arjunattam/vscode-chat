@@ -85,7 +85,7 @@ Vue.component("message-group", {
       return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
     },
     userName: function() {
-      return this.user ? this.user.displayName : this.userId;
+      return this.user ? this.user.name : this.userId;
     }
   },
   template: `
