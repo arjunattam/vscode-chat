@@ -1,9 +1,13 @@
 {
-  "name": "vscode-rubberduck",
-  "displayName": "vscode-rubberduck",
-  "description": "",
-  "version": "0.0.1",
-  "publisher": "arjun",
+  "name": "chat",
+  "displayName": "Slack chat",
+  "description": "Slack chat inside VSCode",
+  "version": "0.1.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/karigari/vscode-chat.git"
+  },
+  "publisher": "karigari",
   "engines": {
     "vscode": "^1.24.0"
   },
@@ -36,7 +40,7 @@
   },
   "devDependencies": {
     "@types/mocha": "^2.2.42",
-    "@types/node": "^7.0.43",
+    "@types/node": "^8.0.0",
     "tslint": "^5.8.0",
     "typescript": "^2.6.1",
     "vscode": "^1.1.6"
