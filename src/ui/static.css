@@ -1,0 +1,57 @@
+html,
+body,
+#app {
+  height: 100%;
+}
+
+.vue-container {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  height: 100%;
+  overflow: hidden;
+}
+
+.messages-section {
+  margin: 5px;
+  overflow: auto;
+}
+
+.message-group {
+  display: flex;
+  margin: 10px 5px;
+}
+
+.message-group img {
+  width: 36px;
+  height: 36px;
+  display: block;
+  margin: 5px 10px;
+  border-radius: 3px;
+}
+
+.message-list {
+  list-style: none;
+  padding: 0;
+  margin: 5px 0;
+}
+
+.message-list li {
+  margin: 3px 0;
+}
+
+.form-section {
+  margin: 10px 5px;
+}
+
+.form-section input {
+  width: 100%;
+  border-radius: 3px;
+  padding: 5px;
+  box-sizing: border-box;
+  font-size: inherit;
+}
+
+.form-section input[type="submit"] {
+  display: none;
+}

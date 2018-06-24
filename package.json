@@ -1,0 +1,51 @@
+{
+  "name": "chat",
+  "displayName": "Slack chat",
+  "description": "Slack chat inside VSCode",
+  "version": "0.1.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/karigari/vscode-chat.git"
+  },
+  "publisher": "karigari",
+  "engines": {
+    "vscode": "^1.24.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onCommand:extension.openSlackPanel",
+    "onCommand:extension.changeChannel"
+  ],
+  "main": "./out/extension",
+  "contributes": {
+    "commands": [
+      {
+        "command": "extension.openSlackPanel",
+        "title": "Slack: Open"
+      },
+      {
+        "command": "extension.changeChannel",
+        "title": "Slack: Change Channel"
+      }
+    ]
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "postinstall": "node ./node_modules/vscode/bin/install",
+    "test": "npm run compile && node ./node_modules/vscode/bin/test"
+  },
+  "devDependencies": {
+    "@types/mocha": "^2.2.42",
+    "@types/node": "^8.0.0",
+    "tslint": "^5.8.0",
+    "typescript": "^2.6.1",
+    "vscode": "^1.1.6"
+  },
+  "dependencies": {
+    "@slack/client": "^4.3.1"
+  }
+}
