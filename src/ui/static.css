@@ -26,11 +26,12 @@ body,
   width: 36px;
   height: 36px;
   margin: 5px 10px;
+  flex-shrink: 0;
 }
 
-.message-group img {
-  width: 36px;
-  height: 36px;
+.message-group-image img {
+  min-width: 100%;
+  min-height: 100%;
   border-radius: 3px;
 }
 
@@ -42,6 +43,7 @@ body,
 
 .message-list li {
   margin: 3px 0;
+  word-break: break-all;
 }
 
 .form-section {

@@ -1,6 +1,12 @@
+import * as vscode from "vscode";
 import { RTMClient } from "@slack/client";
 import SlackManager from "./manager";
-import { SlackMessage, UiMessage, SlackChannel } from "./interfaces";
+import {
+  SlackMessage,
+  UiMessage,
+  SlackChannel,
+  SlackUsers
+} from "./interfaces";
 
 class SlackMessenger {
   messages: SlackMessage[];
@@ -9,16 +15,16 @@ class SlackMessenger {
   rtmClient: RTMClient;
   uiCallback: (message: UiMessage) => void;
 
-  constructor(public token: string) {
-    this.manager = new SlackManager(token);
+  constructor(public token: string, context: vscode.ExtensionContext) {
+    this.manager = new SlackManager(token, context);
     this.messages = [];
 
     this.rtmClient = new RTMClient(this.token);
     this.rtmClient.start();
   }
 
-  init() {
-    return this.manager.init();
+  init(storeUsers: SlackUsers, storeChannels: SlackChannel[]) {
+    return this.manager.init(storeUsers, storeChannels);
   }
 
   setCurrentChannel(channel: SlackChannel) {

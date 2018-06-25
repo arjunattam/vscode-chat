@@ -1,8 +1,7 @@
-"use strict";
 import * as vscode from "vscode";
 import SlackUI from "./ui";
 import SlackMessenger from "./slack";
-import ViewController from "./slack/controller";
+import ViewController from "./controller";
 import { SlackChannel, SlackCurrentUser, SlackUsers } from "./slack/interfaces";
 
 export function activate(context: vscode.ExtensionContext) {
@@ -61,6 +60,7 @@ export function activate(context: vscode.ExtensionContext) {
       const prefix = channel.type === "im" ? "@" : "#";
       return prefix + channel.name;
     });
+
     return vscode.window
       .showQuickPick(channelList, {
         placeHolder: "Select a channel"
@@ -100,7 +100,7 @@ export function activate(context: vscode.ExtensionContext) {
 
   const setupMessenger = () => {
     if (!messenger) {
-      messenger = new SlackMessenger(slackToken);
+      messenger = new SlackMessenger(slackToken, context);
       controller = null;
     }
   };
@@ -112,7 +112,7 @@ export function activate(context: vscode.ExtensionContext) {
       setupMessenger();
 
       messenger
-        .init()
+        .init(users, channels)
         .then(() => {
           return lastChannel && lastChannel.id
             ? new Promise((resolve, _) => {
