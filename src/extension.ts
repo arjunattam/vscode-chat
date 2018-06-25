@@ -79,7 +79,6 @@ export function activate(context: vscode.ExtensionContext) {
 
           // Handle tab switching
           ui.panel.onDidChangeViewState(e => {
-            console.log("on did view change", e);
             viewController.sendToUi({
               messages: messenger.messages,
               users: messenger.manager.users,

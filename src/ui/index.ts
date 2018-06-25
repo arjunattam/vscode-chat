@@ -34,9 +34,7 @@ class SlackUI {
   }
 
   update(message: UiMessage) {
-    this.panel.webview.postMessage({ ...message }).then(response => {
-      console.log("post message", response);
-    });
+    this.panel.webview.postMessage({ ...message });
     this.updateTitle(message.channel);
   }
 
