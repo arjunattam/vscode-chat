@@ -1,10 +1,12 @@
 # vscode-chat
 
-Use Slack inside VSCode
+[![](https://vsmarketplacebadge.apphb.com/version-short/karigari.chat.svg)](https://marketplace.visualstudio.com/items?itemName=karigari.chat)
 
-## Usage
+Send and receive Slack chat inside VSCode.
 
-- Install from the marketplace
+## Setup
+
+- Install from [the marketplace](https://marketplace.visualstudio.com/items?itemName=karigari.chat)
 - Generate a legacy token for Slack [here](https://api.slack.com/custom-integrations/legacy-tokens)
 - Add the following setting
 
