@@ -1,6 +1,5 @@
 "use strict";
 import * as vscode from "vscode";
-import * as path from "path";
 import SlackUI from "./ui";
 import SlackMessenger from "./slack";
 import ViewController from "./slack/controller";
@@ -67,11 +66,7 @@ export function activate(context: vscode.ExtensionContext) {
             ui.reveal();
           } else {
             const { extensionPath } = context;
-            const baseVuePath = path.join(extensionPath, "src", "ui");
-            const staticPath = vscode.Uri.file(baseVuePath).with({
-              scheme: "vscode-resource"
-            });
-            ui = new SlackUI(staticPath);
+            ui = new SlackUI(extensionPath);
           }
 
           // Setup message passing

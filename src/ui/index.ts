@@ -1,15 +1,24 @@
 import * as vscode from "vscode";
+import * as path from "path";
 import { ExtensionMessage, UiMessage, SlackChannel } from "../slack/interfaces";
 
 class SlackUI {
   panel: vscode.WebviewPanel;
 
-  constructor(public staticPath) {
+  constructor(public extensionPath) {
+    const baseVuePath = path.join(extensionPath, "static");
+    const staticPath = vscode.Uri.file(baseVuePath).with({
+      scheme: "vscode-resource"
+    });
+
     this.panel = vscode.window.createWebviewPanel(
       "slackPanel",
       "Slack",
       vscode.ViewColumn.Three,
-      { enableScripts: true }
+      {
+        enableScripts: true,
+        localResourceRoots: [vscode.Uri.file(baseVuePath)]
+      }
     );
 
     this.panel.webview.html = getWebviewContent(staticPath);

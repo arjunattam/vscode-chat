@@ -1,8 +1,8 @@
 {
   "name": "chat",
-  "displayName": "Slack chat",
-  "description": "Slack chat inside VSCode",
-  "version": "0.1.0",
+  "displayName": "Slack Chat",
+  "description": "Send and receive Slack chat inside VSCode",
+  "version": "0.1.1",
   "repository": {
     "type": "git",
     "url": "https://github.com/karigari/vscode-chat.git"
@@ -11,6 +11,7 @@
   "engines": {
     "vscode": "^1.24.0"
   },
+  "icon": "public/icon.png",
   "categories": [
     "Other"
   ],
@@ -34,6 +35,7 @@
   "scripts": {
     "vscode:prepublish": "npm run compile",
     "compile": "tsc -p ./",
+    "postcompile": "cp src/ui/static* static/.",
     "watch": "tsc -watch -p ./",
     "postinstall": "node ./node_modules/vscode/bin/install",
     "test": "npm run compile && node ./node_modules/vscode/bin/test"
