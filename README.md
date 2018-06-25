@@ -4,9 +4,9 @@
 
 # Slack Chat for VSCode
 
-Send and receive Slack Chat without leaving your editor. Works on channels, private group chats, and direct messages.
-
 ![Demo gif](public/example.gif)
+
+Send and receive Slack Chat without leaving your editor. Works on channels, private group chats, and direct messages.
 
 ## Setup
 
