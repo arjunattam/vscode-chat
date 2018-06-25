@@ -40,3 +40,7 @@ vscode-chat is actively developed, and you are welcome to [submit feature reques
 ## Support
 
 Feel free to [raise an issue](https://github.com/karigari/vscode-chat/issues), or [tweet at us](https://twitter.com/getrubberduck) for any questions or support. You can also reach me directly at arjun@rubberduck.io
+
+## Credits
+
+- Icon by [icons8](https://icons8.com)
