@@ -90,9 +90,11 @@ Vue.component("message-group", {
   },
   template: `
     <div class="message-group">
-      <img
-        v-bind:src="user ? user.imageUrl : null">
-      </img>
+      <div class="message-group-image">
+        <img
+          v-bind:src="user ? user.imageUrl : null">
+        </img>
+      </div>
       <div>
         <div>
           <strong>{{ userName }}</strong>

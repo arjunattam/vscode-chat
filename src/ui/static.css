@@ -22,11 +22,15 @@ body,
   margin: 10px 5px;
 }
 
+.message-group-image {
+  width: 36px;
+  height: 36px;
+  margin: 5px 10px;
+}
+
 .message-group img {
   width: 36px;
   height: 36px;
-  display: block;
-  margin: 5px 10px;
   border-radius: 3px;
 }
 

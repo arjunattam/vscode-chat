@@ -18,7 +18,19 @@ export function activate(context: vscode.ExtensionContext) {
   let currentUserInfo: SlackCurrentUser | undefined = undefined;
   let users: SlackUsers | undefined = undefined;
 
+  const clearConfiguration = () => {
+    context.globalState.update("lastChannel", {});
+    context.globalState.update("channels", {});
+    context.globalState.update("userInfo", {});
+    context.globalState.update("users", {});
+  };
+
   const loadConfiguration = () => {
+    //
+    // Only used for testing
+    // clearConfiguration();
+    //
+
     const config = vscode.workspace.getConfiguration("chat");
     const { slack } = config;
 
@@ -62,6 +74,9 @@ export function activate(context: vscode.ExtensionContext) {
           context.globalState.update("lastChannel", selectedChannel);
           lastChannel = selectedChannel;
           return selectedChannel;
+        } else {
+          vscode.window.showErrorMessage("Invalid channel selected");
+          throw new Error("Invalid channel");
         }
       });
   };
@@ -99,7 +114,7 @@ export function activate(context: vscode.ExtensionContext) {
       messenger
         .init()
         .then(() => {
-          return lastChannel.id
+          return lastChannel && lastChannel.id
             ? new Promise((resolve, _) => {
                 resolve();
               })
@@ -122,24 +137,32 @@ export function activate(context: vscode.ExtensionContext) {
 
           // When the webview thing disposes
           ui.panel.onDidDispose(e => {
-            messenger = null;
             ui = null;
+            controller = null;
           });
-        });
+        })
+        .catch(e => console.error(e));
     }
   );
 
   let changeChannelCommand = vscode.commands.registerCommand(
     "extension.changeChannel",
     () => {
-      askForChannel().then(channel => messenger.setCurrentChannel(channel));
+      askForChannel().then(
+        channel => (messenger ? messenger.setCurrentChannel(channel) : null)
+      );
     }
   );
 
   context.subscriptions.push(openSlackCommand, changeChannelCommand);
 
   context.subscriptions.push(
-    vscode.workspace.onDidChangeConfiguration(() => loadConfiguration())
+    vscode.workspace.onDidChangeConfiguration(() => {
+      loadConfiguration();
+      messenger = null;
+      ui = null;
+      controller = null;
+    })
   );
 
   loadConfiguration();

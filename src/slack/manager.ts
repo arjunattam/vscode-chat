@@ -14,7 +14,9 @@ class SlackManager {
 
   init() {
     this.getCurrentUser();
-    return this.getAllUserInfo().then(() => this.getChannels());
+    return this.getAllUserInfo()
+      .then(() => this.getChannels().catch(e => console.error(e)))
+      .catch(e => console.error(e));
   }
 
   getConversationHistory(channel: string) {
