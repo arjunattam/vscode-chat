@@ -69,10 +69,9 @@ class SlackMessenger {
 
   sendMessage(text: string) {
     return this.rtmClient.sendMessage(text, this.channel.id).then(result => {
-      console.log("result", result);
       this.updateMessages([
         {
-          userId: this.manager.currentUserId,
+          userId: this.manager.currentUser.id,
           text: text,
           timestamp: result.ts
         }

@@ -3,17 +3,22 @@ import * as vscode from "vscode";
 import SlackUI from "./ui";
 import SlackMessenger from "./slack";
 import ViewController from "./slack/controller";
-import { SlackChannel } from "./slack/interfaces";
+import { SlackChannel, SlackCurrentUser, SlackUsers } from "./slack/interfaces";
 
 export function activate(context: vscode.ExtensionContext) {
+  // Class instances
   let ui: SlackUI | undefined = undefined;
   let messenger: SlackMessenger | undefined = undefined;
   let controller: ViewController | undefined = undefined;
+
+  // Configuration and global state
   let slackToken: string | undefined = undefined;
   let lastChannel: SlackChannel | undefined = undefined;
+  let channels: SlackChannel[] | undefined = undefined;
+  let currentUserInfo: SlackCurrentUser | undefined = undefined;
+  let users: SlackUsers | undefined = undefined;
 
   const loadConfiguration = () => {
-    // https://api.slack.com/custom-integrations/legacy-tokens
     const config = vscode.workspace.getConfiguration("chat");
     const { slack } = config;
 
@@ -24,6 +29,19 @@ export function activate(context: vscode.ExtensionContext) {
     }
 
     lastChannel = context.globalState.get("lastChannel");
+    channels = context.globalState.get("channels");
+    currentUserInfo = context.globalState.get("userInfo");
+    users = context.globalState.get("users");
+
+    if (currentUserInfo && slackToken) {
+      if (currentUserInfo.token !== slackToken) {
+        // Token has changed, all state is suspicious now
+        lastChannel = null;
+        channels = null;
+        currentUserInfo = null;
+        users = null;
+      }
+    }
   };
 
   const askForChannel = () => {

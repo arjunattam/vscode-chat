@@ -29,8 +29,10 @@ class SlackUI {
   }
 
   updateTitle(channel: SlackChannel) {
-    const prefix = channel.type === "im" ? "@" : "#";
-    this.panel.title = prefix + channel.name;
+    if (channel) {
+      const prefix = channel.type === "im" ? "@" : "#";
+      this.panel.title = prefix + channel.name;
+    }
   }
 
   update(message: UiMessage) {

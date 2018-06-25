@@ -1,13 +1,13 @@
 import { WebClient } from "@slack/client";
-import { SlackUsers, SlackChannel } from "./interfaces";
+import { SlackUsers, SlackChannel, SlackCurrentUser } from "./interfaces";
 
 class SlackManager {
   users: SlackUsers;
   channels: SlackChannel[];
-  currentUserId: string;
+  currentUser: SlackCurrentUser;
   client: WebClient;
 
-  constructor(token: string) {
+  constructor(public token: string) {
     this.client = new WebClient(token);
     this.users = {};
   }
@@ -56,7 +56,7 @@ class SlackManager {
       .then((response: any) => {
         const { ok, user_id } = response;
         if (ok) {
-          this.currentUserId = user_id;
+          this.currentUser = { id: user_id, token: this.token };
         }
       })
       .catch(error => console.error(error));
