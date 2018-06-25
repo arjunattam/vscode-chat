@@ -4,6 +4,11 @@ export interface SlackUser {
   imageUrl: string;
 }
 
+export interface SlackCurrentUser {
+  id: string;
+  token: string;
+}
+
 export interface SlackUsers {
   [id: string]: SlackUser;
 }

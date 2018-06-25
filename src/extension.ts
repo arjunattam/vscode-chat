@@ -3,16 +3,22 @@ import * as vscode from "vscode";
 import SlackUI from "./ui";
 import SlackMessenger from "./slack";
 import ViewController from "./slack/controller";
-import { SlackChannel } from "./slack/interfaces";
+import { SlackChannel, SlackCurrentUser, SlackUsers } from "./slack/interfaces";
 
 export function activate(context: vscode.ExtensionContext) {
+  // Class instances
   let ui: SlackUI | undefined = undefined;
   let messenger: SlackMessenger | undefined = undefined;
+  let controller: ViewController | undefined = undefined;
+
+  // Configuration and global state
   let slackToken: string | undefined = undefined;
   let lastChannel: SlackChannel | undefined = undefined;
+  let channels: SlackChannel[] | undefined = undefined;
+  let currentUserInfo: SlackCurrentUser | undefined = undefined;
+  let users: SlackUsers | undefined = undefined;
 
   const loadConfiguration = () => {
-    // https://api.slack.com/custom-integrations/legacy-tokens
     const config = vscode.workspace.getConfiguration("chat");
     const { slack } = config;
 
@@ -23,6 +29,19 @@ export function activate(context: vscode.ExtensionContext) {
     }
 
     lastChannel = context.globalState.get("lastChannel");
+    channels = context.globalState.get("channels");
+    currentUserInfo = context.globalState.get("userInfo");
+    users = context.globalState.get("users");
+
+    if (currentUserInfo && slackToken) {
+      if (currentUserInfo.token !== slackToken) {
+        // Token has changed, all state is suspicious now
+        lastChannel = null;
+        channels = null;
+        currentUserInfo = null;
+        users = null;
+      }
+    }
   };
 
   const askForChannel = () => {
@@ -47,40 +66,54 @@ export function activate(context: vscode.ExtensionContext) {
       });
   };
 
+  const loadUi = () => {
+    if (ui) {
+      ui.reveal();
+    } else {
+      const { extensionPath } = context;
+      ui = new SlackUI(extensionPath);
+    }
+  };
+
+  const setupMessagePassing = () => {
+    if (!controller) {
+      controller = new ViewController(ui, messenger);
+      ui.setMessageHandler(controller.sendToExtension);
+      messenger.setUiCallback(msg => controller.sendToUi(msg));
+    }
+  };
+
+  const setupMessenger = () => {
+    if (!messenger) {
+      messenger = new SlackMessenger(slackToken);
+      controller = null;
+    }
+  };
+
   let openSlackCommand = vscode.commands.registerCommand(
     "extension.openSlackPanel",
     () => {
-      messenger = new SlackMessenger(slackToken);
+      loadUi();
+      setupMessenger();
 
       messenger
         .init()
         .then(() => {
           return lastChannel.id
-            ? new Promise((resolve, reject) => {
+            ? new Promise((resolve, _) => {
                 resolve();
               })
             : askForChannel();
         })
         .then(() => {
-          if (ui) {
-            ui.reveal();
-          } else {
-            const { extensionPath } = context;
-            ui = new SlackUI(extensionPath);
-          }
-
-          // Setup message passing
-          const viewController = new ViewController(ui, messenger);
-          ui.setMessageHandler(msg => viewController.sendToExtension(msg));
-          messenger.setUiCallback(msg => viewController.sendToUi(msg));
+          setupMessagePassing();
 
           // Setup initial ui
           messenger.setCurrentChannel(lastChannel);
 
           // Handle tab switching
           ui.panel.onDidChangeViewState(e => {
-            console.log("on did view change", e);
-            viewController.sendToUi({
+            controller.sendToUi({
               messages: messenger.messages,
               users: messenger.manager.users,
               channel: messenger.channel
