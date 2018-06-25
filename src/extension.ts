@@ -8,6 +8,7 @@ import { SlackChannel } from "./slack/interfaces";
 export function activate(context: vscode.ExtensionContext) {
   let ui: SlackUI | undefined = undefined;
   let messenger: SlackMessenger | undefined = undefined;
+  let controller: ViewController | undefined = undefined;
   let slackToken: string | undefined = undefined;
   let lastChannel: SlackChannel | undefined = undefined;
 
@@ -47,39 +48,54 @@ export function activate(context: vscode.ExtensionContext) {
       });
   };
 
+  const loadUi = () => {
+    if (ui) {
+      ui.reveal();
+    } else {
+      const { extensionPath } = context;
+      ui = new SlackUI(extensionPath);
+    }
+  };
+
+  const setupMessagePassing = () => {
+    if (!controller) {
+      controller = new ViewController(ui, messenger);
+      ui.setMessageHandler(controller.sendToExtension);
+      messenger.setUiCallback(msg => controller.sendToUi(msg));
+    }
+  };
+
+  const setupMessenger = () => {
+    if (!messenger) {
+      messenger = new SlackMessenger(slackToken);
+      controller = null;
+    }
+  };
+
   let openSlackCommand = vscode.commands.registerCommand(
     "extension.openSlackPanel",
     () => {
-      messenger = new SlackMessenger(slackToken);
+      loadUi();
+      setupMessenger();
 
       messenger
         .init()
         .then(() => {
           return lastChannel.id
-            ? new Promise((resolve, reject) => {
+            ? new Promise((resolve, _) => {
                 resolve();
               })
             : askForChannel();
         })
         .then(() => {
-          if (ui) {
-            ui.reveal();
-          } else {
-            const { extensionPath } = context;
-            ui = new SlackUI(extensionPath);
-          }
-
-          // Setup message passing
-          const viewController = new ViewController(ui, messenger);
-          ui.setMessageHandler(msg => viewController.sendToExtension(msg));
-          messenger.setUiCallback(msg => viewController.sendToUi(msg));
+          setupMessagePassing();
 
           // Setup initial ui
           messenger.setCurrentChannel(lastChannel);
 
           // Handle tab switching
           ui.panel.onDidChangeViewState(e => {
-            viewController.sendToUi({
+            controller.sendToUi({
               messages: messenger.messages,
               users: messenger.manager.users,
               channel: messenger.channel

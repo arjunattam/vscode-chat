@@ -25,7 +25,7 @@ class SlackUI {
   }
 
   setMessageHandler(msgHandler: (message: ExtensionMessage) => void) {
-    this.panel.webview.onDidReceiveMessage(message => msgHandler(message));
+    this.panel.webview.onDidReceiveMessage(msgHandler);
   }
 
   updateTitle(channel: SlackChannel) {

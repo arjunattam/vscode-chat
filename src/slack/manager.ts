@@ -19,7 +19,7 @@ class SlackManager {
 
   getConversationHistory(channel: string) {
     return this.client
-      .apiCall("conversations.history", { channel, limit: 20 })
+      .apiCall("conversations.history", { channel, limit: 50 })
       .then((response: any) => {
         const { messages, ok } = response;
 

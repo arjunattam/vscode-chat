@@ -12,6 +12,9 @@ class SlackMessenger {
   constructor(public token: string) {
     this.manager = new SlackManager(token);
     this.messages = [];
+
+    this.rtmClient = new RTMClient(this.token);
+    this.rtmClient.start();
   }
 
   init() {
@@ -19,23 +22,16 @@ class SlackMessenger {
   }
 
   setCurrentChannel(channel: SlackChannel) {
-    if (this.rtmClient && this.rtmClient.connected) {
-      this.rtmClient.disconnect();
-      this.rtmClient = null;
-    }
-
-    this.rtmClient = new RTMClient(this.token);
     this.channel = channel;
-    this.rtmClient.start();
 
     this.rtmClient.on("message", event => {
       if (this.channel.id === event.channel) {
         const msg = this.getMessageFromEvent(event);
-        this.messages.push(msg);
-        this.updateUi();
+        this.updateMessages([msg]);
       }
     });
 
+    this.updateMessages([], true);
     this.loadHistory();
   }
 
@@ -43,7 +39,18 @@ class SlackMessenger {
     this.uiCallback = uiCallback;
   }
 
-  updateUi() {
+  updateMessages(newMessages: SlackMessage[], override: boolean = false) {
+    if (override) {
+      this.messages = [];
+    }
+
+    this.messages = []
+      .concat(this.messages, newMessages)
+      .filter(
+        (message, index, self) =>
+          index === self.findIndex(t => t.timestamp === message.timestamp)
+      );
+
     this.uiCallback({
       messages: this.messages,
       users: this.manager.users,
@@ -55,20 +62,21 @@ class SlackMessenger {
     this.manager
       .getConversationHistory(this.channel.id)
       .then(messages => {
-        this.messages = messages;
-        this.updateUi();
+        this.updateMessages(messages);
       })
       .catch(error => console.error(error));
   }
 
   sendMessage(text: string) {
     return this.rtmClient.sendMessage(text, this.channel.id).then(result => {
-      this.messages.push({
-        userId: this.manager.currentUserId,
-        text: text,
-        timestamp: result.ts
-      });
-      this.updateUi();
+      console.log("result", result);
+      this.updateMessages([
+        {
+          userId: this.manager.currentUserId,
+          text: text,
+          timestamp: result.ts
+        }
+      ]);
     });
   }
 
