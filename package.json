@@ -3,17 +3,32 @@
   "displayName": "Slack Chat",
   "description": "Send and receive Slack chat inside VSCode",
   "version": "0.1.1",
+  "homepage": "https://github.com/karigari/vscode-chat",
+  "license": "SEE LICENSE IN LICENSE",
   "repository": {
     "type": "git",
     "url": "https://github.com/karigari/vscode-chat.git"
+  },
+  "bugs": {
+    "url": "https://github.com/karigari/vscode-chat/issues",
+    "email": "arjun@rubberduck.io"
   },
   "publisher": "karigari",
   "engines": {
     "vscode": "^1.24.0"
   },
   "icon": "public/icon.png",
+  "galleryBanner": {
+    "color": "#233f6c",
+    "theme": "light"
+  },
   "categories": [
     "Other"
+  ],
+  "keywords": [
+    "slack",
+    "chat",
+    "live"
   ],
   "activationEvents": [
     "onCommand:extension.openSlackPanel",
@@ -21,6 +36,17 @@
   ],
   "main": "./out/extension",
   "contributes": {
+    "configuration": {
+      "type": "object",
+      "title": "Slack Chat configuration",
+      "properties": {
+        "chat.slack.legacyToken": {
+          "type": "string",
+          "default": null,
+          "description": "Slack token for authentication. Get yours here: https://api.slack.com/custom-integrations/legacy-tokens"
+        }
+      }
+    },
     "commands": [
       {
         "command": "extension.openSlackPanel",
