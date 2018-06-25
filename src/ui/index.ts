@@ -17,6 +17,7 @@ class SlackUI {
       vscode.ViewColumn.Three,
       {
         enableScripts: true,
+        retainContextWhenHidden: true,
         localResourceRoots: [vscode.Uri.file(baseVuePath)]
       }
     );

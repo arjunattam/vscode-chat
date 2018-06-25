@@ -2,7 +2,7 @@
 [![Build Status](https://travis-ci.org/karigari/vscode-chat.svg?branch=master)](https://travis-ci.org/karigari/vscode-chat)
 [![](https://img.shields.io/badge/join-slack-orange.svg)](https://join.slack.com/t/karigarihq/shared_invite/enQtMzM5NzQxNjQxNTA1LTM0ZDFhNWQ3YmEyYmExZTY1ODJmM2U3NzExM2E0YmQxODcxYTgwYzczOTVkOGY5ODk2MWE0MzE2ODliNGU1ZDc)
 
-# Slack Chat for VSCode
+# Slack Chat for VSCode 💬
 
 ![Demo gif](public/example.gif)
 
@@ -10,9 +10,9 @@ Send and receive Slack Chat without leaving your editor. Works on channels, priv
 
 ## Setup
 
-- Install from the [extensions marketplace](https://marketplace.visualstudio.com/items?itemName=karigari.chat)
-- Generate a [Slack legacy token](https://api.slack.com/custom-integrations/legacy-tokens) for your team
-- Add token to your settings (File > Preferences > Settings)
+1.  Install from the [extensions marketplace](https://marketplace.visualstudio.com/items?itemName=karigari.chat)
+2.  Generate a [Slack legacy token](https://api.slack.com/custom-integrations/legacy-tokens) for your team
+3.  Add token to your settings (File > Preferences > Settings)
 
 ```
 {
@@ -35,15 +35,15 @@ Open the Command Palette, and select **Slack: Open**. This will create a new pan
 
 ![Open command](public/open-command.gif)
 
-### Change Slack channel
+### Switch channels
 
 Open the Command Palette, and select **Slack: Change Channel**. This will change the Slack channel in the open panel.
 
 ![Channel command](public/channel-command.gif)
 
-### Theme colors
+### Native look-and-feel
 
-Slack Chat for VSCode is compatible with all dark or light themes.
+Slack Chat for VSCode is compatible with dark or light themes. The panel fits within vertical/horizontal panel splits.
 
 ![Light theme](public/themes.gif)
 
