@@ -6,7 +6,10 @@ export interface SlackUser {
 
 export interface SlackCurrentUser {
   id: string;
+  name: string;
   token: string;
+  teamId: string;
+  teamName: string;
 }
 
 export interface SlackUsers {
