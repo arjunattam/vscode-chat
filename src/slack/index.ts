@@ -1,5 +1,6 @@
 import * as vscode from "vscode";
 import { RTMClient } from "@slack/client";
+import * as EmojiConvertor from "emoji-js";
 import SlackManager from "./manager";
 import {
   SlackMessage,
@@ -57,8 +58,15 @@ class SlackMessenger {
           index === self.findIndex(t => t.timestamp === message.timestamp)
       );
 
+    const emoji = new EmojiConvertor();
+    emoji.allow_native = true;
+    emoji.replace_mode = "unified";
+
     this.uiCallback({
-      messages: this.messages,
+      messages: this.messages.map(message => ({
+        ...message,
+        text: emoji.replace_colons(message.text)
+      })),
       users: this.manager.users,
       channel: this.channel
     });
