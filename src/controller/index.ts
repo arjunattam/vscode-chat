@@ -1,6 +1,7 @@
 import SlackMessenger from "../slack";
 import SlackUI from "../ui";
 import { ExtensionMessage, UiMessage } from "../slack/interfaces";
+import Logger from "../logger";
 
 /**
  * Handles message passing between the ui and extension
@@ -18,8 +19,10 @@ class ViewController {
     }
   };
 
-  sendToUi = (message: UiMessage) => {
-    this.ui.update(message);
+  sendToUi = (uiMessage: UiMessage) => {
+    const { messages } = uiMessage;
+    Logger.log(`Sending to ui: ${messages.length}`);
+    this.ui.update(uiMessage);
   };
 }
 
