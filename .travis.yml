@@ -19,3 +19,6 @@ install:
 
 script:
   - yarn test
+
+notifications:
+  slack: karigarihq:wyMAff0ihz5w5H2UKtrU2etP
