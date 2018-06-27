@@ -76,7 +76,14 @@ class SlackManager {
       .then((response: any) => {
         const { ok, user_id } = response;
         if (ok) {
-          this.currentUser = { id: user_id, token: this.token };
+          const { user: name, team: teamName, team_id: teamId } = response;
+          this.currentUser = {
+            id: user_id,
+            token: this.token,
+            name,
+            teamName,
+            teamId
+          };
           this.updateGlobalState("userInfo", this.currentUser);
         }
       })
