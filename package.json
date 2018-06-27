@@ -31,8 +31,8 @@
     "live"
   ],
   "activationEvents": [
-    "onCommand:extension.openSlackPanel",
-    "onCommand:extension.changeChannel"
+    "onCommand:extension.chat.openSlackPanel",
+    "onCommand:extension.chat.changeChannel"
   ],
   "main": "./out/extension",
   "contributes": {
@@ -49,11 +49,11 @@
     },
     "commands": [
       {
-        "command": "extension.openSlackPanel",
+        "command": "extension.chat.openSlackPanel",
         "title": "Slack: Open"
       },
       {
-        "command": "extension.changeChannel",
+        "command": "extension.chat.changeChannel",
         "title": "Slack: Change Channel"
       }
     ]

@@ -5,29 +5,35 @@ const SAME_GROUP_TIME = 5 * 60; // ms
 Vue.component("app-container", {
   props: ["messages", "users"],
   template: `
-    <div
-      class="vue-container">
-      <messages
+    <div class="vue-container">
+      <messages-section
         v-bind:messages="messages"
         v-bind:users="users">
-      </messages>
+      </messages-section>
 
       <form-section></form-section>
     </div>
   `
 });
 
-Vue.component("messages", {
+Vue.component("messages-section", {
   props: ["messages", "users"],
   computed: {
     messageGroups: function() {
-      this.messages.sort(function(a, b) {
+      const messagesCopy = this.messages.slice();
+
+      messagesCopy.sort(function(a, b) {
         return +a.timestamp - +b.timestamp;
       });
-      let groups = [];
-      let currentGroup = {};
 
-      this.messages.forEach(message => {
+      const initialValue = {
+        currentGroup: {},
+        groups: []
+      };
+
+      let result = messagesCopy.reduce((groupsAccumulator, message) => {
+        const { currentGroup, groups } = groupsAccumulator;
+
         const isSameUser = currentGroup.userId
           ? message.userId === currentGroup.userId
           : false;
@@ -36,28 +42,35 @@ Vue.component("messages", {
           : false;
 
         if (isSameTime && isSameUser) {
-          currentGroup.messages = [].concat(currentGroup.messages, [message]);
-          currentGroup.timestamp = message.timestamp;
-        } else {
-          if (currentGroup.timestamp) {
-            groups.push(currentGroup);
-          }
-
-          currentGroup = {
-            messages: [message],
-            userId: message.userId,
-            user: this.users[message.userId],
+          let newGroup = Object.assign(currentGroup, {
             timestamp: message.timestamp,
-            minTimestamp: message.timestamp
+            messages: [].concat(currentGroup.messages, [message])
+          });
+          groupsAccumulator = {
+            currentGroup: newGroup,
+            groups: groups
+          };
+        } else {
+          groupsAccumulator = {
+            currentGroup: {
+              messages: [message],
+              userId: message.userId,
+              user: this.users[message.userId],
+              timestamp: message.timestamp,
+              minTimestamp: message.timestamp
+            },
+            groups: currentGroup.timestamp
+              ? [].concat(groups, [currentGroup])
+              : groups
           };
         }
-      });
+        return groupsAccumulator;
+      }, initialValue);
 
-      if (currentGroup.timestamp) {
-        groups.push(currentGroup);
-      }
-
-      return groups;
+      const { currentGroup, groups } = result;
+      return currentGroup.timestamp
+        ? [].concat(groups, [currentGroup])
+        : groups;
     }
   },
   template: `

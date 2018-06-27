@@ -2,6 +2,7 @@ import * as vscode from "vscode";
 import SlackUI from "./ui";
 import SlackMessenger from "./slack";
 import ViewController from "./controller";
+import Logger from "./logger";
 import { SlackChannel, SlackCurrentUser, SlackUsers } from "./slack/interfaces";
 
 export function activate(context: vscode.ExtensionContext) {
@@ -105,64 +106,67 @@ export function activate(context: vscode.ExtensionContext) {
     }
   };
 
-  let openSlackCommand = vscode.commands.registerCommand(
-    "extension.openSlackPanel",
-    () => {
-      loadUi();
-      setupMessenger();
+  const openSlackPanel = () => {
+    Logger.log("Open slack panel");
+    loadUi();
+    setupMessenger();
 
-      messenger
-        .init(users, channels)
-        .then(() => {
-          return lastChannel && lastChannel.id
-            ? new Promise((resolve, _) => {
-                resolve();
-              })
-            : askForChannel();
-        })
-        .then(() => {
-          setupMessagePassing();
+    messenger
+      .init(users, channels)
+      .then(() => {
+        return lastChannel && lastChannel.id
+          ? new Promise((resolve, _) => {
+              resolve();
+            })
+          : askForChannel();
+      })
+      .then(() => {
+        setupMessagePassing();
 
-          // Setup initial ui
-          messenger.setCurrentChannel(lastChannel);
+        // Setup initial ui
+        messenger.setCurrentChannel(lastChannel);
 
-          // Handle tab switching
-          ui.panel.onDidChangeViewState(e => {
-            controller.sendToUi({
-              messages: messenger.messages,
-              users: messenger.manager.users,
-              channel: messenger.channel
-            });
+        // Handle tab switching
+        ui.panel.onDidChangeViewState(e => {
+          controller.sendToUi({
+            messages: messenger.messages,
+            users: messenger.manager.users,
+            channel: messenger.channel
           });
+        });
 
-          // When the webview thing disposes
-          ui.panel.onDidDispose(e => {
-            ui = null;
-            controller = null;
-          });
-        })
-        .catch(e => console.error(e));
-    }
-  );
+        // When the webview thing disposes
+        ui.panel.onDidDispose(e => {
+          ui = null;
+          controller = null;
+        });
+      })
+      .catch(e => console.error(e));
+  };
 
-  let changeChannelCommand = vscode.commands.registerCommand(
-    "extension.changeChannel",
-    () => {
-      askForChannel().then(
-        channel => (messenger ? messenger.setCurrentChannel(channel) : null)
-      );
-    }
-  );
+  const channelChanger = () => {
+    return askForChannel().then(
+      channel => (messenger ? messenger.setCurrentChannel(channel) : null)
+    );
+  };
 
-  context.subscriptions.push(openSlackCommand, changeChannelCommand);
+  const resetConfiguration = () => {
+    loadConfiguration();
+    messenger = null;
+    ui = null;
+    controller = null;
+  };
 
   context.subscriptions.push(
-    vscode.workspace.onDidChangeConfiguration(() => {
-      loadConfiguration();
-      messenger = null;
-      ui = null;
-      controller = null;
-    })
+    vscode.commands.registerCommand(
+      "extension.chat.openSlackPanel",
+      openSlackPanel
+    ),
+    vscode.commands.registerCommand(
+      "extension.chat.changeChannel",
+      channelChanger
+    ),
+    vscode.workspace.onDidChangeConfiguration(resetConfiguration)
   );
 
   loadConfiguration();

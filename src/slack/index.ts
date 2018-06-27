@@ -2,6 +2,7 @@ import * as vscode from "vscode";
 import { RTMClient } from "@slack/client";
 import * as EmojiConvertor from "emoji-js";
 import SlackManager from "./manager";
+import Logger from "../logger";
 import {
   SlackMessage,
   UiMessage,
@@ -73,12 +74,16 @@ class SlackMessenger {
   }
 
   loadHistory() {
+    Logger.log(`Loading history for ${this.channel.name}`);
     this.manager
       .getConversationHistory(this.channel.id)
       .then(messages => {
+        Logger.log(`Received ${messages.length} messages`);
         this.updateMessages(messages);
       })
-      .catch(error => console.error(error));
+      .catch(error => {
+        console.error(error);
+      });
   }
 
   sendMessage(text: string) {
