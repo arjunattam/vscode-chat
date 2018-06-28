@@ -6,17 +6,17 @@
 
 ![Demo gif](public/example.gif)
 
-Send and receive Slack Chat without leaving your editor. Works on channels, private group chats, and direct messages.
+Send and receive Slack Chat without leaving your editor. Works with public and private channels, and integrates [VS Live Share](https://visualstudio.microsoft.com/services/live-share/) in your conversations.
 
 ## Setup
 
-1.  Install from the [extensions marketplace](https://marketplace.visualstudio.com/items?itemName=karigari.chat)
-2.  Generate a [Slack legacy token](https://api.slack.com/custom-integrations/legacy-tokens) for your team
-3.  Add token to your settings (File > Preferences > Settings)
+1.  Install from the [Visual Studio Marketplace](https://marketplace.visualstudio.com/items?itemName=karigari.chat)
+2.  Generate a [Slack legacy token](https://api.slack.com/custom-integrations/legacy-tokens)
+3.  Add the token to your settings (File/Code > Preferences > Settings)
 
-```
+```json
 {
-    "chat.slack.legacyToken": "xoxp-2854..."
+  "chat.slack.legacyToken": "xoxp-2854..."
 }
 ```
 
@@ -24,32 +24,31 @@ Send and receive Slack Chat without leaving your editor. Works on channels, priv
 
 ## Features
 
-Open the **Command Palette** to use the following features. To open, press:
+- [Open and Switch Channels](#open-and-switch-channels)
+- [Integrated with VS Live Share](#integrated-with-vs-live-share)
+- [Native Look-and-feel](#native-look-and-feel)
 
-- On macOS: cmd + shift + P
-- On Windows and Linux: ctrl + shift + P
+### Open and Switch Channels
 
-### Open Slack
+Open the [Command Palette](https://code.visualstudio.com/docs/getstarted/userinterface#_command-palette), and select **Slack: Open** or **Slack: Change Channel** to navigate your Slack workspace.
 
-Open the Command Palette, and select **Slack: Open**. This will create a new panel with your Slack channel.
+![Slack commands](public/commands.gif)
 
-![Open command](public/open-command.gif)
+### Integrated with VS Live Share
 
-### Switch channels
+Type `/live share` in your message box to start a VS Live Share session. This will send the invitation link to the channel. When you're done, type `/live end` to end.
 
-Open the Command Palette, and select **Slack: Change Channel**. This will change the Slack channel in the open panel.
+![Live Share](public/live-share.gif)
 
-![Channel command](public/channel-command.gif)
+### Native Look-and-feel
 
-### Native look-and-feel
-
-Slack Chat for VSCode is compatible with dark or light themes. The panel fits within vertical/horizontal panel splits.
+Slack Chat fits in natively with VSCode, with dark and light themes. Place it within vertical/horizontal window splits, just like your editor.
 
 ![Light theme](public/themes.gif)
 
 ## Contribute
 
-The repo is actively developed, and you are welcome to [submit feature requests](https://github.com/karigari/vscode-chat/issues/new) and pull requests. Broadly, the repo has two parts, that communicate with message passing.
+The repo is actively developed, and you are welcome to [submit feature requests](https://github.com/karigari/vscode-chat/issues/new) and pull requests. The repo has two parts that communicate with message passing.
 
 - `src/ui/...` — is the webview UI code, written with Vue.js
 - `src/...` — everything else except UI. This is the main extension code, written in TypeScript

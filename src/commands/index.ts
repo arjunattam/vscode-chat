@@ -27,23 +27,12 @@ export default class MessageCommandHandler {
     const { namespace, command } = this.split(message);
 
     if (namespace && command && this.isValidForNamespace(namespace, command)) {
-      const action = COMMAND_ACTIONS[namespace][command];
-      const options = this.getOptions({ namespace, command });
+      const { action, options } = COMMAND_ACTIONS[namespace][command];
       return this.callAction(action, options);
     } else {
       vscode.window.showErrorMessage(
         `${message.text} is not a recognised command.`
       );
-    }
-  };
-
-  getOptions = (message: MessageCommand) => {
-    const { namespace, command } = message;
-
-    if (namespace === "live" && command === "start") {
-      return { suppressNotification: true };
-    } else {
-      return {};
     }
   };
 

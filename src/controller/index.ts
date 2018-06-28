@@ -1,10 +1,10 @@
-import * as vscode from "vscode";
 import SlackMessenger from "../slack";
 import SlackUI from "../ui";
 import { ExtensionMessage, UiMessage } from "../slack/interfaces";
 import { COMMAND_ACTIONS } from "../constants";
 import Logger from "../logger";
 import MessageCommandHandler from "../commands";
+import LinkHandler from "./linkhandler";
 
 /**
  * Handles message passing between the ui and extension
@@ -30,10 +30,8 @@ class ViewController {
   };
 
   openLink = (message: ExtensionMessage) => {
-    return vscode.commands.executeCommand(
-      "vscode.open",
-      vscode.Uri.parse(message.text)
-    );
+    const handler = new LinkHandler();
+    return handler.open(message);
   };
 
   sendToExtension = (message: ExtensionMessage) => {
