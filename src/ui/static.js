@@ -162,8 +162,9 @@ Vue.component("message-form", {
   `,
   methods: {
     onSubmit: function(event) {
+      type = this.text.startsWith("/") ? "command" : "text";
       vscode.postMessage({
-        command: "send",
+        type,
         text: this.text
       });
       this.text = "";

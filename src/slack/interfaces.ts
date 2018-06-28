@@ -22,7 +22,7 @@ export interface SlackMessage {
   userId: string;
 }
 
-export enum ChannelType {
+enum ChannelType {
   channel = "channel",
   group = "group",
   im = "im"
@@ -34,8 +34,13 @@ export interface SlackChannel {
   type: ChannelType;
 }
 
+enum MessageType {
+  text = "text",
+  command = "command"
+}
+
 export interface ExtensionMessage {
-  command: string;
+  type: MessageType;
   text: string;
 }
 
