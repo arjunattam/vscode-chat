@@ -36,7 +36,8 @@ export interface SlackChannel {
 
 enum MessageType {
   text = "text",
-  command = "command"
+  command = "command",
+  link = "link"
 }
 
 export interface ExtensionMessage {

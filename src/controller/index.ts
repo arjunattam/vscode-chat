@@ -1,7 +1,8 @@
+import * as vscode from "vscode";
 import SlackMessenger from "../slack";
 import SlackUI from "../ui";
 import { ExtensionMessage, UiMessage } from "../slack/interfaces";
-import { COMMAND_NAMESPACES } from "../commands";
+import { COMMAND_ACTIONS } from "../constants";
 import Logger from "../logger";
 import MessageCommandHandler from "../commands";
 
@@ -13,7 +14,8 @@ class ViewController {
   constructor(public ui: SlackUI, public messenger: SlackMessenger) {}
 
   isValidCommand(message: ExtensionMessage): Boolean {
-    return COMMAND_NAMESPACES.some(namespace =>
+    const validNamespaces = Object.keys(COMMAND_ACTIONS);
+    return validNamespaces.some(namespace =>
       message.text.startsWith(`/${namespace}`)
     );
   }
@@ -27,11 +29,20 @@ class ViewController {
     });
   };
 
+  openLink = (message: ExtensionMessage) => {
+    return vscode.commands.executeCommand(
+      "vscode.open",
+      vscode.Uri.parse(message.text)
+    );
+  };
+
   sendToExtension = (message: ExtensionMessage) => {
     const { type, text } = message;
     Logger.log(`Sending to extension (${type}) ${text}`);
 
     switch (type) {
+      case "link":
+        return this.openLink(message);
       case "command":
         // This could be a command for us, or for Slack (handled by next case)
         if (this.isValidCommand(message)) {

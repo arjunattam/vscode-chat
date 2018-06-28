@@ -2,6 +2,13 @@ const vscode = acquireVsCodeApi();
 
 const SAME_GROUP_TIME = 5 * 60; // ms
 
+function isValidUrl(value) {
+  // https://stackoverflow.com/a/15855457
+  return /^(?:(?:(?:https?|ftp):)?\/\/)(?:\S+(?::\S*)?@)?(?:(?!(?:10|127)(?:\.\d{1,3}){3})(?!(?:169\.254|192\.168)(?:\.\d{1,3}){2})(?!172\.(?:1[6-9]|2\d|3[0-1])(?:\.\d{1,3}){2})(?:[1-9]\d?|1\d\d|2[01]\d|22[0-3])(?:\.(?:1?\d{1,2}|2[0-4]\d|25[0-5])){2}(?:\.(?:[1-9]\d?|1\d\d|2[0-4]\d|25[0-4]))|(?:(?:[a-z\u00a1-\uffff0-9]-*)*[a-z\u00a1-\uffff0-9]+)(?:\.(?:[a-z\u00a1-\uffff0-9]-*)*[a-z\u00a1-\uffff0-9]+)*(?:\.(?:[a-z\u00a1-\uffff]{2,})))(?::\d{2,5})?(?:[/?#]\S*)?$/i.test(
+    value
+  );
+}
+
 Vue.component("app-container", {
   props: ["messages", "users"],
   template: `
@@ -128,10 +135,39 @@ Vue.component("message-group", {
 
 Vue.component("message-item", {
   props: ["message"],
+  computed: {
+    isURL: function() {
+      const { text } = this.message;
+      const link = text.substr(1, text.length - 2);
+      return text.startsWith("<") && text.endsWith(">") && isValidUrl(link);
+    },
+    toLink: function() {
+      const { text } = this.message;
+      return text.substr(1, text.length - 2);
+    }
+  },
   template: `
     <li>
-      {{ message.text }}
+      <message-link v-if="isURL" v-bind:to="toLink"></message-link>
+      <span v-else>{{ message.text }}</span>
     </li>
+  `
+});
+
+Vue.component("message-link", {
+  props: ["to"],
+  methods: {
+    openLink: function(event) {
+      vscode.postMessage({
+        type: "link",
+        text: this.to
+      });
+    }
+  },
+  template: `
+    <a v-on:click.prevent="openLink" v-bind:href="to">
+      {{ to }}
+    </a>
   `
 });
 

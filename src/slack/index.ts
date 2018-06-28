@@ -86,8 +86,26 @@ class SlackMessenger {
       });
   }
 
+  stripLinkSymbols = (text: string): string => {
+    // To send out live share links and render them correctly,
+    // we append </> to the link text. However, this is not
+    // handled by normal Slack clients, and should be removed before
+    // we actually send the message via the RTM API
+
+    // This is hacky, and we will need a better solution - perhaps
+    // we could make all rendering manipulations on the extension side
+    // before sending the message to Vuejs for rendering
+    if (text.startsWith("<") && text.endsWith(">")) {
+      return text.substr(1, text.length - 2);
+    } else {
+      return text;
+    }
+  };
+
   sendMessage(text: string) {
-    return this.rtmClient.sendMessage(text, this.channel.id).then(result => {
+    const cleanText = this.stripLinkSymbols(text);
+    const { id } = this.channel;
+    return this.rtmClient.sendMessage(cleanText, id).then(result => {
       this.updateMessages([
         {
           userId: this.manager.currentUser.id,

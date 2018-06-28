@@ -1,12 +1,6 @@
 import * as vscode from "vscode";
-import { LiveShareCommands } from "../constants";
+import { COMMAND_ACTIONS } from "../constants";
 import { ExtensionMessage } from "../slack/interfaces";
-
-export const COMMAND_NAMESPACES = ["live"];
-
-const COMMAND_ACTIONS = {
-  live: { start: LiveShareCommands.START, end: LiveShareCommands.END }
-};
 
 interface MessageCommand {
   namespace: string;
@@ -24,13 +18,21 @@ export default class MessageCommandHandler {
     }
   };
 
+  isValidForNamespace = (namespace, command): Boolean => {
+    return command in Object.keys(COMMAND_ACTIONS[namespace]);
+  };
+
   handle = (message: ExtensionMessage) => {
     const { namespace, command } = this.split(message);
 
-    if (namespace && command) {
+    if (namespace && command && this.isValidForNamespace(namespace, command)) {
       const action = COMMAND_ACTIONS[namespace][command];
       const options = this.getOptions({ namespace, command });
       return this.callAction(action, options);
+    } else {
+      vscode.window.showErrorMessage(
+        `${message.text} is not a recognised command.`
+      );
     }
   };
 
@@ -48,7 +50,8 @@ export default class MessageCommandHandler {
     return vscode.commands
       .executeCommand(action, options)
       .then((response: vscode.Uri) => {
-        return response ? response.toString() : "";
+        // We append </> to the URL so our link parsing works
+        return response ? `<${response.toString()}>` : "";
       });
   };
 }
