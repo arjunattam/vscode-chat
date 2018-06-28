@@ -140,6 +140,14 @@ class SlackManager {
       return promisedCall;
     }
   }
+
+  sendMessage = ({ channel, text }) => {
+    return this.client.chat.postMessage({
+      channel,
+      text,
+      as_user: true
+    });
+  };
 }
 
 export default SlackManager;

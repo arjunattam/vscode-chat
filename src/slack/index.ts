@@ -34,8 +34,17 @@ class SlackMessenger {
 
     this.rtmClient.on("message", event => {
       if (this.channel.id === event.channel) {
-        const msg = this.getMessageFromEvent(event);
-        this.updateMessages([msg]);
+        const { user: userId, text, ts: timestamp } = event;
+        if (text) {
+          // Some messages (like keep-alive) have no text, we ignore them
+          this.updateMessages([
+            {
+              userId,
+              text,
+              timestamp
+            }
+          ]);
+        }
       }
     });
 
@@ -64,10 +73,12 @@ class SlackMessenger {
     emoji.replace_mode = "unified";
 
     this.uiCallback({
-      messages: this.messages.map(message => ({
-        ...message,
-        text: emoji.replace_colons(message.text)
-      })),
+      messages: this.messages.map(message => {
+        return {
+          ...message,
+          text: emoji.replace_colons(message.text)
+        };
+      }),
       users: this.manager.users,
       channel: this.channel
     });
@@ -105,19 +116,25 @@ class SlackMessenger {
   sendMessage(text: string) {
     const cleanText = this.stripLinkSymbols(text);
     const { id } = this.channel;
-    return this.rtmClient.sendMessage(cleanText, id).then(result => {
-      this.updateMessages([
-        {
-          userId: this.manager.currentUser.id,
-          text: text,
-          timestamp: result.ts
-        }
-      ]);
-    });
-  }
 
-  getMessageFromEvent(event) {
-    return { userId: event.user, text: event.text, timestamp: event.ts };
+    // The rtm gives an error while sending messages. Might be related to
+    // https://github.com/slackapi/node-slack-sdk/issues/527
+    // https://github.com/slackapi/node-slack-sdk/issues/550
+    // So we use the webclient instead of
+    // this.rtmClient.sendMessage(cleanText, id)
+
+    return this.manager
+      .sendMessage({ channel: id, text: cleanText })
+      .then((result: any) => {
+        this.updateMessages([
+          {
+            userId: this.manager.currentUser.id,
+            text: text,
+            timestamp: result.ts
+          }
+        ]);
+      })
+      .catch(error => console.error(error));
   }
 }
 
