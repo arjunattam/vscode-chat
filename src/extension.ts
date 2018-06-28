@@ -77,7 +77,6 @@ export function activate(context: vscode.ExtensionContext) {
           return selectedChannel;
         } else {
           vscode.window.showErrorMessage("Invalid channel selected");
-          throw new Error("Invalid channel");
         }
       });
   };
