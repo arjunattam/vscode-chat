@@ -11,10 +11,7 @@ export default class Logger {
 
   private static get timestamp(): string {
     const now = new Date();
-    return `[${now
-      .toISOString()
-      .replace(/T/, " ")
-      .replace(/\..+/, "")}:${("00" + now.getUTCMilliseconds()).slice(-3)}]`;
+    return now.toLocaleString();
   }
 
   static log(message): void {
@@ -23,7 +20,7 @@ export default class Logger {
     }
 
     if (this.output) {
-      const logLine = `${this.timestamp}: ${message}`;
+      const logLine = `[${this.timestamp}]: ${message}`;
       this.output.appendLine(logLine);
     }
   }

@@ -1,6 +1,11 @@
 const vscode = acquireVsCodeApi();
 
-const SAME_GROUP_TIME = 5 * 60; // ms
+const SAME_GROUP_TIME = 5 * 60; // seconds
+
+// Regex from https://stackoverflow.com/a/15855457
+const URL_REGEX = /(?:(?:(?:https?|ftp):)?\/\/)(?:\S+(?::\S*)?@)?(?:(?!(?:10|127)(?:\.\d{1,3}){3})(?!(?:169\.254|192\.168)(?:\.\d{1,3}){2})(?!172\.(?:1[6-9]|2\d|3[0-1])(?:\.\d{1,3}){2})(?:[1-9]\d?|1\d\d|2[01]\d|22[0-3])(?:\.(?:1?\d{1,2}|2[0-4]\d|25[0-5])){2}(?:\.(?:[1-9]\d?|1\d\d|2[0-4]\d|25[0-4]))|(?:(?:[a-z\u00a1-\uffff0-9]-*)*[a-z\u00a1-\uffff0-9]+)(?:\.(?:[a-z\u00a1-\uffff0-9]-*)*[a-z\u00a1-\uffff0-9]+)*(?:\.(?:[a-z\u00a1-\uffff]{2,})))(?::\d{2,5})?(?:[/?#]\S*)?/;
+
+const MESSAGE_REGEX = new RegExp(`^(.*)(<${URL_REGEX.source}>)(.*)$`);
 
 Vue.component("app-container", {
   props: ["messages", "users"],
@@ -128,10 +133,51 @@ Vue.component("message-group", {
 
 Vue.component("message-item", {
   props: ["message"],
+  computed: {
+    parsedForURL: function() {
+      // TODO(arjun): this only handles max 1 URL per message. Messages with >1 URLs will break
+      const { text } = this.message;
+      const matched = text.match(MESSAGE_REGEX);
+      let result = {}; // left, URL, right
+
+      if (matched) {
+        result = { left: matched[1], url: matched[2], right: matched[3] };
+      } else {
+        result = { left: text, url: "", right: "" };
+      }
+
+      return result;
+    }
+  },
   template: `
     <li>
-      {{ message.text }}
+      <span v-if="parsedForURL.left">{{ parsedForURL.left }}</span>
+      <message-link v-if="parsedForURL.url" v-bind:to="parsedForURL.url"></message-link>
+      <span v-if="parsedForURL.right">{{ parsedForURL.right }}</span>
     </li>
+  `
+});
+
+Vue.component("message-link", {
+  props: ["to"],
+  computed: {
+    cleanLink: function() {
+      // Removes the < and >
+      return this.to.substr(1, this.to.length - 2);
+    }
+  },
+  methods: {
+    openLink: function(event) {
+      vscode.postMessage({
+        type: "link",
+        text: this.cleanLink
+      });
+    }
+  },
+  template: `
+    <a v-on:click.prevent="openLink" v-bind:href="cleanLink">
+      {{ cleanLink }}
+    </a>
   `
 });
 
@@ -162,8 +208,9 @@ Vue.component("message-form", {
   `,
   methods: {
     onSubmit: function(event) {
+      type = this.text.startsWith("/") ? "command" : "text";
       vscode.postMessage({
-        command: "send",
+        type,
         text: this.text
       });
       this.text = "";
