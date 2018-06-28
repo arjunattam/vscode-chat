@@ -11,7 +11,8 @@ export default class MessageCommandHandler {
   split = (message: ExtensionMessage): MessageCommand => {
     const pattern = /^\/(\w+) (\w+)$/;
     const { text } = message;
-    const matched = text.match(pattern);
+    const trimmed = text.trim();
+    const matched = trimmed.match(pattern);
 
     if (matched) {
       return { namespace: matched[1], command: matched[2] };
@@ -19,7 +20,7 @@ export default class MessageCommandHandler {
   };
 
   isValidForNamespace = (namespace, command): Boolean => {
-    return command in Object.keys(COMMAND_ACTIONS[namespace]);
+    return Object.keys(COMMAND_ACTIONS[namespace]).indexOf(command) >= 0;
   };
 
   handle = (message: ExtensionMessage) => {
