@@ -1,5 +1,6 @@
 out
 node_modules
 .vscode-test/
+.vs
 *.vsix
 static
