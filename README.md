@@ -1,6 +1,6 @@
 [![](https://vsmarketplacebadge.apphb.com/version-short/karigari.chat.svg)](https://marketplace.visualstudio.com/items?itemName=karigari.chat)
 [![Build Status](https://travis-ci.org/karigari/vscode-chat.svg?branch=master)](https://travis-ci.org/karigari/vscode-chat)
-[![](https://img.shields.io/badge/join-slack-orange.svg)](https://join.slack.com/t/karigarihq/shared_invite/enQtMzM5NzQxNjQxNTA1LTM0ZDFhNWQ3YmEyYmExZTY1ODJmM2U3NzExM2E0YmQxODcxYTgwYzczOTVkOGY5ODk2MWE0MzE2ODliNGU1ZDc)
+[![](https://img.shields.io/badge/join-slack-orange.svg)](https://join.slack.com/t/karigarihq/shared_invite/enQtMzM5NzQxNjQxNTA1LTM0ZDFhNWQ3YmEyYmExZTY1ODJmM2U3NzExM2E0YmQxODcxYTgwYzczOTVkOGY5ODk2MWE0MzE2ODliNGU1ZDc) [![Greenkeeper badge](https://badges.greenkeeper.io/karigari/vscode-chat.svg)](https://greenkeeper.io/)
 
 # Slack Chat for VSCode 💬
 
