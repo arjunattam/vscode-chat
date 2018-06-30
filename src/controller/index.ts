@@ -3,7 +3,7 @@ import SlackUI from "../ui";
 import { ExtensionMessage, UiMessage } from "../slack/interfaces";
 import { COMMAND_ACTIONS } from "../constants";
 import Logger from "../logger";
-import MessageCommandHandler from "../commands";
+import CommandHandler from "../commands";
 import LinkHandler from "./linkhandler";
 
 /**
@@ -21,7 +21,7 @@ class ViewController {
   }
 
   handleCommand = (message: ExtensionMessage) => {
-    const handler = new MessageCommandHandler();
+    const handler = new CommandHandler();
     return handler.handle(message).then((response: string) => {
       if (response) {
         this.messenger.sendMessage(response);

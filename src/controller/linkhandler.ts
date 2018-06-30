@@ -1,6 +1,7 @@
 import * as vscode from "vscode";
 import { ExtensionMessage } from "../slack/interfaces";
 import { VSCodeCommands, LiveShareCommands } from "../constants";
+import CommandHandler from "../commands";
 
 /**
  * Handles external links. Special handling for deep linking like for
@@ -22,18 +23,20 @@ export default class LinkHandler {
         // Potentially join VS Live Share
         return this.joinLiveShare(uri);
       default:
-        return vscode.commands.executeCommand(VSCodeCommands.OPEN, uri);
+        return this.openSimpleLink(uri);
     }
+  };
+
+  openSimpleLink = (uri: vscode.Uri) => {
+    const handler = new CommandHandler();
+    return handler.execute(VSCodeCommands.OPEN, uri);
   };
 
   joinLiveShare = (uri: vscode.Uri) => {
     // Not sure if going by URLs is the best way to handle this.
     // https://insiders.liveshare.vsengsaas.visualstudio.com/join?abcd...
     const opts = { newWindow: false };
-    return vscode.commands.executeCommand(
-      LiveShareCommands.JOIN,
-      uri.toString(),
-      opts
-    );
+    const handler = new CommandHandler();
+    return handler.execute(LiveShareCommands.JOIN, uri.toString(), opts);
   };
 }

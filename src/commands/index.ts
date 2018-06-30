@@ -7,7 +7,7 @@ interface MessageCommand {
   command: string;
 }
 
-export default class MessageCommandHandler {
+export default class CommandHandler {
   split = (message: ExtensionMessage): MessageCommand => {
     const pattern = /^\/(\w+) (\w+)$/;
     const { text } = message;
@@ -36,12 +36,27 @@ export default class MessageCommandHandler {
     }
   };
 
-  callAction = (action, options): Thenable<string> => {
-    return vscode.commands
-      .executeCommand(action, options)
-      .then((response: vscode.Uri) => {
-        // We append </> to the URL so our link parsing works
-        return response ? `<${response.toString()}>` : "";
-      });
+  callAction = (action, options): Promise<string> => {
+    return this.execute(action, options).then((response: vscode.Uri) => {
+      // We append </> to the URL so our link parsing works
+      // TODO(arjun): this handling should only be for `/live share`
+      return response ? `<${response.toString()}>` : "";
+    });
+  };
+
+  execute = (command: string, ...rest: any[]): Promise<any> => {
+    // Wraps the executeCommand thenable into a promise
+    // https://github.com/Microsoft/vscode/issues/11693#issuecomment-247495996
+    return new Promise((resolve, reject) => {
+      vscode.commands.executeCommand(command, ...rest).then(
+        result => {
+          return resolve(result);
+        },
+        error => {
+          vscode.window.showErrorMessage(error.toString());
+          return reject(error);
+        }
+      );
+    });
   };
 }

@@ -32,6 +32,7 @@ export default class Reporter {
     // https://github.com/Microsoft/vscode-extension-telemetry
     if (process.env.IS_DEBUG === "true") {
       // Telemetry disabled for debugging
+      console.log(`Disabled telemetry: ${eventName}`);
       return;
     }
 
