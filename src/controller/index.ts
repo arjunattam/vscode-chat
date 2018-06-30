@@ -1,6 +1,6 @@
 import SlackMessenger from "../slack";
 import SlackUI from "../ui";
-import { ExtensionMessage, UiMessage } from "../slack/interfaces";
+import { ExtensionMessage, UiMessage } from "../store/interfaces";
 import { COMMAND_ACTIONS } from "../constants";
 import Logger from "../logger";
 import CommandHandler from "../commands";
@@ -47,8 +47,7 @@ class ViewController {
           return this.handleCommand(message);
         }
       case "text":
-        this.messenger.sendMessage(text);
-        return;
+        return text ? this.messenger.sendMessage(text) : null;
     }
   };
 

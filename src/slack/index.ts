@@ -8,7 +8,7 @@ import {
   UiMessage,
   SlackChannel,
   SlackUsers
-} from "./interfaces";
+} from "../store/interfaces";
 
 class SlackMessenger {
   messages: SlackMessage[];

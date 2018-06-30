@@ -1,6 +1,6 @@
 import * as vscode from "vscode";
 import { COMMAND_ACTIONS } from "../constants";
-import { ExtensionMessage } from "../slack/interfaces";
+import { ExtensionMessage } from "../store/interfaces";
 
 interface MessageCommand {
   namespace: string;

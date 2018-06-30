@@ -1,6 +1,10 @@
 import * as vscode from "vscode";
 import { WebClient } from "@slack/client";
-import { SlackUsers, SlackChannel, SlackCurrentUser } from "./interfaces";
+import {
+  SlackUsers,
+  SlackChannel,
+  SlackCurrentUser
+} from "../store/interfaces";
 
 class SlackManager {
   users: SlackUsers;

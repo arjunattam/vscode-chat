@@ -1,11 +1,17 @@
 import * as vscode from "vscode";
 import * as path from "path";
-import { ExtensionMessage, UiMessage, SlackChannel } from "../slack/interfaces";
+import { ExtensionMessage, UiMessage, SlackChannel } from "../store/interfaces";
 
 class SlackUI {
   panel: vscode.WebviewPanel;
+  isVueReady: Boolean = false;
+  pendingMessage: UiMessage = undefined;
 
-  constructor(public extensionPath) {
+  constructor(
+    public extensionPath,
+    public onDidDispose: () => void,
+    public onDidChangeViewState: (isVisible: Boolean) => void
+  ) {
     const baseVuePath = path.join(extensionPath, "static");
     const staticPath = vscode.Uri.file(baseVuePath).with({
       scheme: "vscode-resource"
@@ -23,11 +29,41 @@ class SlackUI {
     );
 
     this.panel.webview.html = getWebviewContent(staticPath);
+
+    // Handle on did dispose for webview panel
+    this.panel.onDidDispose(() => {
+      console.log(this.isVueReady);
+      this.isVueReady = false;
+      this.onDidDispose();
+    });
+
+    // Handle tab switching event
+    this.panel.onDidChangeViewState(event => {
+      const { visible } = event.webviewPanel;
+      this.onDidChangeViewState(visible);
+    });
   }
 
   setMessageHandler(msgHandler: (message: ExtensionMessage) => void) {
     this.panel.webview.onDidReceiveMessage((message: ExtensionMessage) => {
-      return msgHandler(message);
+      const { text, type } = message;
+
+      if (type === "internal") {
+        // This is an internal message from Vuejs
+        switch (text) {
+          case "is_ready":
+            this.isVueReady = true;
+
+            if (this.pendingMessage) {
+              // If we have pending message, we can send it now
+              this.update(this.pendingMessage);
+            }
+          default:
+            return;
+        }
+      } else {
+        return msgHandler(message);
+      }
     });
   }
 
@@ -39,8 +75,15 @@ class SlackUI {
   }
 
   update(message: UiMessage) {
+    if (!this.isVueReady) {
+      // Vuejs is not ready, so we will store this as a pending
+      // message
+      this.pendingMessage = message;
+    }
+
     this.panel.webview.postMessage({ ...message });
     this.updateTitle(message.channel);
+    this.pendingMessage = null;
   }
 
   reveal() {

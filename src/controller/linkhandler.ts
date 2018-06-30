@@ -1,5 +1,5 @@
 import * as vscode from "vscode";
-import { ExtensionMessage } from "../slack/interfaces";
+import { ExtensionMessage } from "../store/interfaces";
 import { VSCodeCommands, LiveShareCommands } from "../constants";
 import CommandHandler from "../commands";
 

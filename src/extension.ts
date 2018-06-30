@@ -4,22 +4,18 @@ import SlackMessenger from "./slack";
 import ViewController from "./controller";
 import Logger from "./logger";
 import Reporter from "./telemetry";
-import { SlackChannel, SlackCurrentUser, SlackUsers } from "./slack/interfaces";
+import Store from "./store";
+import { SlackChannel, SlackCurrentUser, SlackUsers } from "./store/interfaces";
+import { SelfCommands } from "./constants";
 
 let reporter: Reporter | undefined = undefined;
+let store: Store | undefined = undefined;
 
 export function activate(context: vscode.ExtensionContext) {
   // Class instances
   let ui: SlackUI | undefined = undefined;
   let messenger: SlackMessenger | undefined = undefined;
   let controller: ViewController | undefined = undefined;
-
-  // Configuration and global state
-  let slackToken: string | undefined = undefined;
-  let lastChannel: SlackChannel | undefined = undefined;
-  let channels: SlackChannel[] | undefined = undefined;
-  let currentUserInfo: SlackCurrentUser | undefined = undefined;
-  let users: SlackUsers | undefined = undefined;
 
   // Telemetry
   reporter = new Reporter();
@@ -31,11 +27,18 @@ export function activate(context: vscode.ExtensionContext) {
     context.globalState.update("users", {});
   };
 
-  const loadConfiguration = () => {
+  const loadConfiguration = (): Store => {
     //
     // Only used for testing
     // clearConfiguration();
     //
+
+    // Configuration and global state
+    let slackToken: string | undefined = undefined;
+    let lastChannel: SlackChannel | undefined = undefined;
+    let channels: SlackChannel[] | undefined = undefined;
+    let currentUserInfo: SlackCurrentUser | undefined = undefined;
+    let users: SlackUsers | undefined = undefined;
 
     const config = vscode.workspace.getConfiguration("chat");
     const { slack } = config;
@@ -60,10 +63,23 @@ export function activate(context: vscode.ExtensionContext) {
         users = null;
       }
     }
+
+    // TODO(arjun): maybe don't create a new Store, update existing?
+    return new Store(slackToken, lastChannel, channels, currentUserInfo, users);
   };
 
-  const askForChannel = () => {
-    let channelList = messenger.manager.channels.map(channel => {
+  const askForChannel = (): Thenable<SlackChannel> => {
+    const { channels } = store;
+
+    if (!channels) {
+      // TODO(arjun): in the first launch, this list will be empty
+      vscode.window.showInformationMessage(
+        "No channels found. Have you tried Slack: Open?"
+      );
+      return;
+    }
+
+    let channelList = channels.map(channel => {
       const prefix = channel.type === "im" ? "@" : "#";
       return prefix + channel.name;
     });
@@ -74,12 +90,12 @@ export function activate(context: vscode.ExtensionContext) {
       })
       .then(selected => {
         if (selected) {
-          const selectedChannel = messenger.manager.channels.find(
+          const selectedChannel = channels.find(
             x => x.name === selected.substr(1)
           );
 
           context.globalState.update("lastChannel", selectedChannel);
-          lastChannel = selectedChannel;
+          store.lastChannel = selectedChannel;
           return selectedChannel;
         } else {
           vscode.window.showErrorMessage("Invalid channel selected");
@@ -92,7 +108,16 @@ export function activate(context: vscode.ExtensionContext) {
       ui.reveal();
     } else {
       const { extensionPath } = context;
-      ui = new SlackUI(extensionPath);
+      const onDidViewChange = isVisible => {
+        if (isVisible) {
+          return messenger ? messenger.loadHistory() : null;
+        }
+      };
+      const onDidDispose = () => {
+        ui = null;
+        controller = null;
+      };
+      ui = new SlackUI(extensionPath, onDidDispose, onDidViewChange);
     }
   };
 
@@ -106,7 +131,7 @@ export function activate(context: vscode.ExtensionContext) {
 
   const setupMessenger = () => {
     if (!messenger) {
-      messenger = new SlackMessenger(slackToken, context);
+      messenger = new SlackMessenger(store.slackToken, context);
       controller = null;
     }
   };
@@ -119,9 +144,9 @@ export function activate(context: vscode.ExtensionContext) {
     setupMessenger();
 
     messenger
-      .init(users, channels)
+      .init(store.users, store.channels)
       .then(() => {
-        return lastChannel && lastChannel.id
+        return store.lastChannel && store.lastChannel.id
           ? new Promise((resolve, _) => {
               resolve();
             })
@@ -129,24 +154,7 @@ export function activate(context: vscode.ExtensionContext) {
       })
       .then(() => {
         setupMessagePassing();
-
-        // Setup initial ui
-        messenger.setCurrentChannel(lastChannel);
-
-        // Handle tab switching
-        ui.panel.onDidChangeViewState(event => {
-          const { visible } = event.webviewPanel;
-
-          if (visible) {
-            return messenger ? messenger.loadHistory() : null;
-          }
-        });
-
-        // When the webview thing disposes
-        ui.panel.onDidDispose(e => {
-          ui = null;
-          controller = null;
-        });
+        messenger.setCurrentChannel(store.lastChannel);
       })
       .catch(e => console.error(e));
   };
@@ -159,25 +167,19 @@ export function activate(context: vscode.ExtensionContext) {
   };
 
   const resetConfiguration = () => {
-    loadConfiguration();
+    store = loadConfiguration();
     messenger = null;
     ui = null;
     controller = null;
   };
 
   context.subscriptions.push(
-    vscode.commands.registerCommand(
-      "extension.chat.openSlackPanel",
-      openSlackPanel
-    ),
-    vscode.commands.registerCommand(
-      "extension.chat.changeChannel",
-      channelChanger
-    ),
+    vscode.commands.registerCommand(SelfCommands.OPEN, openSlackPanel),
+    vscode.commands.registerCommand(SelfCommands.CHANGE, channelChanger),
     vscode.workspace.onDidChangeConfiguration(resetConfiguration)
   );
 
-  loadConfiguration();
+  store = loadConfiguration();
 }
 
 export function deactivate() {

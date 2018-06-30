@@ -215,6 +215,12 @@ Vue.component("message-form", {
       });
       this.text = "";
     }
+  },
+  mounted() {
+    return vscode.postMessage({
+      type: "internal",
+      text: "is_ready"
+    });
   }
 });
 
