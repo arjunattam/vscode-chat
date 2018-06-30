@@ -1,4 +1,4 @@
-import SlackMessenger from "../slack";
+import SlackMessenger from "../messenger";
 import SlackUI from "../ui";
 import { ExtensionMessage, UiMessage } from "../store/interfaces";
 import { COMMAND_ACTIONS } from "../constants";

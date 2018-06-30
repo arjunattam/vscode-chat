@@ -32,7 +32,6 @@ class SlackUI {
 
     // Handle on did dispose for webview panel
     this.panel.onDidDispose(() => {
-      console.log(this.isVueReady);
       this.isVueReady = false;
       this.onDidDispose();
     });

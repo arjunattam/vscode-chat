@@ -1,38 +1,63 @@
-import * as vscode from "vscode";
 import { RTMClient } from "@slack/client";
 import * as EmojiConvertor from "emoji-js";
-import SlackManager from "./manager";
+import SlackAPIClient from "../client/index";
 import Logger from "../logger";
 import {
   SlackMessage,
   UiMessage,
   SlackChannel,
-  SlackUsers
+  SlackCurrentUser,
+  SlackStore
 } from "../store/interfaces";
+
+const RTMEvents = {
+  AUTHENTICATED: "authenticated",
+  MESSAGE: "message",
+  ERROR: "unable_to_rtm_start"
+};
 
 class SlackMessenger {
   messages: SlackMessage[];
-  manager: SlackManager;
+  manager: SlackAPIClient;
   channel: SlackChannel;
   rtmClient: RTMClient;
   uiCallback: (message: UiMessage) => void;
 
-  constructor(public token: string, context: vscode.ExtensionContext) {
-    this.manager = new SlackManager(token, context);
+  constructor(private store: SlackStore) {
     this.messages = [];
-
-    this.rtmClient = new RTMClient(this.token);
-    this.rtmClient.start();
+    // TODO(arjun): can use { useRtmConnect: false } for rtm.start
+    this.rtmClient = new RTMClient(store.slackToken);
   }
 
-  init(storeUsers: SlackUsers, storeChannels: SlackChannel[]) {
-    return this.manager.init(storeUsers, storeChannels);
-  }
+  start = (): Promise<SlackCurrentUser> => {
+    return new Promise((resolve, reject) => {
+      this.rtmClient.once(RTMEvents.AUTHENTICATED, response => {
+        const { ok, team, self } = response;
+        if (ok) {
+          const { id, name } = self;
+          const { id: teamId, name: teamName } = team;
+          return resolve({
+            token: this.store.slackToken,
+            id,
+            name,
+            teamId,
+            teamName
+          });
+        }
+      });
+
+      this.rtmClient.once(RTMEvents.ERROR, error => {
+        return reject(error);
+      });
+
+      this.rtmClient.start();
+    });
+  };
 
   setCurrentChannel(channel: SlackChannel) {
     this.channel = channel;
 
-    this.rtmClient.on("message", event => {
+    this.rtmClient.on(RTMEvents.MESSAGE, event => {
       if (this.channel.id === event.channel) {
         const { user: userId, text, ts: timestamp } = event;
         if (text) {
@@ -79,14 +104,16 @@ class SlackMessenger {
           text: emoji.replace_colons(message.text)
         };
       }),
-      users: this.manager.users,
+      users: this.store.users,
       channel: this.channel
     });
   }
 
-  loadHistory() {
+  loadHistory(): Promise<any> {
     Logger.log(`Loading history for ${this.channel.name}`);
-    this.manager
+    const client = new SlackAPIClient(this.store.slackToken);
+
+    return client
       .getConversationHistory(this.channel.id)
       .then(messages => {
         Logger.log(`Received ${messages.length} messages`);
@@ -120,6 +147,7 @@ class SlackMessenger {
     // The rtm gives an error while sending messages. Might be related to
     // https://github.com/slackapi/node-slack-sdk/issues/527
     // https://github.com/slackapi/node-slack-sdk/issues/550
+
     // So we use the webclient instead of
     // this.rtmClient.sendMessage(cleanText, id)
 
@@ -128,7 +156,7 @@ class SlackMessenger {
       .then((result: any) => {
         this.updateMessages([
           {
-            userId: this.manager.currentUser.id,
+            userId: this.store.currentUserInfo.id,
             text: text,
             timestamp: result.ts
           }

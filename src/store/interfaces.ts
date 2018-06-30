@@ -51,3 +51,11 @@ export interface UiMessage {
   users: SlackUsers;
   channel: SlackChannel;
 }
+
+export interface SlackStore {
+  slackToken: string;
+  lastChannel: SlackChannel;
+  channels: SlackChannel[];
+  currentUserInfo: SlackCurrentUser;
+  users: SlackUsers;
+}
