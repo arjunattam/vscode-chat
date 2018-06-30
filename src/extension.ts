@@ -3,7 +3,10 @@ import SlackUI from "./ui";
 import SlackMessenger from "./slack";
 import ViewController from "./controller";
 import Logger from "./logger";
+import Reporter from "./telemetry";
 import { SlackChannel, SlackCurrentUser, SlackUsers } from "./slack/interfaces";
+
+let reporter: Reporter | undefined = undefined;
 
 export function activate(context: vscode.ExtensionContext) {
   // Class instances
@@ -17,6 +20,9 @@ export function activate(context: vscode.ExtensionContext) {
   let channels: SlackChannel[] | undefined = undefined;
   let currentUserInfo: SlackCurrentUser | undefined = undefined;
   let users: SlackUsers | undefined = undefined;
+
+  // Telemetry
+  reporter = new Reporter();
 
   const clearConfiguration = () => {
     context.globalState.update("lastChannel", {});
@@ -107,6 +113,8 @@ export function activate(context: vscode.ExtensionContext) {
 
   const openSlackPanel = () => {
     Logger.log("Open slack panel");
+    reporter.sendOpenSlackEvent();
+
     loadUi();
     setupMessenger();
 
@@ -144,6 +152,7 @@ export function activate(context: vscode.ExtensionContext) {
   };
 
   const channelChanger = () => {
+    reporter.sendChangeChannelEvent();
     return askForChannel().then(
       channel => (messenger ? messenger.setCurrentChannel(channel) : null)
     );
@@ -171,4 +180,9 @@ export function activate(context: vscode.ExtensionContext) {
   loadConfiguration();
 }
 
-export function deactivate() {}
+export function deactivate() {
+  if (reporter) {
+    // Return promise sync this operation is async
+    return reporter.dispose();
+  }
+}

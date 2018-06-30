@@ -59,16 +59,18 @@
     ]
   },
   "scripts": {
-    "vscode:prepublish": "npm run compile",
+    "copy-static": "rm -rf static && mkdir -p static && cp src/ui/static* static/.",
     "compile": "tsc -p ./",
-    "postcompile": "rm -rf static && mkdir -p static && cp src/ui/static* static/.",
-    "watch": "tsc -watch -p ./",
+    "postcompile": "npm run copy-static",
+    "watch": "tsc-watch -p ./ --onSuccess \"npm run copy-static\"",
     "postinstall": "node ./node_modules/vscode/bin/install",
-    "test": "npm run compile && node ./node_modules/vscode/bin/test"
+    "test": "npm run compile && node ./node_modules/vscode/bin/test",
+    "vscode:prepublish": "npm run compile"
   },
   "devDependencies": {
     "@types/mocha": "^2.2.42",
     "@types/node": "^8.0.0",
+    "tsc-watch": "^1.0.22",
     "tslint": "^5.8.0",
     "typescript": "^2.6.1",
     "vscode": "^1.1.6"

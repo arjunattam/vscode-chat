@@ -5,6 +5,7 @@
     "outDir": "out",
     "lib": ["es6"],
     "sourceMap": true,
+    "allowJs": true,
     "rootDir": "src",
     /* Strict Type-Checking Option */
     "strict": false /* enable all strict type-checking options */
@@ -14,5 +15,6 @@
     // "noFallthroughCasesInSwitch": true, /* Report errors for fallthrough cases in switch statement. */
     // "noUnusedParameters": true,  /* Report errors on unused parameters. */
   },
-  "exclude": ["node_modules", ".vscode-test"]
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", ".vscode-test", "out/**"]
 }

@@ -1,6 +1,6 @@
 import * as vscode from "vscode";
 import TelemetryReporter from "vscode-extension-telemetry";
-import { EXTENSION_ID } from "./constants";
+import { EXTENSION_ID, APP_INSIGHTS_KEY } from "./constants";
 
 export default class Reporter {
   private reporter: TelemetryReporter;
@@ -8,22 +8,33 @@ export default class Reporter {
   constructor() {
     const extension = vscode.extensions.getExtension(EXTENSION_ID);
     const extensionVersion = extension.packageJSON.version;
-
-    // TODO
-    const key = "";
-
-    this.reporter = new TelemetryReporter(EXTENSION_ID, extensionVersion, key);
+    this.reporter = new TelemetryReporter(
+      EXTENSION_ID,
+      extensionVersion,
+      APP_INSIGHTS_KEY
+    );
   }
 
   dispose() {
-    this.reporter.dispose();
+    return this.reporter.dispose();
   }
 
-  sendEvent() {
-    this.reporter.sendTelemetryEvent(
-      "sampleEvent",
-      { stringProp: "some string" },
-      { numericMeasure: 123 }
-    );
+  sendOpenSlackEvent() {
+    return this.sendEvent("openSlack");
+  }
+
+  sendChangeChannelEvent() {
+    return this.sendEvent("changeChannel");
+  }
+
+  sendEvent(eventName: string) {
+    // Can add props to events
+    // https://github.com/Microsoft/vscode-extension-telemetry
+    if (process.env.IS_DEBUG === "true") {
+      // Telemetry disabled for debugging
+      return;
+    }
+
+    return this.reporter.sendTelemetryEvent(eventName);
   }
 }

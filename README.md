@@ -48,10 +48,7 @@ Slack Chat fits in natively with VSCode, with dark and light themes. Place it wi
 
 ## Contribute
 
-The repo is actively developed, and you are welcome to [submit feature requests](https://github.com/karigari/vscode-chat/issues/new) and pull requests. The repo has two parts that communicate with message passing.
-
-- `src/ui/...` — is the webview UI code, written with Vue.js
-- `src/...` — everything else except UI. This is the main extension code, written in TypeScript
+See [CONTRIBUTING](CONTRIBUTING.md)
 
 ## Support
 
