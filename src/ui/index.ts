@@ -59,6 +59,7 @@ function getWebviewContent(staticPath) {
     <script src="${staticPath}/static.js"></script>
     <link rel="stylesheet" type="text/css" href="${staticPath}/static.css"></link>
   `;
+  const { fontFamily } = vscode.workspace.getConfiguration("editor");
 
   return `<!DOCTYPE html>
   <html lang="en">
@@ -67,7 +68,10 @@ function getWebviewContent(staticPath) {
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
       <title>Slack</title>
       <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+      <script src="https://unpkg.com/vue-markdown@2.2.4/dist/vue-markdown.js"></script>
       ${vueImports}
+
+      <style>code { font-family: ${fontFamily} }</style>
   </head>
   <body>
       <div id="app">

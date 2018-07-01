@@ -28,8 +28,7 @@ Vue.component("app-container", {
   `,
   methods: {
     clickHandler: function(event) {
-      // When the panel is clicked, we want to put the input
-      // in focus (behaves like Slack.app)
+      // When the panel is clicked, we want to focus the input
       const { formSection } = this.$refs;
       return formSection ? formSection.focusInput() : null;
     }
@@ -166,9 +165,9 @@ Vue.component("message-item", {
   },
   template: `
     <li>
-      <span v-if="parsedForURL.left">{{ parsedForURL.left }}</span>
+      <vue-markdown v-if="parsedForURL.left">{{ parsedForURL.left }}</vue-markdown>
       <message-link v-if="parsedForURL.url" v-bind:to="parsedForURL.url"></message-link>
-      <span v-if="parsedForURL.right">{{ parsedForURL.right }}</span>
+      <vue-markdown v-if="parsedForURL.right">{{ parsedForURL.right }}</vue-markdown>
     </li>
   `
 });
@@ -203,6 +202,17 @@ Vue.component("form-section", {
       return `Message ${this.channel}`;
     }
   },
+  watch: {
+    text: function(newText, oldText) {
+      if (newText && !newText.trim()) {
+        // This is a bit of a hack: using the command palette to change
+        // the channel triggers a newline character in the textarea. In this
+        // case, the keydown event is not triggered, and so we handle it here.
+        this.text = "";
+      }
+      this.resizeInput();
+    }
+  },
   data: function() {
     return {
       text: ""
@@ -217,7 +227,6 @@ Vue.component("form-section", {
           v-model="text"
           v-bind:placeholder="placeholder"
           v-on:keydown="onKeydown"
-          v-on:keyup="onKeyup"
           v-focus
           rows="1">
         </textarea>
@@ -244,16 +253,18 @@ Vue.component("form-section", {
       // 2. Submit on enter (without shift)
       if (event.code === "Enter" && !event.shiftKey) {
         event.preventDefault();
-        event.target.form.dispatchEvent(
-          new Event("submit", { cancelable: true })
-        );
+
+        if (this.text) {
+          event.target.form.dispatchEvent(
+            new Event("submit", { cancelable: true })
+          );
+        }
       }
     },
-    onKeyup: function(event) {
-      // Resize textarea if required
+    resizeInput: function() {
       const expectedRows = this.text.split("\n").length;
       const input = this.$refs.messageInput;
-      if (expectedRows !== input.rows) {
+      if (input && expectedRows !== input.rows) {
         input.rows = expectedRows;
       }
     }
@@ -272,3 +283,6 @@ Vue.directive("focus", {
     el.focus();
   }
 });
+
+// Markdown
+Vue.use(VueMarkdown);

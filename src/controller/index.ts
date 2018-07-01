@@ -113,6 +113,36 @@ class ViewController {
     };
   };
 
+  addLineToSnippets = (message: UiMessage): UiMessage => {
+    // When we use ``` (backticks) to denote a snippet, we need to ensure
+    // that the backticks are followed with a newline, because our
+    // markdown renderer assumes anything next to the ``` is a language
+    // eg, ```python
+    const { messages: rawMessages } = message;
+    return {
+      ...message,
+      messages: rawMessages.map(message => {
+        const { text } = message;
+        const corrected =
+          text.startsWith("```") && !text.startsWith("```\n")
+            ? text.replace("```", "```\n")
+            : text;
+        const final =
+          text.endsWith("```") && !text.endsWith("\n```")
+            ? corrected.replace(new RegExp("```" + "$"), "\n```")
+            : corrected;
+        return {
+          ...message,
+          text: final
+        };
+      })
+    };
+  };
+
+  transform = (message: UiMessage): UiMessage => {
+    return this.addLineToSnippets(this.emojify(message));
+  };
+
   sendToUi = (uiMessage: UiMessage) => {
     const { messages } = uiMessage;
 
@@ -120,7 +150,7 @@ class ViewController {
       this.pendingMessage = uiMessage;
     } else {
       Logger.log(`Sending to ui: ${messages.length} messages`);
-      this.ui.update(this.emojify(uiMessage));
+      this.ui.update(this.transform(uiMessage));
       this.pendingMessage = null;
     }
   };

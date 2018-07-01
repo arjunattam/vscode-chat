@@ -65,3 +65,19 @@ body,
 .form-section input[type="submit"] {
   display: none;
 }
+
+/* Markdown styles */
+.message-list li div p {
+  -webkit-margin-after: 0;
+  -webkit-margin-before: 0;
+}
+
+.message-list li div pre {
+  background-color: var(--vscode-editor-selectionHighlightBackground);
+  padding: 5px;
+  border-radius: 2px;
+}
+
+.message-list code {
+  color: var(--vscode-editor-foreground);
+}

@@ -30,8 +30,7 @@ export default class Store implements IStore {
 
   constructor(private context: vscode.ExtensionContext) {
     // Load token first
-    const config = vscode.workspace.getConfiguration(CONFIG_ROOT);
-    const { slack } = config;
+    const { slack } = vscode.workspace.getConfiguration(CONFIG_ROOT);
 
     if (slack && slack.legacyToken) {
       this.slackToken = slack.legacyToken;
