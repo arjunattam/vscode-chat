@@ -121,6 +121,7 @@ export function activate(context: vscode.ExtensionContext) {
 
   const resetConfiguration = () => {
     store = new Store(context);
+    store.setUiCallback(uiMessage => controller.sendToUi(uiMessage));
     messenger = null;
   };
 

@@ -8,17 +8,32 @@ const URL_REGEX = /(?:(?:(?:https?|ftp):)?\/\/)(?:\S+(?::\S*)?@)?(?:(?!(?:10|127
 const MESSAGE_REGEX = new RegExp(`^(.*)(<${URL_REGEX.source}>)(.*)$`);
 
 Vue.component("app-container", {
-  props: ["messages", "users"],
+  props: ["messages", "users", "channel"],
   template: `
-    <div class="vue-container">
+    <div
+      class="vue-container"
+      v-on:click="clickHandler">
+
       <messages-section
         v-bind:messages="messages"
         v-bind:users="users">
       </messages-section>
 
-      <form-section></form-section>
+      <form-section
+        ref="formSection"
+        v-bind:channel="channel">
+      </form-section>
+
     </div>
-  `
+  `,
+  methods: {
+    clickHandler: function(event) {
+      // When the panel is clicked, we want to put the input
+      // in focus (behaves like Slack.app)
+      const { formSection } = this.$refs;
+      return formSection ? formSection.focusInput() : null;
+    }
+  }
 });
 
 Vue.component("messages-section", {
@@ -182,29 +197,33 @@ Vue.component("message-link", {
 });
 
 Vue.component("form-section", {
-  template: `
-    <div class="form-section">
-      <message-form></message-form>
-    </div>
-  `
-});
-
-Vue.component("message-form", {
+  props: ["channel"],
+  computed: {
+    placeholder: function() {
+      return `Message ${this.channel}`;
+    }
+  },
   data: function() {
     return {
       text: ""
     };
   },
   template: `
-    <form
-      v-on:submit="onSubmit">
-      <input
-        v-model="text"
-        v-focus
-        placeholder="Message">
-      </input>
-      <input type="submit"></input>
-    </form>
+    <div class="form-section">
+      <form
+        v-on:submit="onSubmit">
+        <textarea
+          ref="messageInput"
+          v-model="text"
+          v-bind:placeholder="placeholder"
+          v-on:keydown="onKeydown"
+          v-on:keyup="onKeyup"
+          v-focus
+          rows="1">
+        </textarea>
+        <input type="submit"></input>
+      </form>
+    </div>
   `,
   methods: {
     onSubmit: function(event) {
@@ -214,6 +233,29 @@ Vue.component("message-form", {
         text: this.text
       });
       this.text = "";
+    },
+    focusInput: function() {
+      const { messageInput } = this.$refs;
+      return messageInput ? messageInput.focus() : null;
+    },
+    onKeydown: function(event) {
+      // Usability fixes
+      // 1. Multiline support: only when shift + enter are pressed
+      // 2. Submit on enter (without shift)
+      if (event.code === "Enter" && !event.shiftKey) {
+        event.preventDefault();
+        event.target.form.dispatchEvent(
+          new Event("submit", { cancelable: true })
+        );
+      }
+    },
+    onKeyup: function(event) {
+      // Resize textarea if required
+      const expectedRows = this.text.split("\n").length;
+      const input = this.$refs.messageInput;
+      if (expectedRows !== input.rows) {
+        input.rows = expectedRows;
+      }
     }
   },
   mounted() {

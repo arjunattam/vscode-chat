@@ -13,26 +13,25 @@ body,
 }
 
 .messages-section {
-  margin: 5px;
   overflow: auto;
 }
 
 .message-group {
   display: flex;
-  margin: 10px 5px;
+  margin: 10px 1px;
 }
 
 .message-group-image {
   width: 36px;
   height: 36px;
-  margin: 5px 10px;
+  margin: 5px 10px 5px 0;
   flex-shrink: 0;
 }
 
 .message-group-image img {
   min-width: 100%;
   min-height: 100%;
-  border-radius: 3px;
+  border-radius: 2px;
 }
 
 .message-list {
@@ -47,15 +46,20 @@ body,
 }
 
 .form-section {
-  margin: 10px 5px;
+  margin-bottom: 20px;
 }
 
-.form-section input {
+.form-section textarea {
   width: 100%;
-  border-radius: 3px;
-  padding: 5px;
-  box-sizing: border-box;
+  padding: 7px;
   font-size: inherit;
+  border-radius: 0;
+  box-sizing: border-box;
+  resize: none;
+  color: var(--vscode-input-foreground);
+  background-color: var(--vscode-input-background);
+  border: var(--vscode-input-border);
+  outline-color: var(--vscode-inputOption-activeBorder);
 }
 
 .form-section input[type="submit"] {

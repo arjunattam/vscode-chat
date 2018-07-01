@@ -73,7 +73,8 @@ function getWebviewContent(staticPath) {
       <div id="app">
           <app-container
             v-bind:messages="messages"
-            v-bind:users="users">
+            v-bind:users="users"
+            v-bind:channel="channelName">
           </app-container>
       </div>
   
@@ -82,13 +83,15 @@ function getWebviewContent(staticPath) {
             el: "#app",
             data: {
               messages: [],
-              users: {}
+              users: {},
+              channelName: ""
             }
           });
 
           window.addEventListener('message', event => {
             app.messages = event.data.messages;
             app.users = event.data.users;
+            app.channelName = event.data.channelName
           });
       </script>
   </body>
