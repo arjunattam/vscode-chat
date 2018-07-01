@@ -8,8 +8,7 @@ export default class WebviewContainer {
   constructor(
     extensionPath: string,
     private onDidDispose: () => void,
-    private onDidChangeViewState: (isVisible: Boolean) => void,
-    private onReady: () => void
+    private onDidChangeViewState: (isVisible: Boolean) => void
   ) {
     const baseVuePath = path.join(extensionPath, "static");
     const staticPath = vscode.Uri.file(baseVuePath).with({
@@ -40,22 +39,9 @@ export default class WebviewContainer {
   }
 
   setMessageHandler(msgHandler: (message: ExtensionMessage) => void) {
-    this.panel.webview.onDidReceiveMessage((message: ExtensionMessage) => {
-      const { text, type } = message;
-
-      if (type === "internal") {
-        // This is an internal message from Vuejs
-        switch (text) {
-          case "is_ready":
-            this.onReady();
-
-          default:
-            return;
-        }
-      } else {
-        return msgHandler(message);
-      }
-    });
+    this.panel.webview.onDidReceiveMessage((message: ExtensionMessage) =>
+      msgHandler(message)
+    );
   }
 
   update(message: UiMessage) {

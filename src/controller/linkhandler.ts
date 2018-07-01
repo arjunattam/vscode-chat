@@ -3,9 +3,11 @@ import { ExtensionMessage } from "../interfaces";
 import { VSCodeCommands, LiveShareCommands } from "../constants";
 import CommandHandler from "../commands";
 
+// Is there a way to get this URL from the extension?
+const LIVE_SHARE_BASE_URL = `insiders.liveshare.vsengsaas.visualstudio.com`;
+
 /**
- * Handles external links. Special handling for deep linking like for
- * VS Live Share.
+ * Handles external links. Special handling for deep links, like Live Share
  */
 export default class LinkHandler {
   open = (message: ExtensionMessage) => {
@@ -19,7 +21,7 @@ export default class LinkHandler {
     }
 
     switch (uri.authority) {
-      case `insiders.liveshare.vsengsaas.visualstudio.com`:
+      case LIVE_SHARE_BASE_URL:
         // Potentially join VS Live Share
         return this.joinLiveShare(uri);
       default:
@@ -33,8 +35,6 @@ export default class LinkHandler {
   };
 
   joinLiveShare = (uri: vscode.Uri) => {
-    // Not sure if going by URLs is the best way to handle this.
-    // https://insiders.liveshare.vsengsaas.visualstudio.com/join?abcd...
     const opts = { newWindow: false };
     const handler = new CommandHandler();
     return handler.execute(LiveShareCommands.JOIN, uri.toString(), opts);

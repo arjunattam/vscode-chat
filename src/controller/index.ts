@@ -38,13 +38,7 @@ class ViewController {
           this.ui = undefined;
           this.isUiReady = false;
         },
-        isVisible => (isVisible ? this.onUiVisible() : null),
-        () => {
-          this.isUiReady = true;
-          return this.pendingMessage
-            ? this.sendToUi(this.pendingMessage)
-            : null;
-        }
+        isVisible => (isVisible ? this.onUiVisible() : null)
       );
       this.ui.setMessageHandler(this.sendToExtension);
     }
@@ -75,11 +69,22 @@ class ViewController {
     return handler.open(message);
   };
 
+  handleInternal = (message: ExtensionMessage) => {
+    const { text } = message;
+
+    if (text === "is_ready") {
+      this.isUiReady = true;
+      return this.pendingMessage ? this.sendToUi(this.pendingMessage) : null;
+    }
+  };
+
   sendToExtension = (message: ExtensionMessage) => {
     const { type, text } = message;
     Logger.log(`Sending to extension (${type}) ${text}`);
 
     switch (type) {
+      case "internal":
+        return this.handleInternal(message);
       case "link":
         return this.openLink(message);
       case "command":

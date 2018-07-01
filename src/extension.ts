@@ -4,6 +4,7 @@ import ViewController from "./controller";
 import Logger from "./logger";
 import Reporter from "./telemetry";
 import Store from "./store";
+import * as str from "./strings";
 import { SlackChannel } from "./interfaces";
 import { SelfCommands } from "./constants";
 
@@ -37,7 +38,7 @@ export function activate(context: vscode.ExtensionContext) {
         });
 
         return vscode.window.showQuickPick(channelList, {
-          placeHolder: "Select a channel"
+          placeHolder: str.CHANGE_CHANNEL_TITLE
         });
       })
       .then(selected => {
@@ -47,7 +48,7 @@ export function activate(context: vscode.ExtensionContext) {
           );
 
           if (!selectedChannel) {
-            vscode.window.showErrorMessage("Invalid channel selected");
+            vscode.window.showErrorMessage(str.INVALID_CHANNEL);
           }
 
           store.updateLastChannel(selectedChannel);

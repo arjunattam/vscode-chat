@@ -1,5 +1,6 @@
 import * as vscode from "vscode";
 import SlackAPIClient from "../client";
+import * as str from "../strings";
 import {
   SlackChannel,
   SlackCurrentUser,
@@ -16,6 +17,8 @@ const stateKeys = {
   USERS: "users"
 };
 
+const CONFIG_ROOT = "chat";
+
 export default class Store implements IStore {
   slackToken: string;
   lastChannel: SlackChannel;
@@ -27,13 +30,13 @@ export default class Store implements IStore {
 
   constructor(private context: vscode.ExtensionContext) {
     // Load token first
-    const config = vscode.workspace.getConfiguration("chat");
+    const config = vscode.workspace.getConfiguration(CONFIG_ROOT);
     const { slack } = config;
 
     if (slack && slack.legacyToken) {
       this.slackToken = slack.legacyToken;
     } else {
-      vscode.window.showErrorMessage("Slack token not found in settings.");
+      vscode.window.showErrorMessage(str.TOKEN_NOT_FOUND);
       return;
     }
 

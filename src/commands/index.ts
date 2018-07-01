@@ -1,4 +1,5 @@
 import * as vscode from "vscode";
+import * as str from "../strings";
 import { COMMAND_ACTIONS } from "../constants";
 import { ExtensionMessage } from "../interfaces";
 
@@ -30,9 +31,7 @@ export default class CommandHandler {
       const { action, options } = COMMAND_ACTIONS[namespace][command];
       return this.callAction(action, options);
     } else {
-      vscode.window.showErrorMessage(
-        `${message.text} is not a recognised command.`
-      );
+      vscode.window.showErrorMessage(str.INVALID_COMMAND(message.text));
     }
   };
 
