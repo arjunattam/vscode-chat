@@ -1,5 +1,5 @@
 import * as vscode from "vscode";
-import { ExtensionMessage } from "../store/interfaces";
+import { ExtensionMessage } from "../interfaces";
 import { VSCodeCommands, LiveShareCommands } from "../constants";
 import CommandHandler from "../commands";
 

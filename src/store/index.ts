@@ -3,9 +3,11 @@ import SlackAPIClient from "../client";
 import {
   SlackChannel,
   SlackCurrentUser,
+  SlackMessage,
   SlackUsers,
-  SlackStore
-} from "./interfaces";
+  IStore,
+  UiMessage
+} from "../interfaces";
 
 const stateKeys = {
   LAST_CHANNEL: "lastChannel",
@@ -14,15 +16,14 @@ const stateKeys = {
   USERS: "users"
 };
 
-/**
- * Stores state around users, channels, messages.
- */
-export default class Store implements SlackStore {
+export default class Store implements IStore {
   slackToken: string;
   lastChannel: SlackChannel;
   channels: SlackChannel[];
   currentUserInfo: SlackCurrentUser;
   users: SlackUsers;
+  messages: SlackMessage[] = []; // of current channel
+  uiCallback: (message: UiMessage) => void;
 
   constructor(private context: vscode.ExtensionContext) {
     // Load token first
@@ -54,6 +55,22 @@ export default class Store implements SlackStore {
     }
   }
 
+  setUiCallback(uiCallback) {
+    this.uiCallback = uiCallback;
+  }
+
+  updateUi() {
+    const { name, type } = this.lastChannel;
+    const prefix = type === "im" ? "@" : "#";
+    const channelName = prefix + name;
+
+    this.uiCallback({
+      messages: this.messages,
+      users: this.users,
+      channelName
+    });
+  }
+
   updateUsers = (): Promise<SlackUsers> => {
     const client = new SlackAPIClient(this.slackToken);
     return client.getAllUsers().then(users => {
@@ -65,11 +82,21 @@ export default class Store implements SlackStore {
 
   updateChannels = (): Promise<SlackChannel[]> => {
     const client = new SlackAPIClient(this.slackToken);
-    return client.getChannels(this.users).then(channels => {
-      this.channels = channels;
-      this.context.globalState.update(stateKeys.CHANNELS, channels);
-      return channels;
-    });
+    let usersPromise: Promise<SlackUsers>;
+
+    if (this.users) {
+      usersPromise = new Promise((resolve, _) => resolve(this.users));
+    } else {
+      usersPromise = this.updateUsers();
+    }
+
+    return usersPromise
+      .then(users => client.getChannels(users))
+      .then(channels => {
+        this.channels = channels;
+        this.context.globalState.update(stateKeys.CHANNELS, channels);
+        return channels;
+      });
   };
 
   updateLastChannel = (channel: SlackChannel): Thenable<void> => {
@@ -81,4 +108,31 @@ export default class Store implements SlackStore {
     this.currentUserInfo = userInfo;
     return this.context.globalState.update(stateKeys.USER_INFO, userInfo);
   };
+
+  clearMessages = () => {
+    this.messages = [];
+  };
+
+  updateMessages = (newMessages: SlackMessage[]) => {
+    this.messages = []
+      .concat(this.messages, newMessages)
+      .filter(
+        (message, index, self) =>
+          index === self.findIndex(t => t.timestamp === message.timestamp)
+      );
+    this.updateUi();
+  };
+
+  loadChannelHistory(): Promise<void> {
+    const client = new SlackAPIClient(this.slackToken);
+
+    return client
+      .getConversationHistory(this.lastChannel.id)
+      .then(messages => {
+        this.updateMessages(messages);
+      })
+      .catch(error => {
+        console.error(error);
+      });
+  }
 }

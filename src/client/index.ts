@@ -1,5 +1,5 @@
 import { WebClient } from "@slack/client";
-import { SlackUsers, SlackChannel, SlackMessage } from "../store/interfaces";
+import { SlackUsers, SlackChannel, SlackMessage } from "../interfaces";
 
 export default class SlackAPIClient {
   client: WebClient;

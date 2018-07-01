@@ -1,16 +1,15 @@
 import * as vscode from "vscode";
 import * as path from "path";
-import { ExtensionMessage, UiMessage, SlackChannel } from "../store/interfaces";
+import { ExtensionMessage, UiMessage } from "../interfaces";
 
-class SlackUI {
+export default class WebviewContainer {
   panel: vscode.WebviewPanel;
-  isVueReady: Boolean = false;
-  pendingMessage: UiMessage = undefined;
 
   constructor(
-    public extensionPath,
-    public onDidDispose: () => void,
-    public onDidChangeViewState: (isVisible: Boolean) => void
+    extensionPath: string,
+    private onDidDispose: () => void,
+    private onDidChangeViewState: (isVisible: Boolean) => void,
+    private onReady: () => void
   ) {
     const baseVuePath = path.join(extensionPath, "static");
     const staticPath = vscode.Uri.file(baseVuePath).with({
@@ -31,10 +30,7 @@ class SlackUI {
     this.panel.webview.html = getWebviewContent(staticPath);
 
     // Handle on did dispose for webview panel
-    this.panel.onDidDispose(() => {
-      this.isVueReady = false;
-      this.onDidDispose();
-    });
+    this.panel.onDidDispose(() => this.onDidDispose());
 
     // Handle tab switching event
     this.panel.onDidChangeViewState(event => {
@@ -51,12 +47,8 @@ class SlackUI {
         // This is an internal message from Vuejs
         switch (text) {
           case "is_ready":
-            this.isVueReady = true;
+            this.onReady();
 
-            if (this.pendingMessage) {
-              // If we have pending message, we can send it now
-              this.update(this.pendingMessage);
-            }
           default:
             return;
         }
@@ -66,23 +58,9 @@ class SlackUI {
     });
   }
 
-  updateTitle(channel: SlackChannel) {
-    if (channel) {
-      const prefix = channel.type === "im" ? "@" : "#";
-      this.panel.title = prefix + channel.name;
-    }
-  }
-
   update(message: UiMessage) {
-    if (!this.isVueReady) {
-      // Vuejs is not ready, so we will store this as a pending
-      // message
-      this.pendingMessage = message;
-    }
-
     this.panel.webview.postMessage({ ...message });
-    this.updateTitle(message.channel);
-    this.pendingMessage = null;
+    this.panel.title = message.channelName;
   }
 
   reveal() {
@@ -130,5 +108,3 @@ function getWebviewContent(staticPath) {
   </body>
   </html>`;
 }
-
-export default SlackUI;

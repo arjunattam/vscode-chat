@@ -1,6 +1,6 @@
 import * as vscode from "vscode";
 import { COMMAND_ACTIONS } from "../constants";
-import { ExtensionMessage } from "../store/interfaces";
+import { ExtensionMessage } from "../interfaces";
 
 interface MessageCommand {
   namespace: string;
@@ -39,7 +39,6 @@ export default class CommandHandler {
   callAction = (action, options): Promise<string> => {
     return this.execute(action, options).then((response: vscode.Uri) => {
       // We append </> to the URL so our link parsing works
-      // TODO(arjun): this handling should only be for `/live share`
       return response ? `<${response.toString()}>` : "";
     });
   };

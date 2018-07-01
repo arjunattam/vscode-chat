@@ -14,14 +14,24 @@ export default class Logger {
     return now.toLocaleString();
   }
 
-  static log(message): void {
+  private static logOnConsole(message: string): void {
+    console.log(message);
+  }
+
+  private static logOnOutput(message: string): void {
     if (this.output === undefined) {
       this.setup();
     }
 
     if (this.output) {
-      const logLine = `[${this.timestamp}]: ${message}`;
-      this.output.appendLine(logLine);
+      this.output.appendLine(message);
     }
+  }
+
+  static log(message): void {
+    const logLine = `[${this.timestamp}]: ${message}`;
+    return process.env.IS_DEBUG === "true"
+      ? this.logOnConsole(logLine)
+      : this.logOnOutput(logLine);
   }
 }

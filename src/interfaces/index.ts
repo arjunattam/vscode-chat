@@ -49,13 +49,23 @@ export interface ExtensionMessage {
 export interface UiMessage {
   messages: SlackMessage[];
   users: SlackUsers;
-  channel: SlackChannel;
+  channelName: string;
 }
 
-export interface SlackStore {
+export interface IStore {
   slackToken: string;
   lastChannel: SlackChannel;
   channels: SlackChannel[];
   currentUserInfo: SlackCurrentUser;
   users: SlackUsers;
+  messages: SlackMessage[];
+  clearMessages: () => void;
+  updateMessages: (newMessages: SlackMessage[]) => void;
+  loadChannelHistory: () => Promise<void>;
+}
+
+export interface IMessenger {
+  start: () => Promise<SlackCurrentUser>;
+  updateCurrentChannel: () => void;
+  sendMessage: (text: string) => Promise<any>;
 }
