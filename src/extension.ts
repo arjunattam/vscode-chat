@@ -128,7 +128,8 @@ export function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(
     vscode.commands.registerCommand(SelfCommands.OPEN, openSlackPanel),
     vscode.commands.registerCommand(SelfCommands.CHANGE, channelChanger),
-    vscode.workspace.onDidChangeConfiguration(resetConfiguration)
+    vscode.workspace.onDidChangeConfiguration(resetConfiguration),
+    reporter
   );
 }
 

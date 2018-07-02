@@ -2,7 +2,7 @@ import * as vscode from "vscode";
 import TelemetryReporter from "vscode-extension-telemetry";
 import { EXTENSION_ID, APP_INSIGHTS_KEY } from "./constants";
 
-export default class Reporter {
+export default class Reporter implements vscode.Disposable {
   private reporter: TelemetryReporter;
 
   constructor() {

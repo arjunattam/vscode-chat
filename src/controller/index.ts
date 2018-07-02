@@ -123,13 +123,14 @@ class ViewController {
       ...message,
       messages: rawMessages.map(message => {
         const { text } = message;
+        const ticks = "```";
         const corrected =
-          text.startsWith("```") && !text.startsWith("```\n")
-            ? text.replace("```", "```\n")
+          text.startsWith(`${ticks}`) && !text.startsWith(`${ticks}\n`)
+            ? text.replace(`${ticks}`, `${ticks}\n`)
             : text;
         const final =
-          text.endsWith("```") && !text.endsWith("\n```")
-            ? corrected.replace(new RegExp("```" + "$"), "\n```")
+          text.endsWith(`${ticks}`) && !text.endsWith(`\n${ticks}`)
+            ? corrected.replace(new RegExp(`${ticks}$`), `\n${ticks}`)
             : corrected;
         return {
           ...message,
