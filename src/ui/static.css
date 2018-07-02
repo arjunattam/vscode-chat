@@ -67,22 +67,23 @@ body,
 }
 
 /* Markdown styles */
-.message-list li div p {
+.message-list li p {
   -webkit-margin-after: 0;
   -webkit-margin-before: 0;
 }
 
-.message-list li div pre {
+.message-list li pre {
   background-color: var(--vscode-editor-selectionHighlightBackground);
   padding: 5px;
   border-radius: 2px;
 }
 
-.message-list code {
+.message-list li code {
   color: var(--vscode-editor-foreground);
 }
 
 .message-list li div {
+  margin: 2px 0;
   display: inline-block;
 }
 

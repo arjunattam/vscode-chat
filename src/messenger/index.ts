@@ -1,5 +1,5 @@
 import { RTMClient } from "@slack/client";
-import SlackAPIClient from "../client/index";
+import SlackAPIClient, { getMessage } from "../client";
 import { SlackCurrentUser, IStore, IMessenger } from "../interfaces";
 
 const RTMEvents = {
@@ -63,6 +63,7 @@ class SlackMessenger implements IMessenger {
 
           case EventSubTypes.EDITED:
             const { message } = event;
+            // Does not support attachments
             newMessages[message.ts] = {
               userId: message.user,
               text: message.text,
@@ -72,13 +73,12 @@ class SlackMessenger implements IMessenger {
             break;
 
           default:
-            const { user: userId, text, ts: timestamp } = event;
+            const { text } = event;
             if (text) {
               // Some messages (like keep-alive) have no text, we ignore them
-              newMessages[timestamp] = {
-                userId,
-                text,
-                timestamp
+              newMessages = {
+                ...newMessages,
+                ...getMessage(event)
               };
             }
         }

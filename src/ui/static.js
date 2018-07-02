@@ -177,20 +177,51 @@ Vue.component("message-item", {
   },
   template: `
     <li>
-      <vue-markdown v-if="parsedForURL.left">{{ parsedForURL.left }}</vue-markdown>
-      <message-link v-if="parsedForURL.url" v-bind:to="parsedForURL.url"></message-link>
-      <vue-markdown v-if="parsedForURL.right">{{ parsedForURL.right }}</vue-markdown>
-      <span v-if="message.isEdited" class="edited">(edited)</span>
+      <div v-if="message.attachment">
+        <message-attachment
+          v-bind:name="message.attachment.name"
+          v-bind:permalink="message.attachment.permalink">
+        </message-attachment>
+      </div>
+      <div v-else>
+        <vue-markdown
+          v-if="parsedForURL.left">{{ parsedForURL.left }}
+        </vue-markdown>
+        <message-link
+          v-if="parsedForURL.url" v-bind:to="parsedForURL.url">
+        </message-link>
+        <vue-markdown
+          v-if="parsedForURL.right">{{ parsedForURL.right }}
+        </vue-markdown>
+        <span v-if="message.isEdited" class="edited">(edited)</span>
+      </div>
     </li>
   `
 });
 
+Vue.component("message-attachment", {
+  props: ["name", "permalink"],
+  computed: {
+    uncleanLink: function() {
+      return `<${this.permalink}>`;
+    }
+  },
+  template: `
+    <span>
+      uploaded a file: <message-link v-bind:to="uncleanLink" v-bind:title="name"></message-link>
+    </span>
+  `
+});
+
 Vue.component("message-link", {
-  props: ["to"],
+  props: ["to", "title"],
   computed: {
     cleanLink: function() {
       // Removes the < and >
       return this.to.substr(1, this.to.length - 2);
+    },
+    name: function() {
+      return this.title ? this.title : this.cleanLink;
     }
   },
   methods: {
@@ -203,7 +234,7 @@ Vue.component("message-link", {
   },
   template: `
     <a v-on:click.prevent="openLink" v-bind:href="cleanLink">
-      {{ cleanLink }}
+      {{ name }}
     </a>
   `
 });

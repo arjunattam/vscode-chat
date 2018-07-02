@@ -16,11 +16,17 @@ export interface SlackUsers {
   [id: string]: SlackUser;
 }
 
+interface SlackAttachment {
+  name: string;
+  permalink: string;
+}
+
 interface SlackMessage {
   timestamp: string;
   text: string;
   userId: string;
   isEdited?: Boolean;
+  attachment?: SlackAttachment;
 }
 
 export interface SlackMessages {

@@ -3,6 +3,22 @@ import { SlackUsers, SlackChannel, SlackMessages } from "../interfaces";
 
 const HISTORY_LIMIT = 50;
 
+export const getMessage = (raw: any) => {
+  const { file, ts, user, text, edited } = raw;
+  const attachment = file
+    ? { name: file.name, permalink: file.permalink }
+    : null;
+  let parsed = {};
+  parsed[ts] = {
+    userId: user,
+    timestamp: ts,
+    text: text,
+    isEdited: !!edited,
+    attachment
+  };
+  return parsed;
+};
+
 export default class SlackAPIClient {
   client: WebClient;
 
@@ -19,11 +35,9 @@ export default class SlackAPIClient {
 
         if (ok) {
           messages.forEach(message => {
-            result[message.ts] = {
-              userId: message.user,
-              timestamp: message.ts,
-              text: message.text,
-              isEdited: !!message.edited
+            result = {
+              ...result,
+              ...getMessage(message)
             };
           });
         }
