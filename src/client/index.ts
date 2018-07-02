@@ -4,18 +4,31 @@ import { SlackUsers, SlackChannel, SlackMessages } from "../interfaces";
 const HISTORY_LIMIT = 50;
 
 export const getMessage = (raw: any) => {
-  const { file, ts, user, text, edited } = raw;
-  const attachment = file
-    ? { name: file.name, permalink: file.permalink }
-    : null;
+  const { file, ts, user, text, edited, subtype } = raw;
   let parsed = {};
-  parsed[ts] = {
-    userId: user,
-    timestamp: ts,
-    text: text,
-    isEdited: !!edited,
-    attachment
-  };
+
+  if (subtype === "bot_message") {
+    const { bot_id } = raw;
+    parsed[ts] = {
+      userId: bot_id,
+      timestamp: ts,
+      // Handles just one attachment -- need to see examples that have >1
+      text: raw.attachments ? raw.attachments[0].text : "",
+      color: raw.attachments ? raw.attachments[0].color : ""
+    };
+  } else {
+    const attachment = file
+      ? { name: file.name, permalink: file.permalink }
+      : null;
+    parsed[ts] = {
+      userId: user,
+      timestamp: ts,
+      text: text,
+      isEdited: !!edited,
+      attachment
+    };
+  }
+
   return parsed;
 };
 
@@ -64,6 +77,27 @@ export default class SlackAPIClient {
         return users;
       }
     });
+  }
+
+  getBotInfo(botId: string): Promise<SlackUsers> {
+    return this.client
+      .apiCall("bots.info", { bot: botId })
+      .then((response: any) => {
+        const { bot, ok } = response;
+        let users = {};
+
+        if (ok) {
+          const { id, name, icons } = bot;
+          users[bot.id] = {
+            id,
+            name,
+            imageUrl: icons.image_72,
+            isBot: true
+          };
+        }
+
+        return users;
+      });
   }
 
   getChannels(users: SlackUsers): Promise<SlackChannel[]> {

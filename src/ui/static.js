@@ -1,11 +1,9 @@
 const vscode = acquireVsCodeApi();
 
-const SAME_GROUP_TIME = 5 * 60; // seconds
-
 // Regex from https://stackoverflow.com/a/15855457
 const URL_REGEX = /(?:(?:(?:https?|ftp):)?\/\/)(?:\S+(?::\S*)?@)?(?:(?!(?:10|127)(?:\.\d{1,3}){3})(?!(?:169\.254|192\.168)(?:\.\d{1,3}){2})(?!172\.(?:1[6-9]|2\d|3[0-1])(?:\.\d{1,3}){2})(?:[1-9]\d?|1\d\d|2[01]\d|22[0-3])(?:\.(?:1?\d{1,2}|2[0-4]\d|25[0-5])){2}(?:\.(?:[1-9]\d?|1\d\d|2[0-4]\d|25[0-4]))|(?:(?:[a-z\u00a1-\uffff0-9]-*)*[a-z\u00a1-\uffff0-9]+)(?:\.(?:[a-z\u00a1-\uffff0-9]-*)*[a-z\u00a1-\uffff0-9]+)*(?:\.(?:[a-z\u00a1-\uffff]{2,})))(?::\d{2,5})?(?:[/?#]\S*)?/;
-
-const MESSAGE_REGEX = new RegExp(`^(.*)(<${URL_REGEX.source}>)(.*)$`);
+const LINK_FORMAT_REGEX = new RegExp(`<(${URL_REGEX.source})(\\|.+)>`);
+const SAME_GROUP_TIME = 5 * 60; // seconds
 
 function hashCode(str) {
   return str
@@ -160,43 +158,44 @@ Vue.component("message-group", {
 Vue.component("message-item", {
   props: ["message"],
   computed: {
-    parsedForURL: function() {
-      // TODO(arjun): this only handles max 1 URL per message. Messages with >1 URLs will break
-      const { text } = this.message;
-      const matched = text.match(MESSAGE_REGEX);
-      let result = {}; // left, URL, right
-
-      if (matched) {
-        result = { left: matched[1], url: matched[2], right: matched[3] };
-      } else {
-        result = { left: text, url: "", right: "" };
-      }
-
-      return result;
+    borderColor: function() {
+      return this.message.color ? `#${this.message.color}` : ``;
     }
   },
   template: `
-    <li>
-      <div v-if="message.attachment">
+    <li
+      v-bind:class="{ 'bot-border': message.color }"
+      v-bind:style="{ borderColor: borderColor }">
+      <div class="li-line" v-if="message.attachment">
         <message-attachment
           v-bind:name="message.attachment.name"
           v-bind:permalink="message.attachment.permalink">
         </message-attachment>
       </div>
-      <div v-else>
-        <vue-markdown
-          v-if="parsedForURL.left">{{ parsedForURL.left }}
-        </vue-markdown>
-        <message-link
-          v-if="parsedForURL.url" v-bind:to="parsedForURL.url">
-        </message-link>
-        <vue-markdown
-          v-if="parsedForURL.right">{{ parsedForURL.right }}
-        </vue-markdown>
-        <span v-if="message.isEdited" class="edited">(edited)</span>
+      <div class="li-line" v-else>
+        <message-text v-bind:message="message"></message-text>
       </div>
     </li>
   `
+});
+
+Vue.component("message-text", {
+  props: ["message"],
+  render: function(createElement) {
+    const md = mdText =>
+      createElement("vue-markdown", { class: { md: true } }, mdText);
+    const link = url => createElement("message-link", { props: { to: url } });
+    const { text } = this.message;
+    const r = new RegExp(`(<${URL_REGEX.source}>)`, "g");
+    const elements = text.split(r).map(section => {
+      if (section.match(r)) {
+        return link(section);
+      } else {
+        return section ? md(section) : null;
+      }
+    });
+    return createElement("div", elements);
+  }
 });
 
 Vue.component("message-attachment", {
@@ -216,26 +215,43 @@ Vue.component("message-attachment", {
 Vue.component("message-link", {
   props: ["to", "title"],
   computed: {
-    cleanLink: function() {
-      // Removes the < and >
-      return this.to.substr(1, this.to.length - 2);
+    parsedLink: function() {
+      const matched = this.to.match(LINK_FORMAT_REGEX);
+
+      if (matched) {
+        const url = matched[1];
+        const title = matched[2].substr(1);
+        return { url, title };
+      } else {
+        return { url: this.to.substr(1, this.to.length - 2) };
+      }
     },
     name: function() {
-      return this.title ? this.title : this.cleanLink;
+      // Can either specify title props, or bot link format (<link|title>)
+      // or we just show the url (cleanLink)
+      if (this.title) {
+        return this.title;
+      }
+
+      const { url, title } = this.parsedLink;
+
+      if (title) {
+        return title;
+      } else {
+        return url;
+      }
     }
   },
   methods: {
     openLink: function(event) {
       vscode.postMessage({
         type: "link",
-        text: this.cleanLink
+        text: this.parsedLink.url
       });
     }
   },
   template: `
-    <a v-on:click.prevent="openLink" v-bind:href="cleanLink">
-      {{ name }}
-    </a>
+    <a v-on:click.prevent="openLink" v-bind:href="parsedLink.url">{{ name }}</a>
   `
 });
 

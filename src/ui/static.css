@@ -42,7 +42,12 @@ body,
 
 .message-list li {
   margin: 3px 0;
-  word-break: break-all;
+  word-break: break-word;
+}
+
+.message-list li.bot-border {
+  border-left: 3px solid white;
+  padding-left: 7px;
 }
 
 .form-section {
@@ -70,6 +75,11 @@ body,
 .message-list li p {
   -webkit-margin-after: 0;
   -webkit-margin-before: 0;
+  display: inline;
+}
+
+.message-list li div.md {
+  display: inline;
 }
 
 .message-list li pre {
@@ -82,9 +92,8 @@ body,
   color: var(--vscode-editor-foreground);
 }
 
-.message-list li div {
+.message-list li div.li-line {
   margin: 2px 0;
-  display: inline-block;
 }
 
 .message-list li span.edited {

@@ -19,6 +19,23 @@ const stateKeys = {
 
 const CONFIG_ROOT = "chat";
 
+function isSuperset(set, subset) {
+  for (var elem of subset) {
+    if (!set.has(elem)) {
+      return false;
+    }
+  }
+  return true;
+}
+
+function difference(setA, setB) {
+  var _difference = new Set(setA);
+  for (var elem of setB) {
+    _difference.delete(elem);
+  }
+  return _difference;
+}
+
 export default class Store implements IStore {
   slackToken: string;
   lastChannel: SlackChannel;
@@ -128,8 +145,40 @@ export default class Store implements IStore {
       }
     });
 
+    // Check if we have all users. Since there is not bots.list API
+    // method, it is possible that a bot user is not in our store
+    const userIds = new Set(
+      (<any>Object).values(this.messages).map(message => message.userId)
+    );
+    const allIds = new Set(Object.keys(this.users));
+    if (!isSuperset(allIds, userIds)) {
+      this.fillUpBots(difference(userIds, allIds));
+    }
+
     this.updateUi();
   };
+
+  fillUpBots(missingIds: Set<any>): Promise<any> {
+    // missingIds are bot ids that we don't have in the store. We will
+    // fetch their details, and then update the UI.
+    // We could remove this once we use rtm.start instead of rtm.connect
+    const client = new SlackAPIClient(this.slackToken);
+    const ids = [...missingIds].filter(id => id.startsWith("B"));
+    return Promise.all(
+      ids.map(botId => {
+        return client.getBotInfo(botId).then(users => {
+          this.users = {
+            ...this.users,
+            ...users
+          };
+        });
+      })
+    )
+      .then(() => {
+        return this.updateUi();
+      })
+      .catch(error => console.error(error));
+  }
 
   loadChannelHistory(): Promise<void> {
     const client = new SlackAPIClient(this.slackToken);

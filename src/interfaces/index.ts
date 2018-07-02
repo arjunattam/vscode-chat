@@ -2,6 +2,7 @@ interface SlackUser {
   id: string;
   name: string;
   imageUrl: string;
+  isBot?: Boolean;
 }
 
 export interface SlackCurrentUser {
@@ -27,6 +28,7 @@ interface SlackMessage {
   userId: string;
   isEdited?: Boolean;
   attachment?: SlackAttachment;
+  color?: string;
 }
 
 export interface SlackMessages {
