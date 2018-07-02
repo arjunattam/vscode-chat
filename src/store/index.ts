@@ -4,7 +4,7 @@ import * as str from "../strings";
 import {
   SlackChannel,
   SlackCurrentUser,
-  SlackMessage,
+  SlackMessages,
   SlackUsers,
   IStore,
   UiMessage
@@ -25,7 +25,7 @@ export default class Store implements IStore {
   channels: SlackChannel[];
   currentUserInfo: SlackCurrentUser;
   users: SlackUsers;
-  messages: SlackMessage[] = []; // of current channel
+  messages: SlackMessages = {}; // of current channel
   uiCallback: (message: UiMessage) => void;
 
   constructor(private context: vscode.ExtensionContext) {
@@ -112,16 +112,22 @@ export default class Store implements IStore {
   };
 
   clearMessages = () => {
-    this.messages = [];
+    this.messages = {};
   };
 
-  updateMessages = (newMessages: SlackMessage[]) => {
-    this.messages = []
-      .concat(this.messages, newMessages)
-      .filter(
-        (message, index, self) =>
-          index === self.findIndex(t => t.timestamp === message.timestamp)
-      );
+  updateMessages = (newMessages: SlackMessages) => {
+    this.messages = {
+      ...this.messages,
+      ...newMessages
+    };
+
+    // Remove undefined, after message deleted
+    Object.keys(this.messages).forEach(key => {
+      if (typeof this.messages[key] === "undefined") {
+        delete this.messages[key];
+      }
+    });
+
     this.updateUi();
   };
 

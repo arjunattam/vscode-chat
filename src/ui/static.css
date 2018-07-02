@@ -81,3 +81,11 @@ body,
 .message-list code {
   color: var(--vscode-editor-foreground);
 }
+
+.message-list li div {
+  display: inline-block;
+}
+
+.message-list li span.edited {
+  font-size: x-small;
+}

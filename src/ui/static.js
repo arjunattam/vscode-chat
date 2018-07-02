@@ -7,6 +7,16 @@ const URL_REGEX = /(?:(?:(?:https?|ftp):)?\/\/)(?:\S+(?::\S*)?@)?(?:(?!(?:10|127
 
 const MESSAGE_REGEX = new RegExp(`^(.*)(<${URL_REGEX.source}>)(.*)$`);
 
+function hashCode(str) {
+  return str
+    .split("")
+    .reduce(
+      (prevHash, currVal) =>
+        ((prevHash << 5) - prevHash + currVal.charCodeAt(0)) | 0,
+      0
+    );
+}
+
 Vue.component("app-container", {
   props: ["messages", "users", "channel"],
   template: `
@@ -39,7 +49,7 @@ Vue.component("messages-section", {
   props: ["messages", "users"],
   computed: {
     messageGroups: function() {
-      const messagesCopy = this.messages.slice();
+      const messagesCopy = Object.values(this.messages);
 
       messagesCopy.sort(function(a, b) {
         return +a.timestamp - +b.timestamp;
@@ -63,7 +73,8 @@ Vue.component("messages-section", {
         if (isSameTime && isSameUser) {
           let newGroup = Object.assign(currentGroup, {
             timestamp: message.timestamp,
-            messages: [].concat(currentGroup.messages, [message])
+            messages: [].concat(currentGroup.messages, [message]),
+            key: hashCode(`${currentGroup.key}${message.text}`)
           });
           groupsAccumulator = {
             currentGroup: newGroup,
@@ -76,7 +87,8 @@ Vue.component("messages-section", {
               userId: message.userId,
               user: this.users[message.userId],
               timestamp: message.timestamp,
-              minTimestamp: message.timestamp
+              minTimestamp: message.timestamp,
+              key: hashCode(message.text) // key should change if text changes
             },
             groups: currentGroup.timestamp
               ? [].concat(groups, [currentGroup])
@@ -96,7 +108,7 @@ Vue.component("messages-section", {
     <div class="messages-section">
       <message-group
         v-for="group in messageGroups"
-        v-bind:key="group.timestamp"
+        v-bind:key="group.key"
         v-bind:messages="group.messages"
         v-bind:userId="group.userId"
         v-bind:user="group.user"
@@ -168,6 +180,7 @@ Vue.component("message-item", {
       <vue-markdown v-if="parsedForURL.left">{{ parsedForURL.left }}</vue-markdown>
       <message-link v-if="parsedForURL.url" v-bind:to="parsedForURL.url"></message-link>
       <vue-markdown v-if="parsedForURL.right">{{ parsedForURL.right }}</vue-markdown>
+      <span v-if="message.isEdited" class="edited">(edited)</span>
     </li>
   `
 });

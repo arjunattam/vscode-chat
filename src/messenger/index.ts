@@ -8,6 +8,11 @@ const RTMEvents = {
   ERROR: "unable_to_rtm_start"
 };
 
+const EventSubTypes = {
+  EDITED: "message_changed",
+  DELETED: "message_deleted"
+};
+
 class SlackMessenger implements IMessenger {
   rtmClient: RTMClient;
 
@@ -47,17 +52,38 @@ class SlackMessenger implements IMessenger {
 
     this.rtmClient.on(RTMEvents.MESSAGE, event => {
       if (channel.id === event.channel) {
-        const { user: userId, text, ts: timestamp } = event;
-        if (text) {
-          // Some messages (like keep-alive) have no text, we ignore them
-          this.store.updateMessages([
-            {
-              userId,
-              text,
-              timestamp
+        const { subtype } = event;
+        let newMessages = {};
+
+        switch (subtype) {
+          case EventSubTypes.DELETED:
+            const { deleted_ts } = event;
+            newMessages[deleted_ts] = undefined;
+            break;
+
+          case EventSubTypes.EDITED:
+            const { message } = event;
+            newMessages[message.ts] = {
+              userId: message.user,
+              text: message.text,
+              timestamp: message.ts,
+              isEdited: !!message.edited
+            };
+            break;
+
+          default:
+            const { user: userId, text, ts: timestamp } = event;
+            if (text) {
+              // Some messages (like keep-alive) have no text, we ignore them
+              newMessages[timestamp] = {
+                userId,
+                text,
+                timestamp
+              };
             }
-          ]);
         }
+
+        this.store.updateMessages(newMessages);
       }
     });
 
@@ -94,13 +120,13 @@ class SlackMessenger implements IMessenger {
     return client
       .sendMessage({ channel: id, text: cleanText })
       .then((result: any) => {
-        this.store.updateMessages([
-          {
-            userId: this.store.currentUserInfo.id,
-            text: text,
-            timestamp: result.ts
-          }
-        ]);
+        let newMessages = {};
+        newMessages[result.ts] = {
+          userId: this.store.currentUserInfo.id,
+          text: text,
+          timestamp: result.ts
+        };
+        this.store.updateMessages(newMessages);
       })
       .catch(error => console.error(error));
   }

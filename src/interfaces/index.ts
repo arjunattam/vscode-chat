@@ -1,4 +1,4 @@
-export interface SlackUser {
+interface SlackUser {
   id: string;
   name: string;
   imageUrl: string;
@@ -16,10 +16,15 @@ export interface SlackUsers {
   [id: string]: SlackUser;
 }
 
-export interface SlackMessage {
+interface SlackMessage {
   timestamp: string;
   text: string;
   userId: string;
+  isEdited?: Boolean;
+}
+
+export interface SlackMessages {
+  [timestamp: string]: SlackMessage;
 }
 
 enum ChannelType {
@@ -47,7 +52,7 @@ export interface ExtensionMessage {
 }
 
 export interface UiMessage {
-  messages: SlackMessage[];
+  messages: SlackMessages;
   users: SlackUsers;
   channelName: string;
 }
@@ -58,9 +63,9 @@ export interface IStore {
   channels: SlackChannel[];
   currentUserInfo: SlackCurrentUser;
   users: SlackUsers;
-  messages: SlackMessage[];
+  messages: SlackMessages;
   clearMessages: () => void;
-  updateMessages: (newMessages: SlackMessage[]) => void;
+  updateMessages: (newMessages: SlackMessages) => void;
   loadChannelHistory: () => Promise<void>;
 }
 

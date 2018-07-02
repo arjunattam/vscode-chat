@@ -102,14 +102,19 @@ class ViewController {
     emoji.allow_native = true;
     emoji.replace_mode = "unified";
     const { messages: rawMessages } = message;
+
+    let emojifiedMessages = {};
+    Object.keys(rawMessages).forEach(key => {
+      const message = rawMessages[key];
+      emojifiedMessages[key] = {
+        ...message,
+        text: emoji.replace_colons(message.text)
+      };
+    });
+
     return {
       ...message,
-      messages: rawMessages.map(message => {
-        return {
-          ...message,
-          text: emoji.replace_colons(message.text)
-        };
-      })
+      messages: emojifiedMessages
     };
   };
 
@@ -118,25 +123,31 @@ class ViewController {
     // that the backticks are followed with a newline, because our
     // markdown renderer assumes anything next to the ``` is a language
     // eg, ```python
+
+    // TODO(arjun): this assumes message starts and ends with backticks
+    // For example, "```abcd``` xyz" will not work with this logic
     const { messages: rawMessages } = message;
+    let correctedMessages = {};
+    Object.keys(rawMessages).forEach(key => {
+      const message = rawMessages[key];
+      const { text } = message;
+      const ticks = "```";
+      const corrected =
+        text.startsWith(`${ticks}`) && !text.startsWith(`${ticks}\n`)
+          ? text.replace(`${ticks}`, `${ticks}\n`)
+          : text;
+      const final =
+        text.endsWith(`${ticks}`) && !text.endsWith(`\n${ticks}`)
+          ? corrected.replace(new RegExp(`${ticks}$`), `\n${ticks}`)
+          : corrected;
+      correctedMessages[key] = {
+        ...message,
+        text: final
+      };
+    });
     return {
       ...message,
-      messages: rawMessages.map(message => {
-        const { text } = message;
-        const ticks = "```";
-        const corrected =
-          text.startsWith(`${ticks}`) && !text.startsWith(`${ticks}\n`)
-            ? text.replace(`${ticks}`, `${ticks}\n`)
-            : text;
-        const final =
-          text.endsWith(`${ticks}`) && !text.endsWith(`\n${ticks}`)
-            ? corrected.replace(new RegExp(`${ticks}$`), `\n${ticks}`)
-            : corrected;
-        return {
-          ...message,
-          text: final
-        };
-      })
+      messages: correctedMessages
     };
   };
 
@@ -150,7 +161,7 @@ class ViewController {
     if (!this.isUiReady) {
       this.pendingMessage = uiMessage;
     } else {
-      Logger.log(`Sending to ui: ${messages.length} messages`);
+      Logger.log(`Sending to ui: ${Object.keys(messages).length} messages`);
       this.ui.update(this.transform(uiMessage));
       this.pendingMessage = null;
     }

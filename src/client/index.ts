@@ -1,5 +1,7 @@
 import { WebClient } from "@slack/client";
-import { SlackUsers, SlackChannel, SlackMessage } from "../interfaces";
+import { SlackUsers, SlackChannel, SlackMessages } from "../interfaces";
+
+const HISTORY_LIMIT = 50;
 
 export default class SlackAPIClient {
   client: WebClient;
@@ -8,19 +10,25 @@ export default class SlackAPIClient {
     this.client = new WebClient(token);
   }
 
-  getConversationHistory = (channel: string): Promise<SlackMessage[]> => {
+  getConversationHistory = (channel: string): Promise<SlackMessages> => {
     return this.client
-      .apiCall("conversations.history", { channel, limit: 50 })
+      .apiCall("conversations.history", { channel, limit: HISTORY_LIMIT })
       .then((response: any) => {
         const { messages, ok } = response;
+        let result = {};
 
         if (ok) {
-          return messages.map(message => ({
-            userId: message.user,
-            timestamp: message.ts,
-            text: message.text
-          }));
+          messages.forEach(message => {
+            result[message.ts] = {
+              userId: message.user,
+              timestamp: message.ts,
+              text: message.text,
+              isEdited: !!message.edited
+            };
+          });
         }
+
+        return result;
       });
   };
 
