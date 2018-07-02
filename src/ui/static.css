@@ -82,14 +82,10 @@ body,
   display: inline;
 }
 
-.message-list li pre {
-  background-color: var(--vscode-editor-selectionHighlightBackground);
-  padding: 5px;
-  border-radius: 2px;
-}
-
 .message-list li code {
+  background-color: var(--vscode-editor-selectionHighlightBackground);
   color: var(--vscode-editor-foreground);
+  border-radius: 2px;
 }
 
 .message-list li div.li-line {

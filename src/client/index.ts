@@ -4,31 +4,20 @@ import { SlackUsers, SlackChannel, SlackMessages } from "../interfaces";
 const HISTORY_LIMIT = 50;
 
 export const getMessage = (raw: any) => {
-  const { file, ts, user, text, edited, subtype } = raw;
+  const { file, ts, user, text, edited, bot_id, attachments, subtype } = raw;
+  const fileAttachment = file
+    ? { name: file.name, permalink: file.permalink }
+    : null;
+
   let parsed = {};
-
-  if (subtype === "bot_message") {
-    const { bot_id } = raw;
-    parsed[ts] = {
-      userId: bot_id,
-      timestamp: ts,
-      // Handles just one attachment -- need to see examples that have >1
-      text: raw.attachments ? raw.attachments[0].text : "",
-      color: raw.attachments ? raw.attachments[0].color : ""
-    };
-  } else {
-    const attachment = file
-      ? { name: file.name, permalink: file.permalink }
-      : null;
-    parsed[ts] = {
-      userId: user,
-      timestamp: ts,
-      text: text,
-      isEdited: !!edited,
-      attachment
-    };
-  }
-
+  parsed[ts] = {
+    userId: user ? user : bot_id,
+    timestamp: ts,
+    text: text ? text : attachments ? attachments[0].text : "",
+    color: attachments ? attachments[0].color : "",
+    isEdited: !!edited,
+    attachment: fileAttachment
+  };
   return parsed;
 };
 
@@ -45,6 +34,8 @@ export default class SlackAPIClient {
       .then((response: any) => {
         const { messages, ok } = response;
         let result = {};
+
+        console.log(messages);
 
         if (ok) {
           messages.forEach(message => {

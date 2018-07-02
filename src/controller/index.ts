@@ -1,5 +1,4 @@
 import { ExtensionContext } from "vscode";
-import * as EmojiConvertor from "emoji-js";
 import SlackMessenger from "../messenger";
 import WebviewContainer from "../ui";
 import { ExtensionMessage, UiMessage } from "../interfaces";
@@ -7,6 +6,7 @@ import { COMMAND_ACTIONS } from "../constants";
 import Logger from "../logger";
 import CommandHandler from "../commands";
 import LinkHandler from "./linkhandler";
+import transformer from "./transformers";
 
 /**
  * Handles message passing between the ui and extension
@@ -97,64 +97,6 @@ class ViewController {
     }
   };
 
-  emojify = (message: UiMessage): UiMessage => {
-    const emoji = new EmojiConvertor();
-    emoji.allow_native = true;
-    emoji.replace_mode = "unified";
-    const { messages: rawMessages } = message;
-
-    let emojifiedMessages = {};
-    Object.keys(rawMessages).forEach(key => {
-      const message = rawMessages[key];
-      emojifiedMessages[key] = {
-        ...message,
-        text: emoji.replace_colons(message.text)
-      };
-    });
-
-    return {
-      ...message,
-      messages: emojifiedMessages
-    };
-  };
-
-  addLineToSnippets = (message: UiMessage): UiMessage => {
-    // When we use ``` (backticks) to denote a snippet, we need to ensure
-    // that the backticks are followed with a newline, because our
-    // markdown renderer assumes anything next to the ``` is a language
-    // eg, ```python
-
-    // TODO(arjun): this assumes message starts and ends with backticks
-    // For example, "```abcd``` xyz" will not work with this logic
-    const { messages: rawMessages } = message;
-    let correctedMessages = {};
-    Object.keys(rawMessages).forEach(key => {
-      const message = rawMessages[key];
-      const { text } = message;
-      const ticks = "```";
-      const corrected =
-        text.startsWith(`${ticks}`) && !text.startsWith(`${ticks}\n`)
-          ? text.replace(`${ticks}`, `${ticks}\n`)
-          : text;
-      const final =
-        text.endsWith(`${ticks}`) && !text.endsWith(`\n${ticks}`)
-          ? corrected.replace(new RegExp(`${ticks}$`), `\n${ticks}`)
-          : corrected;
-      correctedMessages[key] = {
-        ...message,
-        text: final
-      };
-    });
-    return {
-      ...message,
-      messages: correctedMessages
-    };
-  };
-
-  transform = (message: UiMessage): UiMessage => {
-    return this.addLineToSnippets(this.emojify(message));
-  };
-
   sendToUi = (uiMessage: UiMessage) => {
     const { messages } = uiMessage;
 
@@ -162,7 +104,8 @@ class ViewController {
       this.pendingMessage = uiMessage;
     } else {
       Logger.log(`Sending to ui: ${Object.keys(messages).length} messages`);
-      this.ui.update(this.transform(uiMessage));
+      console.log(messages);
+      this.ui.update(transformer(uiMessage));
       this.pendingMessage = null;
     }
   };

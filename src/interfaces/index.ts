@@ -29,6 +29,7 @@ interface SlackMessage {
   isEdited?: Boolean;
   attachment?: SlackAttachment;
   color?: string;
+  textHTML?: string;
 }
 
 export interface SlackMessages {

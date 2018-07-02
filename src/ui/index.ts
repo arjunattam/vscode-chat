@@ -68,10 +68,8 @@ function getWebviewContent(staticPath) {
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
       <title>Slack</title>
       <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
-      <script src="https://unpkg.com/vue-markdown@2.2.4/dist/vue-markdown.js"></script>
-      ${vueImports}
-
       <style>code { font-family: ${fontFamily} }</style>
+      ${vueImports}
   </head>
   <body>
       <div id="app">

@@ -1,9 +1,14 @@
 const vscode = acquireVsCodeApi();
 
-// Regex from https://stackoverflow.com/a/15855457
-const URL_REGEX = /(?:(?:(?:https?|ftp):)?\/\/)(?:\S+(?::\S*)?@)?(?:(?!(?:10|127)(?:\.\d{1,3}){3})(?!(?:169\.254|192\.168)(?:\.\d{1,3}){2})(?!172\.(?:1[6-9]|2\d|3[0-1])(?:\.\d{1,3}){2})(?:[1-9]\d?|1\d\d|2[01]\d|22[0-3])(?:\.(?:1?\d{1,2}|2[0-4]\d|25[0-5])){2}(?:\.(?:[1-9]\d?|1\d\d|2[0-4]\d|25[0-4]))|(?:(?:[a-z\u00a1-\uffff0-9]-*)*[a-z\u00a1-\uffff0-9]+)(?:\.(?:[a-z\u00a1-\uffff0-9]-*)*[a-z\u00a1-\uffff0-9]+)*(?:\.(?:[a-z\u00a1-\uffff]{2,})))(?::\d{2,5})?(?:[/?#]\S*)?/;
-const LINK_FORMAT_REGEX = new RegExp(`<(${URL_REGEX.source})(\\|.+)>`);
 const SAME_GROUP_TIME = 5 * 60; // seconds
+
+function openLink(href) {
+  // Handler for <a> tags in this view
+  vscode.postMessage({
+    type: "link",
+    text: href
+  });
+}
 
 function hashCode(str) {
   return str
@@ -37,8 +42,9 @@ Vue.component("app-container", {
   methods: {
     clickHandler: function(event) {
       // When the panel is clicked, we want to focus the input
-      const { formSection } = this.$refs;
-      return formSection ? formSection.focusInput() : null;
+      // UPDATE, this is disabled: this does not let you select text
+      // const { formSection } = this.$refs;
+      // return formSection ? formSection.focusInput() : null;
     }
   }
 });
@@ -166,93 +172,28 @@ Vue.component("message-item", {
     <li
       v-bind:class="{ 'bot-border': message.color }"
       v-bind:style="{ borderColor: borderColor }">
-      <div class="li-line" v-if="message.attachment">
-        <message-attachment
-          v-bind:name="message.attachment.name"
-          v-bind:permalink="message.attachment.permalink">
-        </message-attachment>
-      </div>
-      <div class="li-line" v-else>
-        <message-text v-bind:message="message"></message-text>
-      </div>
+      <message-text v-bind:message="message"></message-text>
     </li>
   `
 });
 
 Vue.component("message-text", {
   props: ["message"],
+  computed: {
+    inner: function() {
+      const linkPattern = /<a href="(.[^<>]+)">(.[^<>]+)<\/a>/g;
+      return this.message.textHTML.replace(
+        linkPattern,
+        '<a href="#" onclick="openLink(\'$1\'); return false;">$2</a>'
+      );
+    }
+  },
   render: function(createElement) {
-    const md = mdText =>
-      createElement("vue-markdown", { class: { md: true } }, mdText);
-    const link = url => createElement("message-link", { props: { to: url } });
-    const { text } = this.message;
-    const r = new RegExp(`(<${URL_REGEX.source}>)`, "g");
-    const elements = text.split(r).map(section => {
-      if (section.match(r)) {
-        return link(section);
-      } else {
-        return section ? md(section) : null;
-      }
+    return createElement("div", {
+      class: { "li-line": true },
+      domProps: { innerHTML: this.inner }
     });
-    return createElement("div", elements);
   }
-});
-
-Vue.component("message-attachment", {
-  props: ["name", "permalink"],
-  computed: {
-    uncleanLink: function() {
-      return `<${this.permalink}>`;
-    }
-  },
-  template: `
-    <span>
-      uploaded a file: <message-link v-bind:to="uncleanLink" v-bind:title="name"></message-link>
-    </span>
-  `
-});
-
-Vue.component("message-link", {
-  props: ["to", "title"],
-  computed: {
-    parsedLink: function() {
-      const matched = this.to.match(LINK_FORMAT_REGEX);
-
-      if (matched) {
-        const url = matched[1];
-        const title = matched[2].substr(1);
-        return { url, title };
-      } else {
-        return { url: this.to.substr(1, this.to.length - 2) };
-      }
-    },
-    name: function() {
-      // Can either specify title props, or bot link format (<link|title>)
-      // or we just show the url (cleanLink)
-      if (this.title) {
-        return this.title;
-      }
-
-      const { url, title } = this.parsedLink;
-
-      if (title) {
-        return title;
-      } else {
-        return url;
-      }
-    }
-  },
-  methods: {
-    openLink: function(event) {
-      vscode.postMessage({
-        type: "link",
-        text: this.parsedLink.url
-      });
-    }
-  },
-  template: `
-    <a v-on:click.prevent="openLink" v-bind:href="parsedLink.url">{{ name }}</a>
-  `
 });
 
 Vue.component("form-section", {
@@ -343,6 +284,3 @@ Vue.directive("focus", {
     el.focus();
   }
 });
-
-// Markdown
-Vue.use(VueMarkdown);
