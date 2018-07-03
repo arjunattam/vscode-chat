@@ -104,7 +104,6 @@ class ViewController {
       this.pendingMessage = uiMessage;
     } else {
       Logger.log(`Sending to ui: ${Object.keys(messages).length} messages`);
-      console.log(messages);
       this.ui.update(transformer(uiMessage));
       this.pendingMessage = null;
     }

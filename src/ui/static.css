@@ -50,6 +50,7 @@ body,
   padding-left: 7px;
 }
 
+/* Form section styles */
 .form-section {
   margin-bottom: 20px;
 }
@@ -71,11 +72,49 @@ body,
   display: none;
 }
 
+/* Message content styles */
+div.msg-author {
+  margin: 3px 0;
+}
+
+div.msg-title {
+  margin: 3px 0;
+  font-weight: bold;
+}
+
+div.msg-author img {
+  max-width: 18px;
+  max-height: 18px;
+  display: inline-block;
+  vertical-align: middle;
+}
+
+div.msg-author span {
+  display: inline-block;
+  vertical-align: middle;
+}
+
+div.msg-footer {
+  margin-top: 5px;
+  font-size: x-small;
+}
+
+div.msg-title a,
+div.msg-footer a {
+  text-decoration: none;
+}
+
+div.msg-title a:hover,
+div.msg-footer a:hover {
+  text-decoration: underline;
+}
+
 /* Markdown styles */
 .message-list li p {
   -webkit-margin-after: 0;
   -webkit-margin-before: 0;
   display: inline;
+  line-height: 1.4;
 }
 
 .message-list li div.md {
@@ -85,11 +124,21 @@ body,
 .message-list li code {
   background-color: var(--vscode-editor-selectionHighlightBackground);
   color: var(--vscode-editor-foreground);
+}
+
+.message-list li pre {
+  padding: 3px;
+  background-color: var(--vscode-editor-selectionHighlightBackground);
   border-radius: 2px;
 }
 
+.message-list li pre code {
+  background-color: transparent;
+  white-space: pre-wrap;
+}
+
 .message-list li div.li-line {
-  margin: 2px 0;
+  margin: 3px 0;
 }
 
 .message-list li span.edited {

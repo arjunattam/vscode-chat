@@ -22,14 +22,25 @@ interface SlackAttachment {
   permalink: string;
 }
 
+interface MessageContent {
+  author: string;
+  authorIcon?: string;
+  pretext: string;
+  title: string;
+  titleLink: string;
+  text: string;
+  textHTML?: string;
+  footer: string;
+  footerHTML?: string;
+}
+
 interface SlackMessage {
   timestamp: string;
-  text: string;
+  content: MessageContent;
   userId: string;
   isEdited?: Boolean;
   attachment?: SlackAttachment;
   color?: string;
-  textHTML?: string;
 }
 
 export interface SlackMessages {

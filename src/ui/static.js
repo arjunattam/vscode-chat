@@ -43,6 +43,7 @@ Vue.component("app-container", {
     clickHandler: function(event) {
       // When the panel is clicked, we want to focus the input
       // UPDATE, this is disabled: this does not let you select text
+      //
       // const { formSection } = this.$refs;
       // return formSection ? formSection.focusInput() : null;
     }
@@ -73,12 +74,13 @@ Vue.component("messages-section", {
         const isSameTime = currentGroup.timestamp
           ? +message.timestamp - +currentGroup.timestamp < SAME_GROUP_TIME
           : false;
+        const msgKey = message.content.text ? message.content.text : "";
 
         if (isSameTime && isSameUser) {
           let newGroup = Object.assign(currentGroup, {
             timestamp: message.timestamp,
             messages: [].concat(currentGroup.messages, [message]),
-            key: hashCode(`${currentGroup.key}${message.text}`)
+            key: hashCode(`${currentGroup.key}${msgKey}`)
           });
           groupsAccumulator = {
             currentGroup: newGroup,
@@ -92,7 +94,7 @@ Vue.component("messages-section", {
               user: this.users[message.userId],
               timestamp: message.timestamp,
               minTimestamp: message.timestamp,
-              key: hashCode(message.text) // key should change if text changes
+              key: hashCode(msgKey) // key should change if text changes
             },
             groups: currentGroup.timestamp
               ? [].concat(groups, [currentGroup])
@@ -172,28 +174,53 @@ Vue.component("message-item", {
     <li
       v-bind:class="{ 'bot-border': message.color }"
       v-bind:style="{ borderColor: borderColor }">
-      <message-text v-bind:message="message"></message-text>
+      <message-content
+        v-bind:content="message.content">
+      </message-content>
     </li>
   `
 });
 
-Vue.component("message-text", {
-  props: ["message"],
+Vue.component("message-content", {
+  props: ["content"],
+  template: `
+    <div class="li-line">
+      <div v-if="content.pretext">{{ content.pretext }} </div>
+      <message-author v-if="content.author" v-bind:content="content"></message-author>
+      <message-title v-if="content.title" v-bind:content="content"></message-title>
+      <div v-if="content.textHTML" v-html="content.textHTML"></div>
+      <div
+        class="msg-footer" v-if="content.footerHTML"
+        v-html="content.footerHTML">
+      </div>
+    </div>
+  `
+});
+
+Vue.component("message-author", {
+  props: ["content"],
+  template: `
+    <div class="msg-author">
+      <img v-bind:src="content.authorIcon"></img>
+      <span>{{ content.author }}</span>
+    </div>
+  `
+});
+
+Vue.component("message-title", {
+  props: ["content"],
   computed: {
-    inner: function() {
-      const linkPattern = /<a href="(.[^<>]+)">(.[^<>]+)<\/a>/g;
-      return this.message.textHTML.replace(
-        linkPattern,
-        '<a href="#" onclick="openLink(\'$1\'); return false;">$2</a>'
-      );
+    titleOnclick: function() {
+      return `openLink('${this.content.titleLink}'); return false;`;
     }
   },
-  render: function(createElement) {
-    return createElement("div", {
-      class: { "li-line": true },
-      domProps: { innerHTML: this.inner }
-    });
-  }
+  template: `
+    <div class="msg-title">
+      <a v-bind:href="content.titleLink" v-bind:onclick="titleOnclick">
+        {{ content.title }}
+      </a>
+    </div>
+  `
 });
 
 Vue.component("form-section", {
