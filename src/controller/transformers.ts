@@ -16,7 +16,7 @@ export const emojify = (messages: SlackMessages): SlackMessages => {
       ...message,
       content: {
         ...content,
-        text: emoji.replace_colons(content.text ? content.text : "")
+        text: emoji.replace_colons(content && content.text ? content.text : "")
       }
     };
   });

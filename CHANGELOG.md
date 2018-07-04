@@ -2,6 +2,12 @@
 
 All notable changes to the vscode-chat extension will be documented in this file. This follows the [Keep a Changelog](http://keepachangelog.com/) format.
 
+## [0.3.4] - 2017-07-04
+
+### Fixed
+
+- Fixes a bug that showed new messages sent via the extension as blank
+
 ## [0.3.3] - 2017-07-03
 
 ### Added

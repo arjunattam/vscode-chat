@@ -123,8 +123,8 @@ class SlackMessenger implements IMessenger {
         let newMessages = {};
         newMessages[result.ts] = {
           userId: this.store.currentUserInfo.id,
-          text: text,
-          timestamp: result.ts
+          timestamp: result.ts,
+          content: { text }
         };
         this.store.updateMessages(newMessages);
       })
