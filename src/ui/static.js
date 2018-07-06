@@ -29,7 +29,7 @@ function hashCode(str) {
 
 Vue.component("app-container", {
   props: ["messages", "users", "channel", "status"],
-  template: `
+  template: /* html */ `
     <div
       class="vue-container"
       v-on:click="clickHandler">
@@ -118,7 +118,7 @@ Vue.component("messages-section", {
         : groups;
     }
   },
-  template: `
+  template: /* html */ `
     <div class="messages-section">
       <message-group
         v-for="group in messageGroups"
@@ -146,7 +146,7 @@ Vue.component("message-group", {
       return this.user ? this.user.name : this.userId;
     }
   },
-  template: `
+  template: /* html */ `
     <div class="message-group">
       <div class="message-group-image">
         <img v-bind:src="user ? user.imageUrl : null"></img>
@@ -171,7 +171,7 @@ Vue.component("message-group", {
 
 Vue.component("message-item", {
   props: ["message"],
-  template: `
+  template: /* html */ `
     <li>
       <div v-if="message.textHTML" v-html="message.textHTML"></div>
       <span v-if="message.isEdited" class="edited">(edited)</span>
@@ -192,7 +192,7 @@ Vue.component("message-content", {
       return borderColor ? `#${borderColor}` : defaultColor;
     }
   },
-  template: `
+  template: /* html */ `
     <div class="li-line" v-bind:style="{ borderColor: borderColor }">
       <div v-if="content.pretext">{{ content.pretext }} </div>
       <message-author v-if="content.author" v-bind:content="content"></message-author>
@@ -208,7 +208,7 @@ Vue.component("message-content", {
 
 Vue.component("message-author", {
   props: ["content"],
-  template: `
+  template: /* html */ `
     <div class="msg-author">
       <img v-bind:src="content.authorIcon"></img>
       <span>{{ content.author }}</span>
@@ -223,7 +223,7 @@ Vue.component("message-title", {
       return `openLink('${this.content.titleLink}'); return false;`;
     }
   },
-  template: `
+  template: /* html */ `
     <div class="msg-title">
       <a v-bind:href="content.titleLink" v-bind:onclick="titleOnclick">
         {{ content.title }}
@@ -255,7 +255,7 @@ Vue.component("form-section", {
       text: ""
     };
   },
-  template: `
+  template: /* html */ `
     <div class="form-section">
       <form
         v-on:submit="onSubmit">
@@ -317,7 +317,7 @@ Vue.component("form-section", {
 
 Vue.component("status-text", {
   props: ["status"],
-  template: `
+  template: /* html */ `
     <div class="status-text">{{ status }}</div>
   `
 });

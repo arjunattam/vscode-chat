@@ -29,6 +29,7 @@ export function activate(context: vscode.ExtensionContext) {
     } else {
       channelsPromise = new Promise((resolve, _) => resolve(channels));
     }
+    const RELOAD_CHANNELS = "Reload Channels";
 
     return channelsPromise
       .then(channels => {
@@ -36,13 +37,19 @@ export function activate(context: vscode.ExtensionContext) {
           const prefix = channel.type === "im" ? "@" : "#";
           return prefix + channel.name;
         });
-
-        return vscode.window.showQuickPick(channelList, {
+        return vscode.window.showQuickPick([...channelList, RELOAD_CHANNELS], {
           placeHolder: str.CHANGE_CHANNEL_TITLE
         });
       })
       .then(selected => {
         if (selected) {
+          if (selected === RELOAD_CHANNELS) {
+            return store
+              .updateUsers()
+              .then(() => store.updateChannels())
+              .then(() => askForChannel());
+          }
+
           const selectedChannel = store.channels.find(
             x => x.name === selected.substr(1)
           );

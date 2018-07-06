@@ -2,6 +2,12 @@
 
 All notable changes to the vscode-chat extension will be documented in this file. This follows the [Keep a Changelog](http://keepachangelog.com/) format.
 
+## [0.4.1] - 2017-07-06
+
+### Added
+
+- Add a "reload channels" option to the channel switcher which refreshes the user/channels list from Slack API.
+
 ## [0.4.0] - 2017-07-06
 
 ### Added
