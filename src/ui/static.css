@@ -52,7 +52,7 @@ body,
 
 /* Form section styles */
 .form-section {
-  margin-bottom: 20px;
+  margin-bottom: 10px;
 }
 
 .form-section textarea {
@@ -66,6 +66,18 @@ body,
   background-color: var(--vscode-input-background);
   border: var(--vscode-input-border);
   outline-color: var(--vscode-inputOption-activeBorder);
+}
+
+.status-text {
+  font-size: smaller;
+  font-weight: bold;
+}
+
+.status-text:empty::after {
+  /* We want to set a min-height, but the font-size is variable */
+  /* Source: https://stackoverflow.com/a/33298969 */
+  content: ".";
+  visibility: hidden;
 }
 
 .form-section input[type="submit"] {

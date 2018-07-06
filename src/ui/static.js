@@ -28,7 +28,7 @@ function hashCode(str) {
 }
 
 Vue.component("app-container", {
-  props: ["messages", "users", "channel"],
+  props: ["messages", "users", "channel", "status"],
   template: `
     <div
       class="vue-container"
@@ -41,7 +41,8 @@ Vue.component("app-container", {
 
       <form-section
         ref="formSection"
-        v-bind:channel="channel">
+        v-bind:channel="channel"
+        v-bind:status="status">
       </form-section>
 
     </div>
@@ -231,7 +232,7 @@ Vue.component("message-title", {
 });
 
 Vue.component("form-section", {
-  props: ["channel"],
+  props: ["channel", "status"],
   computed: {
     placeholder: function() {
       return `Message ${this.channel}`;
@@ -267,6 +268,7 @@ Vue.component("form-section", {
         </textarea>
         <input type="submit"></input>
       </form>
+      <status-text v-bind:status="status"></status-text>
     </div>
   `,
   methods: {
@@ -310,6 +312,13 @@ Vue.component("form-section", {
       text: "is_ready"
     });
   }
+});
+
+Vue.component("status-text", {
+  props: ["status"],
+  template: `
+    <div class="status-text">{{ status }}</div>
+  `
 });
 
 Vue.directive("focus", {

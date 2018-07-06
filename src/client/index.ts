@@ -1,10 +1,10 @@
 import { WebClient } from "@slack/client";
 import { SlackUsers, SlackChannel, SlackMessages } from "../interfaces";
 
-const HISTORY_LIMIT = 50;
+const HISTORY_LIMIT = 2;
 
 export const getMessage = (raw: any): SlackMessages => {
-  const { file, ts, user, text, edited, bot_id, attachments, subtype } = raw;
+  const { file, ts, user, text, edited, bot_id, attachments } = raw;
   const fileAttachment = file
     ? { name: file.name, permalink: file.permalink }
     : null;
@@ -43,8 +43,6 @@ export default class SlackAPIClient {
       .then((response: any) => {
         const { messages, ok } = response;
         let result = {};
-
-        console.log(messages);
 
         if (ok) {
           messages.forEach(message => {

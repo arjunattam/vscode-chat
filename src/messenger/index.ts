@@ -63,13 +63,7 @@ class SlackMessenger implements IMessenger {
 
           case EventSubTypes.EDITED:
             const { message } = event;
-            // Does not support attachments
-            newMessages[message.ts] = {
-              userId: message.user,
-              text: message.text,
-              timestamp: message.ts,
-              isEdited: !!message.edited
-            };
+            newMessages = { ...getMessage(message) };
             break;
 
           default:

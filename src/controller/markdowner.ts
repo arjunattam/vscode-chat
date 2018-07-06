@@ -1,11 +1,12 @@
 import * as EmojiConvertor from "emoji-js";
 import { UiMessage, SlackMessages } from "../interfaces";
-import { REVERSE_SLASH_COMMANDS } from "../constants";
-import { getCommand } from "./index";
 import * as str from "../strings";
 const MarkdownIt = require("markdown-it");
+const markdownItSlack = require("markdown-it-slack");
 
 export const emojify = (messages: SlackMessages): SlackMessages => {
+  // Even though we are using markdown-it-slack, it does not
+  // support emoji skin tones. If that changes, we can remove this method
   const emoji = new EmojiConvertor();
   emoji.allow_native = true;
   emoji.replace_mode = "unified";
@@ -26,43 +27,9 @@ export const emojify = (messages: SlackMessages): SlackMessages => {
   return emojifiedMessages;
 };
 
-export const snippetBreaks = (messages: SlackMessages): SlackMessages => {
-  // When we use ``` (backticks) to denote a snippet, we need to ensure
-  // that the backticks are followed with a newline, because our
-  // markdown renderer assumes anything next to the ``` is a language
-  // eg, ```python
-  let correctedMessages = {};
-  Object.keys(messages).forEach(key => {
-    const message = messages[key];
-    const { content } = message;
-    const { text } = content;
-    const ticks = "```";
-    const leftCorrected =
-      text.startsWith(`${ticks}`) && !text.startsWith(`${ticks}\n`)
-        ? text.replace(new RegExp(`^${ticks}`), `${ticks}\n`)
-        : text;
-    const rightCorrected =
-      text.endsWith(`${ticks}`) && !text.endsWith(`\n${ticks}`)
-        ? leftCorrected.replace(new RegExp(`${ticks}$`), `\n${ticks}`)
-        : leftCorrected;
-    correctedMessages[key] = {
-      ...message,
-      content: {
-        ...content,
-        text: rightCorrected
-      }
-    };
-  });
-  return correctedMessages;
-};
-
-export const strongAsterix = (messages: SlackMessages): SlackMessages => {
-  // TODO(arjun): slack uses * for bolding, but markdown follows **
-  return messages;
-};
-
 export const parseLinks = (messages: SlackMessages): SlackMessages => {
-  // Look for <url|title> pattern. The |pattern can be optional
+  // Looks for <url|title> pattern, and replaces them with normal markdown
+  // The |pattern can be optional
   let parsed = {};
   Object.keys(messages).forEach(key => {
     const { content } = messages[key];
@@ -77,9 +44,11 @@ export const parseLinks = (messages: SlackMessages): SlackMessages => {
       ...messages[key],
       content: {
         ...content,
-        text: text.replace(re, function(a, b, c, d, e) {
-          return e ? `[${e.substr(1)}](${b})` : `[${b}](${b})`;
-        }),
+        text: text
+          ? text.replace(re, function(a, b, c, d, e) {
+              return e ? `[${e.substr(1)}](${b})` : `[${b}](${b})`;
+            })
+          : "",
         footer: footer
           ? footer.replace(re, function(a, b, c, d, e) {
               return e ? `[${e.substr(1)}](${b})` : `[${b}](${b})`;
@@ -93,7 +62,7 @@ export const parseLinks = (messages: SlackMessages): SlackMessages => {
 
 export const markdownify = (messages: SlackMessages): SlackMessages => {
   let markdowned = {};
-  const md = new MarkdownIt({ breaks: true });
+  const md = new MarkdownIt({ breaks: true }).use(markdownItSlack);
 
   // Override renderer for link_open --> this adds an onclick attribute
   // on links, so that we can open them via message passing. This relies
@@ -132,46 +101,11 @@ export const markdownify = (messages: SlackMessages): SlackMessages => {
   return markdowned;
 };
 
-const handleReverseCommands = (messages: SlackMessages): SlackMessages => {
-  const handled = {};
-
-  Object.keys(messages).forEach(ts => {
-    const { content } = messages[ts];
-    let textHTML = content.textHTML;
-    const matched = getCommand(content.text);
-    if (matched) {
-      const { namespace, text } = matched;
-
-      if (namespace in REVERSE_SLASH_COMMANDS) {
-        const isValid =
-          Object.keys(REVERSE_SLASH_COMMANDS[namespace]).indexOf(text) >= 0;
-        if (isValid) {
-          // Here we have a valid reverse slash command
-          textHTML = `override text html. <a href="#" onclick="sendCommand('/live share'); return false;">Accept</a>`;
-        }
-      }
-    }
-
-    handled[ts] = {
-      ...messages[ts],
-      content: {
-        ...content,
-        textHTML
-      }
-    };
-  });
-
-  return handled;
-};
-
 const transformChain = (uiMessage: UiMessage): UiMessage => {
   const { messages } = uiMessage;
   return {
     ...uiMessage,
-    // IMP: parseLinks must happen before markdownify
-    messages: handleReverseCommands(
-      markdownify(parseLinks(strongAsterix(snippetBreaks(emojify(messages)))))
-    )
+    messages: markdownify(parseLinks(emojify(messages)))
   };
 };
 

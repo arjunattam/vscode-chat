@@ -8,7 +8,7 @@ import {
 
 export interface MessageCommand {
   namespace: string;
-  text: string;
+  subcommand: string;
 }
 
 export interface CommandResponse {
@@ -20,9 +20,6 @@ interface CommandHandler {
   handle: (cmd: MessageCommand) => Promise<CommandResponse>;
 }
 
-/**
- * This handle makes VS Code command executions
- */
 class VscodeCommandHandler implements CommandHandler {
   execute = (command: string, ...rest: any[]): Promise<any> => {
     // Wraps the executeCommand thenable into a promise
@@ -41,14 +38,14 @@ class VscodeCommandHandler implements CommandHandler {
   };
 
   handle = (cmd: MessageCommand): Promise<CommandResponse> => {
-    const { namespace, text } = cmd;
+    const { namespace, subcommand } = cmd;
     const commands = SLASH_COMMANDS[namespace];
-    const { action, options } = commands[text];
+    const { action, options } = commands[subcommand];
     return this.execute(action, options).then((response: vscode.Uri) => {
       // We append </> to the URL so our link parsing works
       // TODO(arjun) Uri is only valid for `/live share` command
       const responseString = response ? `<${response.toString()}>` : "";
-      const sendToSlack = namespace === "live" && text === "share";
+      const sendToSlack = namespace === "live" && subcommand === "share";
       return { sendToSlack, response: responseString };
     });
   };
@@ -56,11 +53,11 @@ class VscodeCommandHandler implements CommandHandler {
 
 class OpenCommandHandler extends VscodeCommandHandler {
   handle = (cmd: MessageCommand): Promise<CommandResponse> => {
-    const { text } = cmd;
+    const { subcommand } = cmd;
     let uri: vscode.Uri | undefined;
 
     try {
-      uri = vscode.Uri.parse(text);
+      uri = vscode.Uri.parse(subcommand);
     } catch (err) {
       return new Promise((_, reject) => reject());
     }
@@ -81,7 +78,7 @@ class OpenCommandHandler extends VscodeCommandHandler {
  */
 export default class CommandDispatch {
   handle = (message: MessageCommand): Promise<CommandResponse> => {
-    const { namespace, text } = message;
+    const { namespace, subcommand } = message;
 
     if (namespace === "open") {
       // We might have to convert this into

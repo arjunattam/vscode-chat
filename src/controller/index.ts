@@ -2,10 +2,11 @@ import { ExtensionContext } from "vscode";
 import SlackMessenger from "../messenger";
 import WebviewContainer from "../ui";
 import { ExtensionMessage, UiMessage } from "../interfaces";
-import { SLASH_COMMANDS } from "../constants";
+import { SLASH_COMMANDS, REVERSE_SLASH_COMMANDS } from "../constants";
+import * as str from "../strings";
 import Logger from "../logger";
 import CommandDispatch, { MessageCommand } from "./commands";
-import transformer from "./transformers";
+import markdownTransform from "./markdowner";
 
 export const getCommand = (text: string): MessageCommand => {
   const pattern = /^\/(\w+) (\w+)$/;
@@ -13,7 +14,7 @@ export const getCommand = (text: string): MessageCommand => {
   const matched = trimmed.match(pattern);
 
   if (matched) {
-    return { namespace: matched[1], text: matched[2] };
+    return { namespace: matched[1], subcommand: matched[2] };
   }
 };
 
@@ -62,19 +63,37 @@ class ViewController {
     });
   }
 
-  handleCommand = (text: string) => {
-    // This could be a command for us, or for Slack (handled by next case)
+  isValidCommand = (text: string, commandList?: Object) => {
+    if (!commandList) {
+      commandList = SLASH_COMMANDS;
+    }
+
     const parsed = getCommand(text);
 
     if (parsed) {
-      const { namespace, text } = parsed;
+      const { namespace, subcommand } = parsed;
 
-      if (namespace in SLASH_COMMANDS) {
-        if (Object.keys(SLASH_COMMANDS[namespace]).indexOf(text) >= 0) {
-          // We know how to handle this command
-          return this.dispatchCommand(parsed);
-        }
+      if (namespace in commandList) {
+        const subcommands = Object.keys(commandList[namespace]);
+        return subcommands.indexOf(subcommand) >= 0;
       }
+    }
+
+    return false;
+  };
+
+  isValidReverseCommand = (text: string) => {
+    return this.isValidCommand(text, REVERSE_SLASH_COMMANDS);
+  };
+
+  handleCommand = (text: string) => {
+    if (this.isValidCommand(text)) {
+      const parsed = getCommand(text);
+      return this.dispatchCommand(parsed);
+    }
+
+    if (this.isValidReverseCommand(text)) {
+      return this.sendToSlack(text);
     }
 
     // TODO(arjun): if not valid, then we need to parse and make a chat.command
@@ -102,7 +121,7 @@ class ViewController {
       case "internal":
         return this.handleInternal(text);
       case "link":
-        return this.dispatchCommand({ namespace: "open", text });
+        return this.dispatchCommand({ namespace: "open", subcommand: text });
       case "command":
         return this.handleCommand(text);
       case "text":
@@ -110,14 +129,57 @@ class ViewController {
     }
   };
 
-  sendToUi = (uiMessage: UiMessage) => {
-    const { messages } = uiMessage;
+  handleReverseCommands = (uiMessage: UiMessage) => {
+    // Reverse commands are slash commands fired by other Slack users
+    // For example, `/live request` requests someone to host a session
+    const { currentUser, messages } = uiMessage;
+    let handledMessages = {};
 
+    Object.keys(messages).forEach(ts => {
+      // Any of these messages might be reverse commands
+      const { content, userId } = messages[ts];
+      const notCurrentUser = currentUser.id !== userId;
+      let textHTML = content.textHTML;
+
+      if (this.isValidReverseCommand(content.text) && notCurrentUser) {
+        if (content.text === "/live request") {
+          const confirmation = `<a href="#" onclick="sendCommand('/live share'); return false;">Accept</a>`;
+          textHTML = `${str.LIVE_REQUEST_MESSAGE} ${confirmation}`;
+        }
+      }
+
+      handledMessages[ts] = {
+        ...messages[ts],
+        content: {
+          ...content,
+          textHTML
+        }
+      };
+    });
+
+    return {
+      ...uiMessage,
+      messages: handledMessages
+    };
+  };
+
+  sendToUi = (uiMessage: UiMessage) => {
     if (!this.isUiReady) {
       this.pendingMessage = uiMessage;
     } else {
+      const { messages } = uiMessage;
       Logger.log(`Sending to ui: ${Object.keys(messages).length} messages`);
-      this.ui.update(transformer(uiMessage));
+
+      // Handle markdown
+      const mdMessages = markdownTransform(uiMessage);
+
+      // Handle reverse slash commands
+      // Since this overwrites the textHTML field, it should happen
+      // after the markdown
+      const message = this.handleReverseCommands(mdMessages);
+
+      // Send to UI after markdown
+      this.ui.update(message);
       this.pendingMessage = null;
     }
   };

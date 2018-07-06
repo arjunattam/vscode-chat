@@ -1,9 +1,5 @@
 import * as assert from "assert";
-import {
-  markdownify,
-  snippetBreaks,
-  parseLinks
-} from "../controller/transformers";
+import { markdownify, parseLinks } from "../controller/markdowner";
 
 const getMessage = (text: string) => ({
   timestamp: {
@@ -21,17 +17,6 @@ const getMessage = (text: string) => ({
 });
 
 suite("Transformer tests", function() {
-  test("Snippet line break works", function() {
-    const INPUT = "```asd```";
-    const OUTPUT = "```\nasd\n```";
-    assert.deepEqual(snippetBreaks(getMessage(INPUT)), getMessage(OUTPUT));
-
-    const INPUT_2 = "prefix ```asd```";
-    const OUTPUT_2 = "prefix ```\nasd\n```";
-    // TODO(arjun): fix this test
-    // assert.deepEqual(snippetBreaks(getMessage(INPUT_2)), getMessage(OUTPUT_2));
-  });
-
   test("Markdown transform works", function() {
     const INPUT = "```\nasd\n```";
     const OUTPUT = `<pre><code>asd\n</code></pre>\n`;

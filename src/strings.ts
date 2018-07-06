@@ -3,3 +3,4 @@ export const INVALID_CHANNEL = "Invalid channel selected";
 export const TOKEN_NOT_FOUND = "Slack token not found in settings.";
 export const INVALID_COMMAND = text => `${text} is not a recognised command.`;
 export const UPLOADED_FILE = link => `uploaded a file: ${link}`;
+export const LIVE_REQUEST_MESSAGE = "wants to start a Live Share session";

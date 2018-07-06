@@ -87,7 +87,8 @@ export default class Store implements IStore {
       messages: this.messages,
       users: this.users,
       currentUser: this.currentUserInfo,
-      channelName
+      channelName,
+      statusText: ""
     });
   }
 
