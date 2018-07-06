@@ -86,6 +86,7 @@ export default class Store implements IStore {
     this.uiCallback({
       messages: this.messages,
       users: this.users,
+      currentUser: this.currentUserInfo,
       channelName
     });
   }

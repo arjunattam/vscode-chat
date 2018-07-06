@@ -8,6 +8,9 @@ export const LiveShareCommands = {
   JOIN: "liveshare.join"
 };
 
+// Is there a way to get this URL from the extension?
+export const LIVE_SHARE_BASE_URL = `insiders.liveshare.vsengsaas.visualstudio.com`;
+
 export const VSCodeCommands = {
   OPEN: "vscode.open"
 };
@@ -17,12 +20,19 @@ export const SelfCommands = {
   CHANGE: "extension.chat.changeChannel"
 };
 
-export const COMMAND_ACTIONS = {
+export const SLASH_COMMANDS = {
   live: {
     share: {
       action: LiveShareCommands.START,
       options: { suppressNotification: true }
     },
     end: { action: LiveShareCommands.END, options: {} }
+  }
+};
+
+// Reverse commands are acted on when received from Slack
+export const REVERSE_SLASH_COMMANDS = {
+  live: {
+    request: {}
   }
 };

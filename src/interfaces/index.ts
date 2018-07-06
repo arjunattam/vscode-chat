@@ -75,6 +75,7 @@ export interface UiMessage {
   messages: SlackMessages;
   users: SlackUsers;
   channelName: string;
+  currentUser: SlackCurrentUser;
 }
 
 export interface IStore {

@@ -10,6 +10,13 @@ function openLink(href) {
   });
 }
 
+function sendCommand(text) {
+  vscode.postMessage({
+    type: "command",
+    text
+  });
+}
+
 function hashCode(str) {
   return str
     .split("")

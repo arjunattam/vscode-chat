@@ -1,5 +1,7 @@
 import * as EmojiConvertor from "emoji-js";
 import { UiMessage, SlackMessages } from "../interfaces";
+import { REVERSE_SLASH_COMMANDS } from "../constants";
+import { getCommand } from "./index";
 import * as str from "../strings";
 const MarkdownIt = require("markdown-it");
 
@@ -130,12 +132,45 @@ export const markdownify = (messages: SlackMessages): SlackMessages => {
   return markdowned;
 };
 
+const handleReverseCommands = (messages: SlackMessages): SlackMessages => {
+  const handled = {};
+
+  Object.keys(messages).forEach(ts => {
+    const { content } = messages[ts];
+    let textHTML = content.textHTML;
+    const matched = getCommand(content.text);
+    if (matched) {
+      const { namespace, text } = matched;
+
+      if (namespace in REVERSE_SLASH_COMMANDS) {
+        const isValid =
+          Object.keys(REVERSE_SLASH_COMMANDS[namespace]).indexOf(text) >= 0;
+        if (isValid) {
+          // Here we have a valid reverse slash command
+          textHTML = `override text html. <a href="#" onclick="sendCommand('/live share'); return false;">Accept</a>`;
+        }
+      }
+    }
+
+    handled[ts] = {
+      ...messages[ts],
+      content: {
+        ...content,
+        textHTML
+      }
+    };
+  });
+
+  return handled;
+};
+
 const transformChain = (uiMessage: UiMessage): UiMessage => {
   const { messages } = uiMessage;
   return {
     ...uiMessage,
-    messages: markdownify(
-      parseLinks(strongAsterix(snippetBreaks(emojify(messages))))
+    // IMP: parseLinks must happen before markdownify
+    messages: handleReverseCommands(
+      markdownify(parseLinks(strongAsterix(snippetBreaks(emojify(messages)))))
     )
   };
 };

@@ -2,15 +2,23 @@ import { ExtensionContext } from "vscode";
 import SlackMessenger from "../messenger";
 import WebviewContainer from "../ui";
 import { ExtensionMessage, UiMessage } from "../interfaces";
-import { COMMAND_ACTIONS } from "../constants";
+import { SLASH_COMMANDS } from "../constants";
 import Logger from "../logger";
-import CommandHandler from "../commands";
-import LinkHandler from "./linkhandler";
+import CommandDispatch, { MessageCommand } from "./commands";
 import transformer from "./transformers";
 
+export const getCommand = (text: string): MessageCommand => {
+  const pattern = /^\/(\w+) (\w+)$/;
+  const trimmed = text.trim();
+  const matched = trimmed.match(pattern);
+
+  if (matched) {
+    return { namespace: matched[1], text: matched[2] };
+  }
+};
+
 /**
- * Handles message passing between the ui and extension
- * code
+ * Handles message passing between the UI and extension
  */
 class ViewController {
   messenger: SlackMessenger | undefined;
@@ -44,38 +52,46 @@ class ViewController {
     }
   };
 
-  isValidCommand(message: ExtensionMessage): Boolean {
-    const validNamespaces = Object.keys(COMMAND_ACTIONS);
-    return validNamespaces.some(namespace =>
-      message.text.startsWith(`/${namespace}`)
-    );
-  }
-
-  sendMessage = (text: string) => {
-    return this.messenger.sendMessage(text);
-  };
-
-  handleCommand = (message: ExtensionMessage) => {
-    const handler = new CommandHandler();
-    return handler.handle(message).then((response: string) => {
-      if (response) {
-        this.sendMessage(response);
+  dispatchCommand(command: MessageCommand) {
+    const handler = new CommandDispatch();
+    handler.handle(command).then(result => {
+      const { sendToSlack, response } = result;
+      if (sendToSlack && response) {
+        this.sendToSlack(response);
       }
     });
+  }
+
+  handleCommand = (text: string) => {
+    // This could be a command for us, or for Slack (handled by next case)
+    const parsed = getCommand(text);
+
+    if (parsed) {
+      const { namespace, text } = parsed;
+
+      if (namespace in SLASH_COMMANDS) {
+        if (Object.keys(SLASH_COMMANDS[namespace]).indexOf(text) >= 0) {
+          // We know how to handle this command
+          return this.dispatchCommand(parsed);
+        }
+      }
+    }
+
+    // TODO(arjun): if not valid, then we need to parse and make a chat.command
+    // API call, instead of sending it as a simple text message.
+    // Docs: https://github.com/ErikKalkoken/slackApiDoc/blob/master/chat.command.md
+    return this.sendToSlack(text);
   };
 
-  openLink = (message: ExtensionMessage) => {
-    const handler = new LinkHandler();
-    return handler.open(message);
-  };
-
-  handleInternal = (message: ExtensionMessage) => {
-    const { text } = message;
-
+  handleInternal = (text: string) => {
     if (text === "is_ready") {
       this.isUiReady = true;
       return this.pendingMessage ? this.sendToUi(this.pendingMessage) : null;
     }
+  };
+
+  sendToSlack = (text: string) => {
+    return this.messenger.sendMessage(text);
   };
 
   sendToExtension = (message: ExtensionMessage) => {
@@ -84,16 +100,13 @@ class ViewController {
 
     switch (type) {
       case "internal":
-        return this.handleInternal(message);
+        return this.handleInternal(text);
       case "link":
-        return this.openLink(message);
+        return this.dispatchCommand({ namespace: "open", text });
       case "command":
-        // This could be a command for us, or for Slack (handled by next case)
-        if (this.isValidCommand(message)) {
-          return this.handleCommand(message);
-        }
+        return this.handleCommand(text);
       case "text":
-        return text ? this.sendMessage(text) : null;
+        return text ? this.sendToSlack(text) : null;
     }
   };
 
