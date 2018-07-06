@@ -82,7 +82,7 @@ Vue.component("messages-section", {
         const isSameTime = currentGroup.timestamp
           ? +message.timestamp - +currentGroup.timestamp < SAME_GROUP_TIME
           : false;
-        const msgKey = message.content.text ? message.content.text : "";
+        const msgKey = message.text ? message.text : "";
 
         if (isSameTime && isSameUser) {
           let newGroup = Object.assign(currentGroup, {
@@ -149,9 +149,7 @@ Vue.component("message-group", {
   template: `
     <div class="message-group">
       <div class="message-group-image">
-        <img
-          v-bind:src="user ? user.imageUrl : null">
-        </img>
+        <img v-bind:src="user ? user.imageUrl : null"></img>
       </div>
       <div>
         <div>
@@ -173,15 +171,10 @@ Vue.component("message-group", {
 
 Vue.component("message-item", {
   props: ["message"],
-  computed: {
-    borderColor: function() {
-      return this.message.color ? `#${this.message.color}` : ``;
-    }
-  },
   template: `
-    <li
-      v-bind:class="{ 'bot-border': message.color }"
-      v-bind:style="{ borderColor: borderColor }">
+    <li>
+      <div v-if="message.textHTML" v-html="message.textHTML"></div>
+      <span v-if="message.isEdited" class="edited">(edited)</span>
       <message-content
         v-bind:content="message.content">
       </message-content>
@@ -190,9 +183,17 @@ Vue.component("message-item", {
 });
 
 Vue.component("message-content", {
+  // This renders the attachment portion of the Slack message
   props: ["content"],
+  computed: {
+    borderColor: function() {
+      const { borderColor } = this.content;
+      const defaultColor = `var(--vscode-scrollbarSlider-activeBackground)`;
+      return borderColor ? `#${borderColor}` : defaultColor;
+    }
+  },
   template: `
-    <div class="li-line">
+    <div class="li-line" v-bind:style="{ borderColor: borderColor }">
       <div v-if="content.pretext">{{ content.pretext }} </div>
       <message-author v-if="content.author" v-bind:content="content"></message-author>
       <message-title v-if="content.title" v-bind:content="content"></message-title>

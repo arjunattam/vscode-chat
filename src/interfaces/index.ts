@@ -32,15 +32,17 @@ interface MessageContent {
   textHTML?: string;
   footer: string;
   footerHTML?: string;
+  borderColor?: string;
 }
 
 interface SlackMessage {
   timestamp: string;
-  content: MessageContent;
   userId: string;
+  text: string;
+  textHTML?: string;
   isEdited?: Boolean;
   attachment?: SlackAttachment;
-  color?: string;
+  content: MessageContent;
 }
 
 export interface SlackMessages {

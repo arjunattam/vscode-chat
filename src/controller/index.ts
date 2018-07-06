@@ -137,12 +137,12 @@ class ViewController {
 
     Object.keys(messages).forEach(ts => {
       // Any of these messages might be reverse commands
-      const { content, userId } = messages[ts];
+      const { text, userId } = messages[ts];
       const notCurrentUser = currentUser.id !== userId;
-      let textHTML = content.textHTML;
+      let textHTML = messages[ts].textHTML;
 
-      if (this.isValidReverseCommand(content.text) && notCurrentUser) {
-        if (content.text === "/live request") {
+      if (this.isValidReverseCommand(text) && notCurrentUser) {
+        if (text === "/live request") {
           const confirmation = `<a href="#" onclick="sendCommand('/live share'); return false;">Accept</a>`;
           textHTML = `${str.LIVE_REQUEST_MESSAGE} ${confirmation}`;
         }
@@ -150,10 +150,7 @@ class ViewController {
 
       handledMessages[ts] = {
         ...messages[ts],
-        content: {
-          ...content,
-          textHTML
-        }
+        textHTML
       };
     });
 

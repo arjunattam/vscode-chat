@@ -14,13 +14,10 @@ export const emojify = (messages: SlackMessages): SlackMessages => {
   let emojifiedMessages = {};
   Object.keys(messages).forEach(key => {
     const message = messages[key];
-    const { content } = message;
+    const { text } = message;
     emojifiedMessages[key] = {
       ...message,
-      content: {
-        ...content,
-        text: emoji.replace_colons(content && content.text ? content.text : "")
-      }
+      text: emoji.replace_colons(text ? text : "")
     };
   });
 
@@ -32,8 +29,7 @@ export const parseLinks = (messages: SlackMessages): SlackMessages => {
   // The |pattern can be optional
   let parsed = {};
   Object.keys(messages).forEach(key => {
-    const { content } = messages[key];
-    const { text, footer } = content;
+    const { content, text } = messages[key];
     const URL_REGEX = /https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-z]{2,6}\b([-a-zA-Z0-9@:%_\+.~#?&//=;\^]*)/;
     const SLACK_MODIFIER = /(|.[^><]+)/;
     const re = new RegExp(
@@ -42,18 +38,25 @@ export const parseLinks = (messages: SlackMessages): SlackMessages => {
     );
     parsed[key] = {
       ...messages[key],
+      text: text
+        ? text.replace(re, function(a, b, c, d, e) {
+            return e ? `[${e.substr(1)}](${b})` : `[${b}](${b})`;
+          })
+        : "",
       content: {
         ...content,
-        text: text
-          ? text.replace(re, function(a, b, c, d, e) {
-              return e ? `[${e.substr(1)}](${b})` : `[${b}](${b})`;
-            })
-          : "",
-        footer: footer
-          ? footer.replace(re, function(a, b, c, d, e) {
-              return e ? `[${e.substr(1)}](${b})` : `[${b}](${b})`;
-            })
-          : ""
+        text:
+          content && content.text
+            ? content.text.replace(re, function(a, b, c, d, e) {
+                return e ? `[${e.substr(1)}](${b})` : `[${b}](${b})`;
+              })
+            : "",
+        footer:
+          content && content.footer
+            ? content.footer.replace(re, function(a, b, c, d, e) {
+                return e ? `[${e.substr(1)}](${b})` : `[${b}](${b})`;
+              })
+            : ""
       }
     };
   });
@@ -81,19 +84,20 @@ export const markdownify = (messages: SlackMessages): SlackMessages => {
   };
 
   Object.keys(messages).forEach(key => {
-    const { content, attachment } = messages[key];
-    const { text, footer } = content;
+    const { content, attachment, text } = messages[key];
     const link = attachment
       ? `[${attachment.name}](${attachment.permalink})`
       : ``;
     markdowned[key] = {
       ...messages[key],
+      textHTML: attachment
+        ? md.render(str.UPLOADED_FILE(link))
+        : md.render(text),
       content: {
         ...content,
-        textHTML: attachment
-          ? md.render(str.UPLOADED_FILE(link))
-          : md.render(text),
-        footerHTML: footer ? md.renderInline(footer) : ``
+        textHTML: content && content.text ? md.render(content.text) : ``,
+        footerHTML:
+          content && content.footer ? md.renderInline(content.footer) : ``
       }
     };
   });

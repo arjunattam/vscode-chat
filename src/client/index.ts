@@ -1,7 +1,7 @@
 import { WebClient } from "@slack/client";
 import { SlackUsers, SlackChannel, SlackMessages } from "../interfaces";
 
-const HISTORY_LIMIT = 2;
+const HISTORY_LIMIT = 50;
 
 export const getMessage = (raw: any): SlackMessages => {
   const { file, ts, user, text, edited, bot_id, attachments } = raw;
@@ -13,8 +13,8 @@ export const getMessage = (raw: any): SlackMessages => {
   parsed[ts] = {
     userId: user ? user : bot_id,
     timestamp: ts,
-    color: attachments ? attachments[0].color : "",
     isEdited: !!edited,
+    text: text,
     attachment: fileAttachment,
     content: {
       author: attachments ? attachments[0].author_name : "",
@@ -22,8 +22,9 @@ export const getMessage = (raw: any): SlackMessages => {
       pretext: attachments ? attachments[0].pretext : "",
       title: attachments ? attachments[0].title : "",
       titleLink: attachments ? attachments[0].title_link : "",
-      text: text ? text : attachments ? attachments[0].text : "",
-      footer: attachments ? attachments[0].footer : ""
+      text: attachments ? attachments[0].text : "",
+      footer: attachments ? attachments[0].footer : "",
+      borderColor: attachments ? attachments[0].color : ""
     }
   };
 

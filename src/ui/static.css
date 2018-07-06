@@ -45,11 +45,6 @@ body,
   word-break: break-word;
 }
 
-.message-list li.bot-border {
-  border-left: 3px solid white;
-  padding-left: 7px;
-}
-
 /* Form section styles */
 .form-section {
   margin-bottom: 10px;
@@ -149,10 +144,13 @@ div.msg-footer a:hover {
   white-space: pre-wrap;
 }
 
-.message-list li div.li-line {
-  margin: 3px 0;
-}
-
 .message-list li span.edited {
   font-size: x-small;
+  color: var(--vscode-scrollbarSlider-activeBackground);
+}
+
+.message-list li div.li-line {
+  margin: 5px 0;
+  border-left: 3px solid white;
+  padding-left: 7px;
 }
