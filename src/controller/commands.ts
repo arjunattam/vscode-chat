@@ -2,6 +2,7 @@ import * as vscode from "vscode";
 import {
   SLASH_COMMANDS,
   LIVE_SHARE_BASE_URL,
+  TRAVIS_BASE_URL,
   LiveShareCommands,
   VSCodeCommands
 } from "../constants";
@@ -16,8 +17,22 @@ export interface CommandResponse {
   response: string;
 }
 
-interface CommandHandler {
+export interface CommandHandler {
   handle: (cmd: MessageCommand) => Promise<CommandResponse>;
+}
+
+class TravisLinkHandler implements CommandHandler {
+  handle(cmd: MessageCommand): Promise<CommandResponse> {
+    const { subcommand } = cmd;
+    const { path, authority } = vscode.Uri.parse(subcommand);
+    const matched = path.match(/^\/(.+)\/(.+)\/(.+)\/(.+)$/);
+
+    if (matched.length) {
+      const userName = matched[1];
+      const repoName = matched[2];
+      const buildNumber = matched[4];
+    }
+  }
 }
 
 class VscodeCommandHandler implements CommandHandler {
@@ -66,6 +81,9 @@ class OpenCommandHandler extends VscodeCommandHandler {
       case LIVE_SHARE_BASE_URL:
         const opts = { newWindow: false };
         return this.execute(LiveShareCommands.JOIN, uri.toString(), opts);
+      case TRAVIS_BASE_URL:
+        const travisHandler = new TravisLinkHandler();
+        return travisHandler.handle(cmd);
       default:
         return this.execute(VSCodeCommands.OPEN, uri);
     }
