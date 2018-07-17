@@ -5,7 +5,7 @@
 
 # Slack Chat for VSCode 💬
 
-![Demo gif](public/example.gif)
+![Demo gif](public/example-v2.gif)
 
 ## Why though? 🤔
 
