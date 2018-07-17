@@ -7,7 +7,12 @@
 
 ![Demo gif](public/example.gif)
 
-Send and receive Slack Chat without leaving your editor. Works with public and private channels, and integrates [VS Live Share](https://visualstudio.microsoft.com/services/live-share/) in your conversations.
+## Why though? 🤔
+
+1.  No context switches for [quick code reviews](#rich-formatting)
+2.  [Companion chat](#vs-live-share) for VS Live Share
+3.  Open [CI logs and other bot integrations](#bots-integration) inside your editor
+4.  Why run two Electron apps when you can do with one?
 
 ## Setup
 
@@ -21,41 +26,47 @@ Send and receive Slack Chat without leaving your editor. Works with public and p
 }
 ```
 
-![Settings](public/settings.png)
-
-## Features
-
-- [Open and Switch Channels](#open-and-switch-channels)
-- [Integrated with VS Live Share](#integrated-with-vs-live-share)
-- [Native Look-and-feel](#native-look-and-feel)
-
-### Open and Switch Channels
+## Commands
 
 Open the [Command Palette](https://code.visualstudio.com/docs/getstarted/userinterface#_command-palette), and select **Slack: Open** or **Slack: Change Channel** to navigate your Slack workspace.
 
 ![Slack commands](public/commands.gif)
 
-### Integrated with VS Live Share
+## Rich formatting
 
-Type `/live share` in your message box to start a VS Live Share session. This will send the invitation link to the channel. When you're done, type `/live end` to end.
+Supports Slack's markdown flavour for snippet sharing and feedback, without leaving the context of your editor.
+
+![Markdown](public/markdown.gif)
+
+## VS Live Share
+
+Use slash commands start/stop [VS Live Share](https://visualstudio.microsoft.com/services/live-share/) sessions.
+
+- Use `/live share` to initiate a session as host, and send the link to the active channel
+- Send `/live end` to end the ongoing session
+- Use `/live request` to request someone else to initiate a session
 
 ![Live Share](public/live-share.gif)
 
-### Native Look-and-feel
+## Bots integration
 
-Slack Chat fits in natively with VSCode, with dark and light themes. Place it within vertical/horizontal window splits, just like your editor.
+Code-related bots (CI, version control, etc.) can trigger their actions inside the editor, with the new [Providers](CONTRIBUTING.md#providers) support. For eaxample, you can open Travis CI logs inside your editor, by setting up the following configuration.
 
-![Light theme](public/themes.gif)
+```json
+{
+  "chat.providers": ["travis"]
+}
+```
+
+![Travis CI logs](public/ci.gif)
 
 ## Contribute
 
-See [CONTRIBUTING](CONTRIBUTING.md)
+See [CONTRIBUTING](CONTRIBUTING.md). Our [issues](https://github.com/karigari/vscode-chat/issues) are the best place to look for contribution ideas.
 
 ## Support
 
-Feel free to [raise an issue](https://github.com/karigari/vscode-chat/issues), or [tweet at us](https://twitter.com/getrubberduck) for any questions or support.
-
-You can also reach me directly at arjun@rubberduck.io
+Feel free to [raise an issue](https://github.com/karigari/vscode-chat/issues), or [tweet at us](https://twitter.com/getrubberduck) for any questions or support. You can also reach me directly at arjun@rubberduck.io
 
 ## Credits
 

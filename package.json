@@ -44,6 +44,11 @@
           "type": "string",
           "default": null,
           "description": "Slack token for authentication. Get yours here: https://api.slack.com/custom-integrations/legacy-tokens"
+        },
+        "chat.providers": {
+          "type": "array",
+          "default": null,
+          "description": "[Experimental] Open bot links inside VS Code. For travis-ci.org, set configuration [\"travis\"]."
         }
       }
     },

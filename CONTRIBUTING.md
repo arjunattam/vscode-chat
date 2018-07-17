@@ -21,8 +21,20 @@ When you run a debug session, the `npm run watch` task starts up. This watches f
 
 The watch command does not watch for CSS file changes. This means if you make changes to the `src/ui/static.css` file, you need to restart the `npm run watch` command manually. Best to make CSS changes live, with the Chrome dev tools, and then make file changes.
 
-## Testing
+## Tests
 
 `npm run test`
 
 Tests can only be run when VS Code is not running. If you want to run tests alongside development, use VS Code Insiders for development.
+
+## Providers
+
+Slack bot actions can be wired to open inside the editor. For example, Travis CI logs can be opened inside the editor by adding the following configuration.
+
+```json
+{
+  "chat.providers": ["travis"]
+}
+```
+
+This is configured via `src/providers/travis.ts` in the code. Similar providers can be added for other services. Feel free to [file an issue](https://github.com/karigari/vscode-chat/issues) or submit a PR for adding new providers.
