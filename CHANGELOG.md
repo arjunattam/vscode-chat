@@ -2,6 +2,12 @@
 
 All notable changes to the vscode-chat extension will be documented in this file. This follows the [Keep a Changelog](http://keepachangelog.com/) format.
 
+## [0.4.4] - 2018-07-17
+
+### Fixed
+
+- Fixed demo gif on the Visual Studio Marketplace
+
 ## [0.4.3] - 2018-07-17
 
 ### Added
