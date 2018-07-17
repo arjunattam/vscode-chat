@@ -48,9 +48,8 @@ class SlackMessenger implements IMessenger {
   };
 
   updateCurrentChannel() {
-    const { lastChannel: channel } = this.store;
-
     this.rtmClient.on(RTMEvents.MESSAGE, event => {
+      const { lastChannel: channel } = this.store;
       if (channel.id === event.channel) {
         const { subtype } = event;
         let newMessages = {};

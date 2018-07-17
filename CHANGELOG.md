@@ -2,6 +2,17 @@
 
 All notable changes to the vscode-chat extension will be documented in this file. This follows the [Keep a Changelog](http://keepachangelog.com/) format.
 
+## [0.4.3] - 2018-07-17
+
+### Added
+
+- Open Travis CI logs inside the editor, with the new extensible Providers support. New providers can be create for other Slack bots and integrations.
+- New demo gifs and examples in the README.
+
+### Fixed
+
+- Fixed an issue where messages from a previously opened Slack channel would show up in the current view.
+
 ## [0.4.2] - 2018-07-15
 
 ### Fixed
