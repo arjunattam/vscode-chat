@@ -1,6 +1,5 @@
 import * as vscode from "vscode";
 import SlackAPIClient from "../client";
-import * as str from "../strings";
 import {
   SlackChannel,
   SlackCurrentUser,
@@ -9,6 +8,7 @@ import {
   IStore,
   UiMessage
 } from "../interfaces";
+import ConfigHelper from "../configuration";
 
 const stateKeys = {
   LAST_CHANNEL: "lastChannel",
@@ -16,8 +16,6 @@ const stateKeys = {
   USER_INFO: "userInfo",
   USERS: "users"
 };
-
-const CONFIG_ROOT = "chat";
 
 function isSuperset(set, subset) {
   for (var elem of subset) {
@@ -47,14 +45,7 @@ export default class Store implements IStore {
 
   constructor(private context: vscode.ExtensionContext) {
     // Load token first
-    const { slack } = vscode.workspace.getConfiguration(CONFIG_ROOT);
-
-    if (slack && slack.legacyToken) {
-      this.slackToken = slack.legacyToken;
-    } else {
-      vscode.window.showErrorMessage(str.TOKEN_NOT_FOUND);
-      return;
-    }
+    this.slackToken = ConfigHelper.getToken();
 
     // Now load global state
     const { globalState } = context;

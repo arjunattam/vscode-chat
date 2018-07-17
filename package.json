@@ -80,6 +80,8 @@
     "emoji-js": "^3.4.1",
     "markdown-it": "^8.4.1",
     "markdown-it-slack": "^1.2.0",
+    "request": "^2.87.0",
+    "request-promise-native": "^1.0.5",
     "vscode-extension-telemetry": "^0.0.17"
   }
 }

@@ -6,6 +6,8 @@ import {
   LiveShareCommands,
   VSCodeCommands
 } from "../constants";
+import { TravisLinkHandler } from "../providers/travis";
+import ConfigHelper from "../configuration";
 
 export interface MessageCommand {
   namespace: string;
@@ -19,20 +21,6 @@ export interface CommandResponse {
 
 export interface CommandHandler {
   handle: (cmd: MessageCommand) => Promise<CommandResponse>;
-}
-
-class TravisLinkHandler implements CommandHandler {
-  handle(cmd: MessageCommand): Promise<CommandResponse> {
-    const { subcommand } = cmd;
-    const { path, authority } = vscode.Uri.parse(subcommand);
-    const matched = path.match(/^\/(.+)\/(.+)\/(.+)\/(.+)$/);
-
-    if (matched.length) {
-      const userName = matched[1];
-      const repoName = matched[2];
-      const buildNumber = matched[4];
-    }
-  }
 }
 
 class VscodeCommandHandler implements CommandHandler {
@@ -82,8 +70,10 @@ class OpenCommandHandler extends VscodeCommandHandler {
         const opts = { newWindow: false };
         return this.execute(LiveShareCommands.JOIN, uri.toString(), opts);
       case TRAVIS_BASE_URL:
-        const travisHandler = new TravisLinkHandler();
-        return travisHandler.handle(cmd);
+        if (ConfigHelper.hasTravisProvider()) {
+          const travisHandler = new TravisLinkHandler();
+          return travisHandler.handle(cmd);
+        }
       default:
         return this.execute(VSCodeCommands.OPEN, uri);
     }

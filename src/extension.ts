@@ -7,6 +7,7 @@ import Store from "./store";
 import * as str from "./strings";
 import { SlackChannel } from "./interfaces";
 import { SelfCommands } from "./constants";
+import travisProvider, { TRAVIS_URI_SCHEME } from "./providers/travis";
 
 let reporter: Reporter | undefined = undefined;
 let store: Store | undefined = undefined;
@@ -132,11 +133,17 @@ export function activate(context: vscode.ExtensionContext) {
     messenger = null;
   };
 
+  const disposableProvider = vscode.workspace.registerTextDocumentContentProvider(
+    TRAVIS_URI_SCHEME,
+    travisProvider
+  );
+
   context.subscriptions.push(
     vscode.commands.registerCommand(SelfCommands.OPEN, openSlackPanel),
     vscode.commands.registerCommand(SelfCommands.CHANGE, channelChanger),
     vscode.workspace.onDidChangeConfiguration(resetConfiguration),
-    reporter
+    reporter,
+    disposableProvider
   );
 }
 
