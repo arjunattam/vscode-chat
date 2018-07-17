@@ -130,7 +130,7 @@ export default class SlackAPIClient {
       if (ok) {
         return ims.map(im => ({
           id: im.id,
-          name: users[im.user].name,
+          name: im.user in users ? users[im.user].name : im.user,
           type: "im"
         }));
       }
