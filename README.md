@@ -50,7 +50,7 @@ Use slash commands start/stop [VS Live Share](https://visualstudio.microsoft.com
 
 ## Bots integration
 
-Code-related bots (CI, version control, etc.) can trigger their actions inside the editor, with the new [Providers](CONTRIBUTING.md#providers) support. For eaxample, you can open Travis CI logs inside your editor, by setting up the following configuration.
+Code-related bots (CI, version control, etc.) can trigger their actions inside the editor. For example, you can open Travis CI build logs with this configuration. Read more about [Providers](CONTRIBUTING.md#providers).
 
 ```json
 {
