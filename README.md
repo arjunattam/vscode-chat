@@ -60,6 +60,16 @@ Code-related bots (CI, version control, etc.) can trigger their actions inside t
 
 ![Travis CI logs](public/ci.gif)
 
+## Using with network proxy
+
+To use this extension behind a proxy, specify the following configuration.
+
+```json
+{
+  "chat.proxyUrl": "YOUR_PROXY_URL"
+}
+```
+
 ## Contribute
 
 See [CONTRIBUTING](CONTRIBUTING.md). Our [issues](https://github.com/karigari/vscode-chat/issues) are the best place to look for contribution ideas.

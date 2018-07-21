@@ -1,4 +1,6 @@
-import { RTMClient } from "@slack/client";
+import { RTMClient, RTMClientOptions } from "@slack/client";
+import * as HttpsProxyAgent from "https-proxy-agent";
+import ConfigHelper from "../configuration";
 import SlackAPIClient, { getMessage } from "../client";
 import { SlackCurrentUser, IStore, IMessenger } from "../interfaces";
 
@@ -19,7 +21,14 @@ class SlackMessenger implements IMessenger {
   constructor(private store: IStore) {
     // We can also use { useRtmConnect: false } for rtm.start
     // instead of rtm.connect, which has more fields in the payload
-    this.rtmClient = new RTMClient(store.slackToken);
+    let options: RTMClientOptions = {};
+    const proxyUrl = ConfigHelper.getProxyUrl();
+
+    if (proxyUrl) {
+      options.agent = new HttpsProxyAgent(proxyUrl);
+    }
+
+    this.rtmClient = new RTMClient(store.slackToken, options);
   }
 
   start = (): Promise<SlackCurrentUser> => {

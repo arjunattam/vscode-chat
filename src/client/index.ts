@@ -1,4 +1,6 @@
-import { WebClient } from "@slack/client";
+import { WebClient, WebClientOptions } from "@slack/client";
+import * as HttpsProxyAgent from "https-proxy-agent";
+import ConfigHelper from "../configuration";
 import { SlackUsers, SlackChannel, SlackMessages } from "../interfaces";
 
 const HISTORY_LIMIT = 50;
@@ -35,7 +37,14 @@ export default class SlackAPIClient {
   client: WebClient;
 
   constructor(token: string) {
-    this.client = new WebClient(token);
+    let options: WebClientOptions = {};
+    const proxyUrl = ConfigHelper.getProxyUrl();
+
+    if (proxyUrl) {
+      options.agent = new HttpsProxyAgent(proxyUrl);
+    }
+
+    this.client = new WebClient(token, options);
   }
 
   getConversationHistory = (channel: string): Promise<SlackMessages> => {

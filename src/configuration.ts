@@ -21,6 +21,12 @@ class ConfigHelper {
     }
   }
 
+  static getProxyUrl() {
+    // Stored under CONFIG_ROOT.proxyUrl
+    const { proxyUrl } = this.getRootConfig();
+    return proxyUrl;
+  }
+
   static hasTravisProvider() {
     // Stored under CONFIG_ROOT.providers, which is string[]
     const { providers } = this.getRootConfig();
