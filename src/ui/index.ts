@@ -18,7 +18,7 @@ export default class WebviewContainer {
     this.panel = vscode.window.createWebviewPanel(
       "slackPanel",
       "Slack",
-      vscode.ViewColumn.Three,
+      vscode.ViewColumn.Beside,
       {
         enableScripts: true,
         retainContextWhenHidden: true,
