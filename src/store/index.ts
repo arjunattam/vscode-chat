@@ -116,14 +116,12 @@ export default class Store implements IStore {
 
   getUnreadCount(channel: SlackChannel): number {
     const { id, readTimestamp } = channel;
-    return !!readTimestamp
-      ? Object.keys(this.messages[id]).filter(ts => {
-          const isSomeotherUser =
-            this.messages[id][ts].userId !== this.currentUserInfo.id;
-          const isNewTimestamp = +ts > +readTimestamp;
-          return isSomeotherUser && isNewTimestamp;
-        }).length
-      : 0;
+    const messages = id in this.messages ? this.messages[id] : {};
+    return Object.keys(messages).filter(ts => {
+      const isSomeotherUser = messages[ts].userId !== this.currentUserInfo.id;
+      const isNewTimestamp = !!readTimestamp ? +ts > +readTimestamp : false;
+      return isSomeotherUser && isNewTimestamp;
+    }).length;
   }
 
   updateUnreadCount() {
@@ -132,30 +130,43 @@ export default class Store implements IStore {
     this.statusItem.updateCount(totalUnreads);
   }
 
-  updateUsers = (): Promise<SlackUsers> => {
+  updateUsers = users => {
+    this.users = users;
+    this.context.globalState.update(stateKeys.USERS, users);
+  };
+
+  updateChannels = channels => {
+    this.channels = channels.map(channel => {
+      const localChannel = this.channels.find(c => c.id === channel.id);
+      return !!localChannel
+        ? { readTimestamp: localChannel.readTimestamp, ...channel }
+        : { ...channel };
+    });
+    this.context.globalState.update(stateKeys.CHANNELS, channels);
+  };
+
+  fetchUsers = (): Promise<SlackUsers> => {
     const client = new SlackAPIClient(this.slackToken);
     return client.getAllUsers().then(users => {
-      this.users = users;
-      this.context.globalState.update(stateKeys.USERS, users);
+      this.updateUsers(users);
       return users;
     });
   };
 
-  updateChannels = (): Promise<SlackChannel[]> => {
+  fetchChannels = (): Promise<SlackChannel[]> => {
     const client = new SlackAPIClient(this.slackToken);
     let usersPromise: Promise<SlackUsers>;
 
     if (this.users) {
       usersPromise = new Promise((resolve, _) => resolve(this.users));
     } else {
-      usersPromise = this.updateUsers();
+      usersPromise = this.fetchUsers();
     }
 
     return usersPromise
       .then(users => client.getChannels(users))
       .then(channels => {
-        this.channels = channels;
-        this.context.globalState.update(stateKeys.CHANNELS, channels);
+        this.updateChannels(channels);
         return channels;
       });
   };
@@ -236,33 +247,43 @@ export default class Store implements IStore {
 
   getLastTimestamp(): string {
     const id = this.lastChannelId;
-    const timestamps = Object.keys(this.messages[id])
+    const channelMessages = id in this.messages ? this.messages[id] : {};
+    const timestamps = Object.keys(channelMessages)
       .filter(
-        tsKey => this.messages[id][tsKey].userId !== this.currentUserInfo.id
+        tsKey => channelMessages[tsKey].userId !== this.currentUserInfo.id
       )
       .map(tsString => +tsString);
-    return Math.max(...timestamps).toString();
-  }
 
-  hasOldReadMarker(): Boolean {
-    const channel = this.getChannel(this.lastChannelId);
-    if (channel) {
-      return this.getLastTimestamp() !== channel.readTimestamp;
+    if (timestamps.length > 0) {
+      return Math.max(...timestamps).toString();
     }
   }
 
-  updateReadMarker(ts: string): void {
-    // TODO: this should save the state locally?
-    this.channels = this.channels.map(channel => {
-      const { id } = channel;
-      if (id === this.lastChannelId) {
-        return {
-          ...channel,
-          readTimestamp: ts
-        };
-      } else {
-        return channel;
-      }
-    });
+  updateReadMarker(): void {
+    const channel = this.getChannel(this.lastChannelId);
+    const lastTs = this.getLastTimestamp();
+
+    if (channel && lastTs && channel.readTimestamp !== lastTs) {
+      const client = new SlackAPIClient(this.slackToken);
+      const channel = this.getChannel(this.lastChannelId);
+      client.markChannel({ channel, ts: lastTs }).then(response => {
+        const { ok } = response;
+        if (ok) {
+          const newChannels = this.channels.map(channel => {
+            const { id } = channel;
+            if (id === this.lastChannelId) {
+              return {
+                ...channel,
+                readTimestamp: lastTs
+              };
+            } else {
+              return channel;
+            }
+          });
+          this.updateChannels(newChannels);
+          this.updateUnreadCount();
+        }
+      });
+    }
   }
 }

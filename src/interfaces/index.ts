@@ -99,8 +99,6 @@ export interface IStore {
     newMessages: SlackChannelMessages
   ) => void;
   loadChannelHistory: () => Promise<void>;
-  getLastTimestamp: () => string;
-  hasOldReadMarker: () => Boolean;
   updateReadMarker: (string) => void;
 }
 

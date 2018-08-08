@@ -2,19 +2,16 @@ const vscode = acquireVsCodeApi();
 
 const SAME_GROUP_TIME = 5 * 60; // seconds
 
-function openLink(href) {
-  // Handler for <a> tags in this view
+function sendMessage(text, type) {
   vscode.postMessage({
-    type: "link",
-    text: href
+    type,
+    text
   });
 }
 
-function sendCommand(text) {
-  vscode.postMessage({
-    type: "command",
-    text
-  });
+function openLink(href) {
+  // Handler for <a> tags in this view
+  return sendMessage(href, "link");
 }
 
 function hashCode(str) {
@@ -264,6 +261,7 @@ Vue.component("form-section", {
           v-model="text"
           v-bind:placeholder="placeholder"
           v-on:keydown="onKeydown"
+          v-on:focus="onFocus"
           v-focus
           rows="1">
         </textarea>
@@ -275,15 +273,11 @@ Vue.component("form-section", {
   methods: {
     onSubmit: function(event) {
       type = this.text.startsWith("/") ? "command" : "text";
-      vscode.postMessage({
-        type,
-        text: this.text
-      });
+      sendMessage(this.text, type);
       this.text = "";
     },
-    focusInput: function() {
-      const { messageInput } = this.$refs;
-      return messageInput ? messageInput.focus() : null;
+    onFocus: function(event) {
+      return sendMessage("is_focused", "internal");
     },
     onKeydown: function(event) {
       // Usability fixes
@@ -308,10 +302,7 @@ Vue.component("form-section", {
     }
   },
   mounted() {
-    return vscode.postMessage({
-      type: "internal",
-      text: "is_ready"
-    });
+    return sendMessage("is_ready", "internal");
   }
 });
 

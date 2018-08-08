@@ -17,16 +17,20 @@ export function activate(context: vscode.ExtensionContext) {
   let messenger: SlackMessenger | undefined = undefined;
   store = new Store(context);
   reporter = new Reporter();
-  controller = new ViewController(context, () => store.loadChannelHistory());
+  controller = new ViewController(
+    context,
+    () => store.loadChannelHistory(),
+    () => store.updateReadMarker()
+  );
 
-  store.setUiCallback(uiMessage => controller.sendToUi(uiMessage));
+  store.setUiCallback(uiMessage => controller.sendToUI(uiMessage));
 
   const askForChannel = (): Thenable<SlackChannel> => {
     const { channels } = store;
     let channelsPromise: Promise<SlackChannel[]>;
 
     if (!channels) {
-      channelsPromise = store.updateChannels();
+      channelsPromise = store.fetchChannels();
     } else {
       channelsPromise = new Promise((resolve, _) => resolve(channels));
     }
@@ -56,8 +60,8 @@ export function activate(context: vscode.ExtensionContext) {
         if (selected) {
           if (selected === str.RELOAD_CHANNELS) {
             return store
-              .updateUsers()
-              .then(() => store.updateChannels())
+              .fetchUsers()
+              .then(() => store.fetchChannels())
               .then(() => askForChannel());
           }
 
@@ -103,19 +107,19 @@ export function activate(context: vscode.ExtensionContext) {
         const { users } = store;
         return users
           ? new Promise((resolve, _) => {
-              store.updateUsers(); // update new data async
+              store.fetchUsers(); // update new data async
               return resolve(users);
             })
-          : store.updateUsers();
+          : store.fetchUsers();
       })
       .then(() => {
         const { channels } = store;
         return channels
           ? new Promise((resolve, _) => {
-              store.updateChannels(); // update new data async
+              store.fetchChannels(); // update new data async
               return resolve(channels);
             })
-          : store.updateChannels();
+          : store.fetchChannels();
       })
       .then(() => {
         return !!store.lastChannelId
@@ -144,7 +148,7 @@ export function activate(context: vscode.ExtensionContext) {
 
   const resetConfiguration = () => {
     store = new Store(context);
-    store.setUiCallback(uiMessage => controller.sendToUi(uiMessage));
+    store.setUiCallback(uiMessage => controller.sendToUI(uiMessage));
     messenger = null;
   };
 

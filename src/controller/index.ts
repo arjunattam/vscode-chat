@@ -29,7 +29,8 @@ class ViewController {
 
   constructor(
     private context: ExtensionContext,
-    private onUiVisible: () => void
+    private onUIVisible: () => void,
+    private onUIFocus: () => void
   ) {}
 
   setMessenger(messenger: SlackMessenger) {
@@ -49,7 +50,7 @@ class ViewController {
           this.ui = undefined;
           this.isUIReady = false;
         },
-        isVisible => (isVisible ? this.onUiVisible() : null)
+        isVisible => (isVisible ? this.onUIVisible() : null)
       );
       this.ui.setMessageHandler(this.sendToExtension);
     }
@@ -107,7 +108,11 @@ class ViewController {
   handleInternal = (text: string) => {
     if (text === "is_ready") {
       this.isUIReady = true;
-      return this.pendingMessage ? this.sendToUi(this.pendingMessage) : null;
+      return this.pendingMessage ? this.sendToUI(this.pendingMessage) : null;
+    }
+
+    if (text === "is_focused") {
+      this.onUIFocus();
     }
   };
 
@@ -162,7 +167,7 @@ class ViewController {
     };
   };
 
-  sendToUi = (uiMessage: UiMessage) => {
+  sendToUI = (uiMessage: UiMessage) => {
     if (!this.isUIReady) {
       this.pendingMessage = uiMessage;
     } else {
