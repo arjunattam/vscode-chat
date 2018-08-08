@@ -30,25 +30,40 @@ export function activate(context: vscode.ExtensionContext) {
     } else {
       channelsPromise = new Promise((resolve, _) => resolve(channels));
     }
-    const RELOAD_CHANNELS = "Reload Channels";
 
     return channelsPromise
       .then(channels => {
-        let channelList = channels.map(channel => channel.name);
-        return vscode.window.showQuickPick([...channelList, RELOAD_CHANNELS], {
-          placeHolder: str.CHANGE_CHANNEL_TITLE
-        });
+        let channelList = channels
+          .map(channel => ({
+            name: channel.name,
+            unread: store.getUnreadCount(channel)
+          }))
+          .sort((a, b) => b.unread - a.unread)
+          .map(
+            channel =>
+              `${channel.name} ${
+                channel.unread > 0 ? `(${channel.unread} new)` : ""
+              }`
+          );
+        return vscode.window.showQuickPick(
+          [...channelList, str.RELOAD_CHANNELS],
+          {
+            placeHolder: str.CHANGE_CHANNEL_TITLE
+          }
+        );
       })
       .then(selected => {
         if (selected) {
-          if (selected === RELOAD_CHANNELS) {
+          if (selected === str.RELOAD_CHANNELS) {
             return store
               .updateUsers()
               .then(() => store.updateChannels())
               .then(() => askForChannel());
           }
 
-          const selectedChannel = store.channels.find(x => x.name === selected);
+          const selectedChannel = store.channels.find(
+            x => selected.indexOf(x.name) === 0
+          );
 
           if (!selectedChannel) {
             vscode.window.showErrorMessage(str.INVALID_CHANNEL);
@@ -110,16 +125,21 @@ export function activate(context: vscode.ExtensionContext) {
           : askForChannel();
       })
       .then(() => {
-        messenger.updateCurrentChannel();
+        store.loadChannelHistory();
       })
       .catch(error => console.error(error));
   };
 
   const channelChanger = () => {
     reporter.sendChangeChannelEvent();
-    return askForChannel().then(
-      () => (messenger ? messenger.updateCurrentChannel() : null)
-    );
+    return askForChannel().then(() => {
+      if (controller.isUILoaded()) {
+        store.loadChannelHistory();
+        store.updateUi();
+      } else {
+        openSlackPanel();
+      }
+    });
   };
 
   const resetConfiguration = () => {

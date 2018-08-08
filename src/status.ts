@@ -12,7 +12,7 @@ export default class StatusItem {
     this.item = vscode.window.createStatusBarItem(
       vscode.StatusBarAlignment.Left
     );
-    this.item.command = SelfCommands.OPEN;
+    this.item.command = SelfCommands.CHANGE;
   }
 
   updateCount(unreads: number) {

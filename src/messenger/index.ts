@@ -29,34 +29,7 @@ class SlackMessenger implements IMessenger {
     }
 
     this.rtmClient = new RTMClient(store.slackToken, options);
-  }
 
-  start = (): Promise<SlackCurrentUser> => {
-    return new Promise((resolve, reject) => {
-      this.rtmClient.once(RTMEvents.AUTHENTICATED, response => {
-        const { ok, team, self } = response;
-        if (ok) {
-          const { id, name } = self;
-          const { id: teamId, name: teamName } = team;
-          return resolve({
-            token: this.store.slackToken,
-            id,
-            name,
-            teamId,
-            teamName
-          });
-        }
-      });
-
-      this.rtmClient.once(RTMEvents.ERROR, error => {
-        return reject(error);
-      });
-
-      this.rtmClient.start();
-    });
-  };
-
-  updateCurrentChannel() {
     this.rtmClient.on(RTMEvents.MESSAGE, event => {
       const { subtype } = event;
       let newMessages = {};
@@ -85,9 +58,32 @@ class SlackMessenger implements IMessenger {
 
       this.store.updateMessages(event.channel, newMessages);
     });
-
-    this.store.loadChannelHistory();
   }
+
+  start = (): Promise<SlackCurrentUser> => {
+    return new Promise((resolve, reject) => {
+      this.rtmClient.once(RTMEvents.AUTHENTICATED, response => {
+        const { ok, team, self } = response;
+        if (ok) {
+          const { id, name } = self;
+          const { id: teamId, name: teamName } = team;
+          return resolve({
+            token: this.store.slackToken,
+            id,
+            name,
+            teamId,
+            teamName
+          });
+        }
+      });
+
+      this.rtmClient.once(RTMEvents.ERROR, error => {
+        return reject(error);
+      });
+
+      this.rtmClient.start();
+    });
+  };
 
   stripLinkSymbols = (text: string): string => {
     // To send out live share links and render them correctly,
@@ -113,9 +109,9 @@ class SlackMessenger implements IMessenger {
     // So we use the webclient instead of
     // this.rtmClient.sendMessage(cleanText, id)
     const cleanText = this.stripLinkSymbols(text);
-    const { lastChannelId: channelId } = this.store;
+    const { slackToken, lastChannelId: channelId } = this.store;
     const lastTimestamp = this.store.getLastTimestamp();
-    const client = new SlackAPIClient(this.store.slackToken);
+    const client = new SlackAPIClient(slackToken);
 
     if (this.store.hasOldReadMarker()) {
       // Mark previous messages as read

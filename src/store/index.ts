@@ -89,11 +89,7 @@ export default class Store implements IStore {
   }
 
   getChannel(channelId: string): SlackChannel {
-    const filtered = this.channels.filter(channel => channel.id === channelId);
-
-    if (filtered) {
-      return filtered[0];
-    }
+    return this.channels.find(channel => channel.id === channelId);
   }
 
   updateUi() {
@@ -104,8 +100,13 @@ export default class Store implements IStore {
       name = channel.name;
     }
 
+    const messages =
+      this.lastChannelId in this.messages
+        ? this.messages[this.lastChannelId]
+        : {};
+
     this.uiCallback({
-      messages: this.messages[this.lastChannelId],
+      messages,
       users: this.users,
       currentUser: this.currentUserInfo,
       channelName: name,
@@ -113,18 +114,20 @@ export default class Store implements IStore {
     });
   }
 
+  getUnreadCount(channel: SlackChannel): number {
+    const { id, readTimestamp } = channel;
+    return !!readTimestamp
+      ? Object.keys(this.messages[id]).filter(ts => {
+          const isSomeotherUser =
+            this.messages[id][ts].userId !== this.currentUserInfo.id;
+          const isNewTimestamp = +ts > +readTimestamp;
+          return isSomeotherUser && isNewTimestamp;
+        }).length
+      : 0;
+  }
+
   updateUnreadCount() {
-    const unreads = this.channels.map(channel => {
-      const { id, readTimestamp } = channel;
-      return !!readTimestamp
-        ? Object.keys(this.messages[id]).filter(ts => {
-            const isSomeotherUser =
-              this.messages[id][ts].userId !== this.currentUserInfo.id;
-            const isNewTimestamp = +ts > +readTimestamp;
-            return isSomeotherUser && isNewTimestamp;
-          }).length
-        : 0;
-    });
+    const unreads = this.channels.map(channel => this.getUnreadCount(channel));
     const totalUnreads = unreads.reduce((a, b) => a + b, 0);
     this.statusItem.updateCount(totalUnreads);
   }

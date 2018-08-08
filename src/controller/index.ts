@@ -24,7 +24,7 @@ export const getCommand = (text: string): MessageCommand => {
 class ViewController {
   messenger: SlackMessenger | undefined;
   ui: WebviewContainer | undefined;
-  isUiReady: Boolean = false; // Vuejs loaded
+  isUIReady: Boolean = false; // Vuejs loaded
   pendingMessage: UiMessage = undefined;
 
   constructor(
@@ -36,6 +36,8 @@ class ViewController {
     this.messenger = messenger;
   }
 
+  isUILoaded = () => !!this.ui;
+
   loadUi = () => {
     if (this.ui) {
       this.ui.reveal();
@@ -45,7 +47,7 @@ class ViewController {
         extensionPath,
         () => {
           this.ui = undefined;
-          this.isUiReady = false;
+          this.isUIReady = false;
         },
         isVisible => (isVisible ? this.onUiVisible() : null)
       );
@@ -104,7 +106,7 @@ class ViewController {
 
   handleInternal = (text: string) => {
     if (text === "is_ready") {
-      this.isUiReady = true;
+      this.isUIReady = true;
       return this.pendingMessage ? this.sendToUi(this.pendingMessage) : null;
     }
   };
@@ -161,7 +163,7 @@ class ViewController {
   };
 
   sendToUi = (uiMessage: UiMessage) => {
-    if (!this.isUiReady) {
+    if (!this.isUIReady) {
       this.pendingMessage = uiMessage;
     } else {
       const { messages } = uiMessage;

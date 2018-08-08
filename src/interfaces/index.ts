@@ -106,6 +106,5 @@ export interface IStore {
 
 export interface IMessenger {
   start: () => Promise<SlackCurrentUser>;
-  updateCurrentChannel: () => void;
   sendMessage: (text: string) => Promise<any>;
 }
