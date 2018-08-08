@@ -1,7 +1,7 @@
-[![](https://img.shields.io/vscode-marketplace/v/karigari.chat.svg?style=flat-square)](https://marketplace.visualstudio.com/items?itemName=karigari.chat)
-[![](https://img.shields.io/vscode-marketplace/r/karigari.chat.svg?style=flat-square)](https://marketplace.visualstudio.com/items?itemName=karigari.chat)
-[![Build Status](https://img.shields.io/travis/karigari/vscode-chat.svg?style=flat-square)](https://travis-ci.org/karigari/vscode-chat)
-[![](https://img.shields.io/badge/join-slack-orange.svg?style=flat-square)](https://join.slack.com/t/karigarihq/shared_invite/enQtMzM5NzQxNjQxNTA1LTM0ZDFhNWQ3YmEyYmExZTY1ODJmM2U3NzExM2E0YmQxODcxYTgwYzczOTVkOGY5ODk2MWE0MzE2ODliNGU1ZDc)
+[![Build Status](https://img.shields.io/travis/karigari/vscode-chat.svg)](https://travis-ci.org/karigari/vscode-chat)
+[![](https://vsmarketplacebadge.apphb.com/installs/karigari.chat.svg)](https://marketplace.visualstudio.com/items?itemName=karigari.chat)
+[![](https://img.shields.io/vscode-marketplace/r/karigari.chat.svg)](https://marketplace.visualstudio.com/items?itemName=karigari.chat)
+[![](https://img.shields.io/badge/join-slack-orange.svg)](https://join.slack.com/t/karigarihq/shared_invite/enQtMzM5NzQxNjQxNTA1LTM0ZDFhNWQ3YmEyYmExZTY1ODJmM2U3NzExM2E0YmQxODcxYTgwYzczOTVkOGY5ODk2MWE0MzE2ODliNGU1ZDc)
 
 # Slack Chat for VSCode 💬
 
