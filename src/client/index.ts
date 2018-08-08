@@ -1,17 +1,17 @@
 import { WebClient, WebClientOptions } from "@slack/client";
 import * as HttpsProxyAgent from "https-proxy-agent";
 import ConfigHelper from "../configuration";
-import { SlackUsers, SlackChannel, SlackMessages } from "../interfaces";
+import { SlackUsers, SlackChannel, SlackChannelMessages } from "../interfaces";
 
 const HISTORY_LIMIT = 50;
 
-export const getMessage = (raw: any): SlackMessages => {
+export const getMessage = (raw: any): SlackChannelMessages => {
   const { file, ts, user, text, edited, bot_id, attachments } = raw;
   const fileAttachment = file
     ? { name: file.name, permalink: file.permalink }
     : null;
 
-  let parsed: SlackMessages = {};
+  let parsed: SlackChannelMessages = {};
   parsed[ts] = {
     userId: user ? user : bot_id,
     timestamp: ts,
@@ -47,7 +47,7 @@ export default class SlackAPIClient {
     this.client = new WebClient(token, options);
   }
 
-  getConversationHistory = (channel: string): Promise<SlackMessages> => {
+  getConversationHistory = (channel: string): Promise<SlackChannelMessages> => {
     return this.client
       .apiCall("conversations.history", { channel, limit: HISTORY_LIMIT })
       .then((response: any) => {

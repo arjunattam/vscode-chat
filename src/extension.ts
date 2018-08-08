@@ -103,7 +103,7 @@ export function activate(context: vscode.ExtensionContext) {
           : store.updateChannels();
       })
       .then(() => {
-        return store.lastChannel && store.lastChannel.id
+        return !!store.lastChannelId
           ? new Promise((resolve, _) => {
               resolve();
             })
@@ -143,6 +143,10 @@ export function activate(context: vscode.ExtensionContext) {
 }
 
 export function deactivate() {
+  if (store) {
+    store.dispose();
+  }
+
   if (reporter) {
     // Return promise sync this operation is async
     return reporter.dispose();

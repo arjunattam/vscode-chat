@@ -1,10 +1,12 @@
 import * as EmojiConvertor from "emoji-js";
-import { UiMessage, SlackMessages } from "../interfaces";
+import { UiMessage, SlackChannelMessages } from "../interfaces";
 import * as str from "../strings";
 const MarkdownIt = require("markdown-it");
 const markdownItSlack = require("markdown-it-slack");
 
-export const emojify = (messages: SlackMessages): SlackMessages => {
+export const emojify = (
+  messages: SlackChannelMessages
+): SlackChannelMessages => {
   // Even though we are using markdown-it-slack, it does not
   // support emoji skin tones. If that changes, we can remove this method
   const emoji = new EmojiConvertor();
@@ -24,7 +26,9 @@ export const emojify = (messages: SlackMessages): SlackMessages => {
   return emojifiedMessages;
 };
 
-export const parseLinks = (messages: SlackMessages): SlackMessages => {
+export const parseLinks = (
+  messages: SlackChannelMessages
+): SlackChannelMessages => {
   // Looks for <url|title> pattern, and replaces them with normal markdown
   // The |pattern can be optional
   let parsed = {};
@@ -63,7 +67,9 @@ export const parseLinks = (messages: SlackMessages): SlackMessages => {
   return parsed;
 };
 
-export const markdownify = (messages: SlackMessages): SlackMessages => {
+export const markdownify = (
+  messages: SlackChannelMessages
+): SlackChannelMessages => {
   let markdowned = {};
   const md = new MarkdownIt({ breaks: true }).use(markdownItSlack);
 

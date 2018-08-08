@@ -45,8 +45,12 @@ interface SlackMessage {
   content: MessageContent;
 }
 
-export interface SlackMessages {
+export interface SlackChannelMessages {
   [timestamp: string]: SlackMessage;
+}
+
+export interface SlackMessages {
+  [channelId: string]: SlackChannelMessages;
 }
 
 enum ChannelType {
@@ -75,7 +79,7 @@ export interface ExtensionMessage {
 }
 
 export interface UiMessage {
-  messages: SlackMessages;
+  messages: SlackChannelMessages;
   users: SlackUsers;
   channelName: string;
   currentUser: SlackCurrentUser;
@@ -84,13 +88,16 @@ export interface UiMessage {
 
 export interface IStore {
   slackToken: string;
-  lastChannel: SlackChannel;
+  lastChannelId: string;
   channels: SlackChannel[];
   currentUserInfo: SlackCurrentUser;
   users: SlackUsers;
   messages: SlackMessages;
-  clearMessages: () => void;
-  updateMessages: (newMessages: SlackMessages) => void;
+  getChannel: (string) => SlackChannel | undefined;
+  updateMessages: (
+    channelId: string,
+    newMessages: SlackChannelMessages
+  ) => void;
   loadChannelHistory: () => Promise<void>;
   getLastTimestamp: () => string;
   hasOldReadMarker: () => Boolean;

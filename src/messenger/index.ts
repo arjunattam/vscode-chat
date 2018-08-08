@@ -58,38 +58,34 @@ class SlackMessenger implements IMessenger {
 
   updateCurrentChannel() {
     this.rtmClient.on(RTMEvents.MESSAGE, event => {
-      const { lastChannel: channel } = this.store;
-      if (channel.id === event.channel) {
-        const { subtype } = event;
-        let newMessages = {};
+      const { subtype } = event;
+      let newMessages = {};
 
-        switch (subtype) {
-          case EventSubTypes.DELETED:
-            const { deleted_ts } = event;
-            newMessages[deleted_ts] = undefined;
-            break;
+      switch (subtype) {
+        case EventSubTypes.DELETED:
+          const { deleted_ts } = event;
+          newMessages[deleted_ts] = undefined;
+          break;
 
-          case EventSubTypes.EDITED:
-            const { message } = event;
-            newMessages = { ...getMessage(message) };
-            break;
+        case EventSubTypes.EDITED:
+          const { message } = event;
+          newMessages = { ...getMessage(message) };
+          break;
 
-          default:
-            const { text } = event;
-            if (text) {
-              // Some messages (like keep-alive) have no text, we ignore them
-              newMessages = {
-                ...newMessages,
-                ...getMessage(event)
-              };
-            }
-        }
-
-        this.store.updateMessages(newMessages);
+        default:
+          const { text } = event;
+          if (text) {
+            // Some messages (like keep-alive) have no text, we ignore them
+            newMessages = {
+              ...newMessages,
+              ...getMessage(event)
+            };
+          }
       }
+
+      this.store.updateMessages(event.channel, newMessages);
     });
 
-    this.store.clearMessages();
     this.store.loadChannelHistory();
   }
 
@@ -117,23 +113,26 @@ class SlackMessenger implements IMessenger {
     // So we use the webclient instead of
     // this.rtmClient.sendMessage(cleanText, id)
     const cleanText = this.stripLinkSymbols(text);
-    const { lastChannel: channel } = this.store;
+    const { lastChannelId: channelId } = this.store;
     const lastTimestamp = this.store.getLastTimestamp();
     const client = new SlackAPIClient(this.store.slackToken);
 
     if (this.store.hasOldReadMarker()) {
       // Mark previous messages as read
-      client.markChannel({ channel, ts: lastTimestamp }).then(response => {
-        const { ok } = response;
-        if (ok) {
-          this.store.updateReadMarker(lastTimestamp);
-        }
-      });
+      const channel = this.store.getChannel(channelId);
+
+      if (channel) {
+        client.markChannel({ channel, ts: lastTimestamp }).then(response => {
+          const { ok } = response;
+          if (ok) {
+            this.store.updateReadMarker(lastTimestamp);
+          }
+        });
+      }
     }
 
-    const { id } = channel;
     return client
-      .sendMessage({ channel: id, text: cleanText })
+      .sendMessage({ channel: channelId, text: cleanText })
       .then((result: any) => {
         let newMessages = {};
         newMessages[result.ts] = {
@@ -141,7 +140,7 @@ class SlackMessenger implements IMessenger {
           timestamp: result.ts,
           text
         };
-        this.store.updateMessages(newMessages);
+        this.store.updateMessages(channelId, newMessages);
       })
       .catch(error => console.error(error));
   }
