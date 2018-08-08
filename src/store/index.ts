@@ -123,6 +123,7 @@ export default class Store implements IStore {
 
   clearMessages = () => {
     this.messages = {};
+    this.updateUi();
   };
 
   updateMessages = (newMessages: SlackMessages) => {

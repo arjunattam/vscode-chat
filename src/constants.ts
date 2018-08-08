@@ -5,7 +5,8 @@ export const APP_INSIGHTS_KEY = "ac30cb4c-9282-4947-8652-4a0ac828f0ce";
 export const LiveShareCommands = {
   START: "liveshare.start",
   END: "liveshare.end",
-  JOIN: "liveshare.join"
+  JOIN: "liveshare.join",
+  AUDIO: "liveshare.audio.startOrJoinAudio"
 };
 
 // Is there a way to get this URL from the extension?
@@ -18,7 +19,8 @@ export const VSCodeCommands = {
 
 export const SelfCommands = {
   OPEN: "extension.chat.openSlackPanel",
-  CHANGE: "extension.chat.changeChannel"
+  CHANGE: "extension.chat.changeChannel",
+  SHARE_LOCATION: "extension.chat.shareLocation"
 };
 
 export const SLASH_COMMANDS = {
@@ -27,7 +29,14 @@ export const SLASH_COMMANDS = {
       action: LiveShareCommands.START,
       options: { suppressNotification: true }
     },
-    end: { action: LiveShareCommands.END, options: {} }
+    end: {
+      action: LiveShareCommands.END,
+      options: {}
+    },
+    audio: {
+      action: LiveShareCommands.AUDIO,
+      options: {}
+    }
   }
 };
 

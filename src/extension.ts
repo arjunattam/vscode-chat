@@ -1,4 +1,5 @@
 import * as vscode from "vscode";
+import * as vsls from "vsls/vscode";
 import SlackMessenger from "./messenger";
 import ViewController from "./controller";
 import Logger from "./logger";
@@ -127,6 +128,16 @@ export function activate(context: vscode.ExtensionContext) {
     );
   };
 
+  const shareLocation = async () => {
+    let activeEditor = vscode.window.activeTextEditor;
+
+    if (activeEditor && activeEditor.document) {
+      let { document } = activeEditor;
+      const liveshare = await vsls.getApiAsync();
+      console.log(liveshare.convertLocalUriToShared(document.uri));
+    }
+  };
+
   const resetConfiguration = () => {
     store = new Store(context);
     store.setUiCallback(uiMessage => controller.sendToUi(uiMessage));
@@ -141,6 +152,7 @@ export function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(
     vscode.commands.registerCommand(SelfCommands.OPEN, openSlackPanel),
     vscode.commands.registerCommand(SelfCommands.CHANGE, channelChanger),
+    vscode.commands.registerCommand(SelfCommands.SHARE_LOCATION, shareLocation),
     vscode.workspace.onDidChangeConfiguration(resetConfiguration),
     reporter,
     disposableProvider

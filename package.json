@@ -65,6 +65,10 @@
       {
         "command": "extension.chat.changeChannel",
         "title": "Slack: Change Channel"
+      },
+      {
+        "command": "extension.chat.shareLocation",
+        "title": "Slack: Share Current Location"
       }
     ]
   },
@@ -93,6 +97,7 @@
     "markdown-it-slack": "^1.2.0",
     "request": "^2.87.0",
     "request-promise-native": "^1.0.5",
-    "vscode-extension-telemetry": "^0.0.17"
+    "vscode-extension-telemetry": "^0.0.17",
+    "vsls": "^0.3.426"
   }
 }
