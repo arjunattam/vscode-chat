@@ -2,6 +2,13 @@
 
 All notable changes to the vscode-chat extension will be documented in this file. This follows the [Keep a Changelog](http://keepachangelog.com/) format.
 
+## [0.4.6] - 2018-08-08
+
+### Added
+
+- Added support for marking messages as read
+- Improved how multi-party DM group name are shown in the UI
+
 ## [0.4.5] - 2018-07-21
 
 ### Added
