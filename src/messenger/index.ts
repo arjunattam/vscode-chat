@@ -117,8 +117,21 @@ class SlackMessenger implements IMessenger {
     // So we use the webclient instead of
     // this.rtmClient.sendMessage(cleanText, id)
     const cleanText = this.stripLinkSymbols(text);
-    const { id } = this.store.lastChannel;
+    const { lastChannel: channel } = this.store;
+    const lastTimestamp = this.store.getLastTimestamp();
     const client = new SlackAPIClient(this.store.slackToken);
+
+    if (this.store.hasOldReadMarker()) {
+      // Mark previous messages as read
+      client.markChannel({ channel, ts: lastTimestamp }).then(response => {
+        const { ok } = response;
+        if (ok) {
+          this.store.updateReadMarker(lastTimestamp);
+        }
+      });
+    }
+
+    const { id } = channel;
     return client
       .sendMessage({ channel: id, text: cleanText })
       .then((result: any) => {

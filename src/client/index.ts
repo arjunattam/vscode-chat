@@ -158,4 +158,16 @@ export default class SlackAPIClient {
       as_user: true
     });
   };
+
+  markChannel = ({ channel, ts }): Promise<any> => {
+    const { id, type } = channel;
+    switch (type) {
+      case "channel":
+        return this.client.channels.mark({ channel: id, ts });
+      case "group":
+        return this.client.groups.mark({ channel: id, ts });
+      case "im":
+        return this.client.im.mark({ channel: id, ts });
+    }
+  };
 }

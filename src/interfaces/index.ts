@@ -59,6 +59,7 @@ export interface SlackChannel {
   id: string;
   name: string;
   type: ChannelType;
+  readTimestamp: string;
 }
 
 enum MessageType {
@@ -91,6 +92,9 @@ export interface IStore {
   clearMessages: () => void;
   updateMessages: (newMessages: SlackMessages) => void;
   loadChannelHistory: () => Promise<void>;
+  getLastTimestamp: () => string;
+  hasOldReadMarker: () => Boolean;
+  updateReadMarker: (string) => void;
 }
 
 export interface IMessenger {

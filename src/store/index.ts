@@ -185,4 +185,19 @@ export default class Store implements IStore {
         console.error(error);
       });
   }
+
+  getLastTimestamp(): string {
+    const timestamps = Object.keys(this.messages)
+      .filter(tsKey => this.messages[tsKey].userId !== this.currentUserInfo.id)
+      .map(tsString => +tsString);
+    return Math.max(...timestamps).toString();
+  }
+
+  hasOldReadMarker(): Boolean {
+    return this.getLastTimestamp() !== this.lastChannel.readTimestamp;
+  }
+
+  updateReadMarker(ts: string): void {
+    this.lastChannel.readTimestamp = ts;
+  }
 }
