@@ -34,10 +34,7 @@ export function activate(context: vscode.ExtensionContext) {
 
     return channelsPromise
       .then(channels => {
-        let channelList = channels.map(channel => {
-          const prefix = channel.type === "im" ? "@" : "#";
-          return prefix + channel.name;
-        });
+        let channelList = channels.map(channel => channel.name);
         return vscode.window.showQuickPick([...channelList, RELOAD_CHANNELS], {
           placeHolder: str.CHANGE_CHANNEL_TITLE
         });
@@ -51,9 +48,7 @@ export function activate(context: vscode.ExtensionContext) {
               .then(() => askForChannel());
           }
 
-          const selectedChannel = store.channels.find(
-            x => x.name === selected.substr(1)
-          );
+          const selectedChannel = store.channels.find(x => x.name === selected);
 
           if (!selectedChannel) {
             vscode.window.showErrorMessage(str.INVALID_CHANNEL);

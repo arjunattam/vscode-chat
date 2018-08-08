@@ -116,7 +116,7 @@ export default class SlackAPIClient {
         if (ok) {
           return channels.map(channel => ({
             id: channel.id,
-            name: channel.name,
+            name: `#${channel.name}`,
             type: "channel"
           }));
         }
@@ -124,14 +124,34 @@ export default class SlackAPIClient {
     const groups = this.client
       .apiCall("groups.list", { exclude_archived: true })
       .then((response: any) => {
+        // Groups are multi-party DMs and private channels
         const { ok, groups } = response;
         if (ok) {
-          // TODO(arjun): Handle is_mpim case, for private groups
-          return groups.map(group => ({
-            id: group.id,
-            name: group.name,
-            type: "group"
-          }));
+          return groups.map(group => {
+            const { id, is_mpim } = group;
+            let { name } = group;
+
+            if (is_mpim) {
+              // Example name: mpdm-user.name--username2--user3-1
+              const matched = name.match(/mpdm-([^-]+)((--[^-]+)*)-\d+/);
+              if (matched) {
+                const first = matched[1];
+                const rest = matched[2]
+                  .split("--")
+                  .filter(element => !!element);
+                const members = [first, ...rest].map(element => `@${element}`);
+                name = members.join(", ");
+              }
+            } else {
+              name = `#${name}`;
+            }
+
+            return {
+              id,
+              name,
+              type: "group"
+            };
+          });
         }
       });
     const directs = this.client.apiCall("im.list", {}).then((response: any) => {
@@ -139,7 +159,7 @@ export default class SlackAPIClient {
       if (ok) {
         return ims.map(im => ({
           id: im.id,
-          name: im.user in users ? users[im.user].name : im.user,
+          name: `@${im.user in users ? users[im.user].name : im.user}`,
           type: "im"
         }));
       }

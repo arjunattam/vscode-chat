@@ -70,15 +70,12 @@ export default class Store implements IStore {
   }
 
   updateUi() {
-    const { name, type } = this.lastChannel;
-    const prefix = type === "im" ? "@" : "#";
-    const channelName = prefix + name;
-
+    const { name } = this.lastChannel;
     this.uiCallback({
       messages: this.messages,
       users: this.users,
       currentUser: this.currentUserInfo,
-      channelName,
+      channelName: name,
       statusText: ""
     });
   }
