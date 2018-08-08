@@ -2,6 +2,12 @@
 
 All notable changes to the vscode-chat extension will be documented in this file. This follows the [Keep a Changelog](http://keepachangelog.com/) format.
 
+## [0.4.7] - 2018-08-08
+
+### Added
+
+- Added a status bar item to show the number of new/unread messages. For now, this is available only after the chat panel has been opened once.
+
 ## [0.4.6] - 2018-08-08
 
 ### Added
