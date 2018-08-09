@@ -12,6 +12,7 @@ const getMessage = (text: string) => ({
       titleLink: "",
       pretext: ""
     },
+    reactions: [],
     timestamp: "",
     userId: ""
   }

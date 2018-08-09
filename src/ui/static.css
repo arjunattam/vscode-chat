@@ -45,6 +45,30 @@ body,
   word-break: break-word;
 }
 
+/* Reactions */
+ul.message-reactions {
+  list-style: none;
+  padding-left: 0;
+}
+
+ul.message-reactions li {
+  display: inline-block;
+  font-size: smaller;
+  padding: 2px 5px;
+  margin-right: 4px;
+  background-color: var(--vscode-input-background);
+  border-radius: 3px;
+  border: 1px solid var(--vscode-sideBar-background);
+}
+
+ul.message-reactions li div {
+  display: inline-block;
+}
+
+ul.message-reactions li div:first-child {
+  margin-right: 3px;
+}
+
 /* Form section styles */
 .form-section {
   margin-bottom: 10px;

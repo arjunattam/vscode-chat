@@ -122,11 +122,6 @@ export default class Store implements IStore {
       const isNewTimestamp = !!readTimestamp ? +ts > +readTimestamp : false;
       return isSomeotherUser && isNewTimestamp;
     });
-
-    if (unreadMessages.length > 0) {
-      console.log("channel", channel.name, unreadCount, unreadMessages);
-    }
-
     return unreadCount ? unreadCount : unreadMessages.length;
   }
 
@@ -301,6 +296,87 @@ export default class Store implements IStore {
 
           this.updateUnreadCount();
         });
+      }
+    }
+  }
+
+  addReaction(
+    channelId: string,
+    msgTimestamp: string,
+    userId: string,
+    reactionName: string
+  ) {
+    if (channelId in this.messages) {
+      const channelMessages = this.messages[channelId];
+
+      if (msgTimestamp in channelMessages) {
+        const message = channelMessages[msgTimestamp];
+        let { reactions } = message;
+        const existing = reactions.find(r => r.name === reactionName);
+
+        if (existing) {
+          reactions = reactions.map(r => {
+            if (r.name === reactionName) {
+              return {
+                ...existing,
+                count: existing.count + 1,
+                userIds: [...existing.userIds, userId]
+              };
+            } else {
+              return { ...r };
+            }
+          });
+        } else {
+          reactions = [
+            ...reactions,
+            { name: reactionName, userIds: [userId], count: 1 }
+          ];
+        }
+
+        const newMessage = {
+          ...message,
+          reactions
+        };
+        const newMessages = {};
+        newMessages[msgTimestamp] = newMessage;
+        this.updateMessages(channelId, newMessages);
+      }
+    }
+  }
+
+  removeReaction(
+    channelId: string,
+    msgTimestamp: string,
+    userId: string,
+    reactionName: string
+  ) {
+    if (channelId in this.messages) {
+      const channelMessages = this.messages[channelId];
+
+      if (msgTimestamp in channelMessages) {
+        const message = channelMessages[msgTimestamp];
+        let { reactions } = message;
+        reactions = reactions
+          .map(r => {
+            if (r.name === reactionName) {
+              return {
+                ...r,
+                count: r.count - 1,
+                userIds: r.userIds.filter(u => u !== userId)
+              };
+            } else {
+              return { ...r };
+            }
+          })
+          .filter(r => r.count > 0);
+
+        const newMessage = {
+          ...message,
+          reactions
+        };
+        const newMessages = {};
+        newMessages[msgTimestamp] = newMessage;
+        this.updateMessages(channelId, newMessages);
       }
     }
   }

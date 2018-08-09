@@ -6,7 +6,7 @@ import { SlackUsers, SlackChannel, SlackChannelMessages } from "../interfaces";
 const HISTORY_LIMIT = 50;
 
 export const getMessage = (raw: any): SlackChannelMessages => {
-  const { file, ts, user, text, edited, bot_id, attachments } = raw;
+  const { file, ts, user, text, edited, bot_id, attachments, reactions } = raw;
   const fileAttachment = file
     ? { name: file.name, permalink: file.permalink }
     : null;
@@ -18,6 +18,13 @@ export const getMessage = (raw: any): SlackChannelMessages => {
     isEdited: !!edited,
     text: text,
     attachment: fileAttachment,
+    reactions: reactions
+      ? reactions.map(r => ({
+          name: r.name,
+          count: r.count,
+          userIds: r.users
+        }))
+      : [],
     content: {
       author: attachments ? attachments[0].author_name : "",
       authorIcon: attachments ? attachments[0].author_icon : "",

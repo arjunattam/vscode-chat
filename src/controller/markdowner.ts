@@ -7,8 +7,8 @@ const markdownItSlack = require("markdown-it-slack");
 export const emojify = (
   messages: SlackChannelMessages
 ): SlackChannelMessages => {
-  // Even though we are using markdown-it-slack, it does not
-  // support emoji skin tones. If that changes, we can remove this method
+  // Even though we are using markdown-it-slack, it does not support
+  // emoji skin tones. If that changes, we can remove this method.
   const emoji = new EmojiConvertor();
   emoji.allow_native = true;
   emoji.replace_mode = "unified";
@@ -16,9 +16,13 @@ export const emojify = (
   let emojifiedMessages = {};
   Object.keys(messages).forEach(key => {
     const message = messages[key];
-    const { text } = message;
+    const { text, reactions } = message;
     emojifiedMessages[key] = {
       ...message,
+      reactions: reactions.map(reaction => ({
+        ...reaction,
+        name: emoji.replace_colons(`:${reaction.name}:`)
+      })),
       text: emoji.replace_colons(text ? text : "")
     };
   });

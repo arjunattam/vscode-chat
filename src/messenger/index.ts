@@ -7,7 +7,9 @@ import { SlackCurrentUser, IStore, IMessenger } from "../interfaces";
 const RTMEvents = {
   AUTHENTICATED: "authenticated",
   MESSAGE: "message",
-  ERROR: "unable_to_rtm_start"
+  ERROR: "unable_to_rtm_start",
+  REACTION_ADDED: "reaction_added",
+  REACTION_REMOVED: "reaction_removed"
 };
 
 const EventSubTypes = {
@@ -57,6 +59,18 @@ class SlackMessenger implements IMessenger {
       }
 
       this.store.updateMessages(event.channel, newMessages);
+    });
+
+    this.rtmClient.on(RTMEvents.REACTION_ADDED, event => {
+      const { user: userId, reaction: name, item } = event;
+      const { channel: channelId, ts: msgTs } = item;
+      this.store.addReaction(channelId, msgTs, userId, name);
+    });
+
+    this.rtmClient.on(RTMEvents.REACTION_REMOVED, event => {
+      const { user: userId, reaction: name, item } = event;
+      const { channel: channelId, ts: msgTs } = item;
+      this.store.removeReaction(channelId, msgTs, userId, name);
     });
   }
 

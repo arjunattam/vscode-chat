@@ -35,6 +35,12 @@ interface MessageContent {
   borderColor?: string;
 }
 
+interface MessageReaction {
+  name: string;
+  count: number;
+  userIds: string[];
+}
+
 interface SlackMessage {
   timestamp: string;
   userId: string;
@@ -43,6 +49,7 @@ interface SlackMessage {
   isEdited?: Boolean;
   attachment?: SlackAttachment;
   content: MessageContent;
+  reactions: MessageReaction[];
 }
 
 export interface SlackChannelMessages {
@@ -109,6 +116,18 @@ export interface IStore {
   ) => void;
   loadChannelHistory: () => Promise<void>;
   updateReadMarker: (string) => void;
+  addReaction: (
+    channelId: string,
+    msgTimestamp: string,
+    userId: string,
+    reactionName: string
+  ) => void;
+  removeReaction: (
+    channelId: string,
+    msgTimestamp: string,
+    userId: string,
+    reactionName: string
+  ) => void;
 }
 
 export interface IMessenger {

@@ -102,9 +102,37 @@ Vue.component("message-item", {
     <li>
       <div v-if="message.textHTML" v-html="message.textHTML"></div>
       <span v-if="message.isEdited" class="edited">(edited)</span>
+      <message-reactions
+        v-bind:reactions="message.reactions">
+      </message-reactions>
       <message-content
         v-bind:content="message.content">
       </message-content>
+    </li>
+  `
+});
+
+Vue.component("message-reactions", {
+  props: ["reactions"],
+  template: /* html */ `
+    <ul class="message-reactions">
+      <message-reaction v-for="reaction in reactions"
+        v-bind:emoji="reaction.name"
+        v-bind:count="reaction.count"
+        v-bind:users="reaction.userIds"
+        v-bind:key="reaction.name">
+      </message-reaction>
+    </ul>
+  `
+});
+
+Vue.component("message-reaction", {
+  // TODO: add hover behaviour to show users
+  props: ["emoji", "count", "users"],
+  template: /* html */ `
+    <li>
+      <div>{{emoji}}</div>
+      <div>{{count}}</div>
     </li>
   `
 });
