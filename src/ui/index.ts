@@ -1,6 +1,14 @@
 import * as vscode from "vscode";
 import * as path from "path";
-import { ExtensionMessage, UiMessage } from "../interfaces";
+import {
+  ExtensionMessage,
+  UIMessage,
+  UIMessageGroup,
+  SlackChannelMessages,
+  SlackUsers
+} from "../interfaces";
+
+const SAME_GROUP_TIME = 5 * 60; // seconds
 
 export default class WebviewContainer {
   panel: vscode.WebviewPanel;
@@ -44,13 +52,65 @@ export default class WebviewContainer {
     );
   }
 
-  update(message: UiMessage) {
-    this.panel.webview.postMessage({ ...message });
-    this.panel.title = message.channelName;
+  update(uiMessage: UIMessage) {
+    const { messages, users } = uiMessage;
+    const groups = this.getMessageGroups(messages, users);
+    this.panel.webview.postMessage({ ...uiMessage, messages: groups });
+    this.panel.title = uiMessage.channelName;
   }
 
   reveal() {
     this.panel.reveal();
+  }
+
+  getMessageGroups(
+    input: SlackChannelMessages,
+    users: SlackUsers
+  ): UIMessageGroup[] {
+    const timestamps = Object.keys(input).sort((a, b) => +a - +b); // ascending
+
+    const initial = {
+      current: {},
+      groups: []
+    };
+
+    const result = timestamps.reduce((accumulator: any, ts) => {
+      const { current, groups } = accumulator;
+      const message = input[ts];
+      const isSameUser = current.userId
+        ? message.userId === current.userId
+        : false;
+      const isSameTime = current.ts
+        ? +ts - +current.ts < SAME_GROUP_TIME
+        : false;
+
+      if (isSameUser && isSameTime) {
+        return {
+          groups,
+          current: {
+            ...current,
+            ts,
+            messages: [...current.messages, message]
+          }
+        };
+      } else {
+        const currentGroup = {
+          messages: [message],
+          userId: message.userId,
+          user: users[message.userId],
+          minTimestamp: ts,
+          ts,
+          key: ts
+        };
+        return {
+          groups: current.ts ? [...groups, current] : [...groups],
+          current: currentGroup
+        };
+      }
+    }, initial);
+
+    const { current, groups } = result;
+    return current.ts ? [...groups, current] : groups;
   }
 }
 

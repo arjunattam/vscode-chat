@@ -1,7 +1,5 @@
 const vscode = acquireVsCodeApi();
 
-const SAME_GROUP_TIME = 5 * 60; // seconds
-
 function sendMessage(text, type) {
   vscode.postMessage({
     type,
@@ -12,16 +10,6 @@ function sendMessage(text, type) {
 function openLink(href) {
   // Handler for <a> tags in this view
   return sendMessage(href, "link");
-}
-
-function hashCode(str) {
-  return str
-    .split("")
-    .reduce(
-      (prevHash, currVal) =>
-        ((prevHash << 5) - prevHash + currVal.charCodeAt(0)) | 0,
-      0
-    );
 }
 
 Vue.component("app-container", {
@@ -57,68 +45,10 @@ Vue.component("app-container", {
 
 Vue.component("messages-section", {
   props: ["messages", "users"],
-  computed: {
-    messageGroups: function() {
-      const messagesCopy = Object.values(this.messages);
-
-      messagesCopy.sort(function(a, b) {
-        return +a.timestamp - +b.timestamp;
-      });
-
-      const initialValue = {
-        currentGroup: {},
-        groups: []
-      };
-
-      let result = messagesCopy.reduce((groupsAccumulator, message) => {
-        const { currentGroup, groups } = groupsAccumulator;
-
-        const isSameUser = currentGroup.userId
-          ? message.userId === currentGroup.userId
-          : false;
-        const isSameTime = currentGroup.timestamp
-          ? +message.timestamp - +currentGroup.timestamp < SAME_GROUP_TIME
-          : false;
-        const msgKey = message.text ? message.text : "";
-
-        if (isSameTime && isSameUser) {
-          let newGroup = Object.assign(currentGroup, {
-            timestamp: message.timestamp,
-            messages: [].concat(currentGroup.messages, [message]),
-            key: hashCode(`${currentGroup.key}${msgKey}`)
-          });
-          groupsAccumulator = {
-            currentGroup: newGroup,
-            groups: groups
-          };
-        } else {
-          groupsAccumulator = {
-            currentGroup: {
-              messages: [message],
-              userId: message.userId,
-              user: this.users[message.userId],
-              timestamp: message.timestamp,
-              minTimestamp: message.timestamp,
-              key: hashCode(msgKey) // key should change if text changes
-            },
-            groups: currentGroup.timestamp
-              ? [].concat(groups, [currentGroup])
-              : groups
-          };
-        }
-        return groupsAccumulator;
-      }, initialValue);
-
-      const { currentGroup, groups } = result;
-      return currentGroup.timestamp
-        ? [].concat(groups, [currentGroup])
-        : groups;
-    }
-  },
   template: /* html */ `
     <div class="messages-section">
       <message-group
-        v-for="group in messageGroups"
+        v-for="group in messages"
         v-bind:key="group.key"
         v-bind:messages="group.messages"
         v-bind:userId="group.userId"

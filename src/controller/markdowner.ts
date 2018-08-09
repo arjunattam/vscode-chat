@@ -1,5 +1,5 @@
 import * as EmojiConvertor from "emoji-js";
-import { UiMessage, SlackChannelMessages } from "../interfaces";
+import { UIMessage, SlackChannelMessages } from "../interfaces";
 import * as str from "../strings";
 const MarkdownIt = require("markdown-it");
 const markdownItSlack = require("markdown-it-slack");
@@ -111,7 +111,7 @@ export const markdownify = (
   return markdowned;
 };
 
-const transformChain = (uiMessage: UiMessage): UiMessage => {
+const transformChain = (uiMessage: UIMessage): UIMessage => {
   const { messages } = uiMessage;
   return {
     ...uiMessage,

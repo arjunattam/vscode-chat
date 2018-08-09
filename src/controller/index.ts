@@ -1,7 +1,7 @@
 import { ExtensionContext } from "vscode";
 import SlackMessenger from "../messenger";
 import WebviewContainer from "../ui";
-import { ExtensionMessage, UiMessage } from "../interfaces";
+import { ExtensionMessage, UIMessage } from "../interfaces";
 import { SLASH_COMMANDS, REVERSE_SLASH_COMMANDS } from "../constants";
 import * as str from "../strings";
 import Logger from "../logger";
@@ -25,7 +25,7 @@ class ViewController {
   messenger: SlackMessenger | undefined;
   ui: WebviewContainer | undefined;
   isUIReady: Boolean = false; // Vuejs loaded
-  pendingMessage: UiMessage = undefined;
+  pendingMessage: UIMessage = undefined;
 
   constructor(
     private context: ExtensionContext,
@@ -136,7 +136,7 @@ class ViewController {
     }
   };
 
-  handleReverseCommands = (uiMessage: UiMessage) => {
+  handleReverseCommands = (uiMessage: UIMessage) => {
     // Reverse commands are slash commands fired by other Slack users
     // For example, `/live request` requests someone to host a session
     const { currentUser, messages } = uiMessage;
@@ -167,7 +167,7 @@ class ViewController {
     };
   };
 
-  sendToUI = (uiMessage: UiMessage) => {
+  sendToUI = (uiMessage: UIMessage) => {
     if (!this.isUIReady) {
       this.pendingMessage = uiMessage;
     } else {

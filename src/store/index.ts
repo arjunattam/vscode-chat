@@ -7,7 +7,7 @@ import {
   SlackMessages,
   SlackUsers,
   IStore,
-  UiMessage
+  UIMessage
 } from "../interfaces";
 import StatusItem from "../status";
 import ConfigHelper from "../configuration";
@@ -44,7 +44,7 @@ export default class Store implements IStore {
   currentUserInfo: SlackCurrentUser;
   users: SlackUsers;
   messages: SlackMessages = {};
-  uiCallback: (message: UiMessage) => void;
+  uiCallback: (message: UIMessage) => void;
 
   statusItem: StatusItem;
 
@@ -115,13 +115,19 @@ export default class Store implements IStore {
   }
 
   getUnreadCount(channel: SlackChannel): number {
-    const { id, readTimestamp } = channel;
+    const { id, readTimestamp, unreadCount } = channel;
     const messages = id in this.messages ? this.messages[id] : {};
-    return Object.keys(messages).filter(ts => {
+    const unreadMessages = Object.keys(messages).filter(ts => {
       const isSomeotherUser = messages[ts].userId !== this.currentUserInfo.id;
       const isNewTimestamp = !!readTimestamp ? +ts > +readTimestamp : false;
       return isSomeotherUser && isNewTimestamp;
-    }).length;
+    });
+
+    if (unreadMessages.length > 0) {
+      console.log("channel", channel.name, unreadCount, unreadMessages);
+    }
+
+    return unreadCount ? unreadCount : unreadMessages.length;
   }
 
   updateUnreadCount() {
@@ -136,13 +142,24 @@ export default class Store implements IStore {
   };
 
   updateChannels = channels => {
-    this.channels = channels.map(channel => {
-      const localChannel = this.channels.find(c => c.id === channel.id);
-      return !!localChannel
-        ? { readTimestamp: localChannel.readTimestamp, ...channel }
-        : { ...channel };
-    });
+    this.channels = channels;
     this.context.globalState.update(stateKeys.CHANNELS, channels);
+  };
+
+  updateChannel = newChannel => {
+    // Adds/updates channel in this.channels
+    const newChannels = this.channels.map(channel => {
+      const { id } = channel;
+      if (id === newChannel.id) {
+        return {
+          ...channel,
+          ...newChannel
+        };
+      } else {
+        return channel;
+      }
+    });
+    this.updateChannels(newChannels);
   };
 
   fetchUsers = (): Promise<SlackUsers> => {
@@ -167,6 +184,12 @@ export default class Store implements IStore {
       .then(users => client.getChannels(users))
       .then(channels => {
         this.updateChannels(channels);
+        const promises = channels.map(channel =>
+          client.getChannelInfo(channel).then((newChannel: SlackChannel) => {
+            return this.updateChannel(newChannel);
+          })
+        );
+        Promise.all(promises).then(() => this.updateUnreadCount());
         return channels;
       });
   };
@@ -248,11 +271,7 @@ export default class Store implements IStore {
   getLastTimestamp(): string {
     const id = this.lastChannelId;
     const channelMessages = id in this.messages ? this.messages[id] : {};
-    const timestamps = Object.keys(channelMessages)
-      .filter(
-        tsKey => channelMessages[tsKey].userId !== this.currentUserInfo.id
-      )
-      .map(tsString => +tsString);
+    const timestamps = Object.keys(channelMessages).map(tsString => +tsString);
 
     if (timestamps.length > 0) {
       return Math.max(...timestamps).toString();
@@ -263,27 +282,26 @@ export default class Store implements IStore {
     const channel = this.getChannel(this.lastChannelId);
     const lastTs = this.getLastTimestamp();
 
-    if (channel && lastTs && channel.readTimestamp !== lastTs) {
-      const client = new SlackAPIClient(this.slackToken);
-      const channel = this.getChannel(this.lastChannelId);
-      client.markChannel({ channel, ts: lastTs }).then(response => {
-        const { ok } = response;
-        if (ok) {
-          const newChannels = this.channels.map(channel => {
-            const { id } = channel;
-            if (id === this.lastChannelId) {
-              return {
-                ...channel,
-                readTimestamp: lastTs
-              };
-            } else {
-              return channel;
-            }
-          });
-          this.updateChannels(newChannels);
+    if (channel && lastTs) {
+      const { readTimestamp } = channel;
+
+      if (!readTimestamp || +readTimestamp < +lastTs) {
+        const client = new SlackAPIClient(this.slackToken);
+        const channel = this.getChannel(this.lastChannelId);
+        client.markChannel({ channel, ts: lastTs }).then(response => {
+          const { ok } = response;
+
+          if (ok) {
+            this.updateChannel({
+              id: this.lastChannelId,
+              readTimestamp: lastTs,
+              unreadCount: 0
+            });
+          }
+
           this.updateUnreadCount();
-        }
-      });
+        });
+      }
     }
   }
 }

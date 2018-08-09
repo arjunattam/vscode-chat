@@ -64,6 +64,7 @@ export interface SlackChannel {
   name: string;
   type: ChannelType;
   readTimestamp: string;
+  unreadCount: number;
 }
 
 enum MessageType {
@@ -78,12 +79,20 @@ export interface ExtensionMessage {
   text: string;
 }
 
-export interface UiMessage {
+export interface UIMessage {
   messages: SlackChannelMessages;
   users: SlackUsers;
   channelName: string;
   currentUser: SlackCurrentUser;
   statusText: string;
+}
+
+export interface UIMessageGroup {
+  messages: SlackMessage[];
+  userId: string;
+  user: SlackUser;
+  minTimestamp: string;
+  key: string;
 }
 
 export interface IStore {

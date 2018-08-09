@@ -171,6 +171,48 @@ export default class SlackAPIClient {
     );
   }
 
+  getChannelInfo = (originalChannel: SlackChannel): Promise<SlackChannel> => {
+    const { id, type } = originalChannel;
+    switch (type) {
+      case "group":
+        return this.client.groups
+          .info({ channel: id })
+          .then((response: any) => {
+            const { group } = response;
+            const { unread_count, last_read } = group;
+            return {
+              ...originalChannel,
+              unreadCount: unread_count,
+              readTimestamp: last_read
+            };
+          });
+      case "channel":
+        return this.client.channels
+          .info({ channel: id })
+          .then((response: any) => {
+            const { channel } = response;
+            const { unread_count, last_read } = channel;
+            return {
+              ...originalChannel,
+              unreadCount: unread_count,
+              readTimestamp: last_read
+            };
+          });
+      case "im":
+        return this.client.conversations
+          .info({ channel: id })
+          .then((response: any) => {
+            const { channel } = response;
+            const { unread_count, last_read } = channel;
+            return {
+              ...originalChannel,
+              unreadCount: unread_count,
+              readTimestamp: last_read
+            };
+          });
+    }
+  };
+
   sendMessage = ({ channel, text }): Promise<any> => {
     return this.client.chat.postMessage({
       channel,
