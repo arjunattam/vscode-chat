@@ -2,6 +2,17 @@
 
 All notable changes to the vscode-chat extension will be documented in this file. This follows the [Keep a Changelog](http://keepachangelog.com/) format.
 
+## [0.4.8] - 2018-08-09
+
+### Added
+
+- Added support to render message reactions, and live update UI as reactions are added or removed
+- The unread count now also reflects messages that were received before the extension gets activated, by calling the relevant Slack API.
+
+### Fixed
+
+- Messages with files were not rendered correctly since the last Slack update. This has been fixed now.
+
 ## [0.4.7] - 2018-08-08
 
 ### Added
