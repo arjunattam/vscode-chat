@@ -6,9 +6,9 @@ import { SlackUsers, SlackChannel, SlackChannelMessages } from "../interfaces";
 const HISTORY_LIMIT = 50;
 
 export const getMessage = (raw: any): SlackChannelMessages => {
-  const { file, ts, user, text, edited, bot_id, attachments, reactions } = raw;
-  const fileAttachment = file
-    ? { name: file.name, permalink: file.permalink }
+  const { files, ts, user, text, edited, bot_id, attachments, reactions } = raw;
+  const fileAttachment = files
+    ? { name: files[0].name, permalink: files[0].permalink }
     : null;
 
   let parsed: SlackChannelMessages = {};

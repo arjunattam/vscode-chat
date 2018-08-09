@@ -59,9 +59,11 @@ class ViewController {
   dispatchCommand(command: MessageCommand) {
     const handler = new CommandDispatch();
     handler.handle(command).then(result => {
-      const { sendToSlack, response } = result;
-      if (sendToSlack && response) {
-        this.sendToSlack(response);
+      if (!!result) {
+        const { sendToSlack, response } = result;
+        if (sendToSlack && response) {
+          this.sendToSlack(response);
+        }
       }
     });
   }
