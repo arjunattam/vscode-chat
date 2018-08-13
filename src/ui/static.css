@@ -16,6 +16,13 @@ body,
   overflow: auto;
 }
 
+.date-heading {
+  border-bottom: 2px solid var(--vscode-sideBar-background);
+  color: var(--vscode-sideBar-foreground);
+  text-align: right;
+  font-weight: normal;
+}
+
 .message-group {
   display: flex;
   margin: 10px 1px;

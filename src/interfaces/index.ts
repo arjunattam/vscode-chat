@@ -94,6 +94,11 @@ export interface UIMessage {
   statusText: string;
 }
 
+export interface UIMessageDateGroup {
+  groups: UIMessageGroup[];
+  date: string;
+}
+
 export interface UIMessageGroup {
   messages: SlackMessage[];
   userId: string;

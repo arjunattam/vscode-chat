@@ -4,6 +4,7 @@ import {
   ExtensionMessage,
   UIMessage,
   UIMessageGroup,
+  UIMessageDateGroup,
   SlackChannelMessages,
   SlackUsers
 } from "../interfaces";
@@ -55,6 +56,7 @@ export default class WebviewContainer {
   update(uiMessage: UIMessage) {
     const { messages, users } = uiMessage;
     const groups = this.getMessageGroups(messages, users);
+    console.log(groups);
     this.panel.webview.postMessage({ ...uiMessage, messages: groups });
     this.panel.title = uiMessage.channelName;
   }
@@ -64,6 +66,31 @@ export default class WebviewContainer {
   }
 
   getMessageGroups(
+    input: SlackChannelMessages,
+    users: SlackUsers
+  ): UIMessageDateGroup[] {
+    let result = {};
+    Object.keys(input).forEach(ts => {
+      const date = new Date(+ts * 1000);
+      const dateStr = date.toISOString().substr(0, 10);
+      if (!(dateStr in result)) {
+        result[dateStr] = {};
+      }
+      result[dateStr][ts] = input[ts];
+    });
+    return Object.keys(result)
+      .sort((a, b) => a.localeCompare(b))
+      .map(date => {
+        const messages = result[date];
+        const groups = this.getMessageGroupsForDate(messages, users);
+        return {
+          groups,
+          date
+        };
+      });
+  }
+
+  getMessageGroupsForDate(
     input: SlackChannelMessages,
     users: SlackUsers
   ): UIMessageGroup[] {

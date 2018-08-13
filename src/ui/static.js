@@ -47,8 +47,27 @@ Vue.component("messages-section", {
   props: ["messages", "users"],
   template: /* html */ `
     <div class="messages-section">
+      <messages-date-group
+        v-for="dateGroup in messages"
+        v-bind:users="users"
+        v-bind:key="dateGroup.date"
+        v-bind:groups="dateGroup.groups"
+        v-bind:date="dateGroup.date">
+      </message-date-group>
+    </div>
+  `,
+  updated() {
+    this.$el.scrollTop = this.$el.scrollHeight;
+  }
+});
+
+Vue.component("messages-date-group", {
+  props: ["groups", "users", "date"],
+  template: /* html */ `
+    <div class="messages-date-section">
+      <date-separator v-bind:date="date"></date-separator>
       <message-group
-        v-for="group in messages"
+        v-for="group in groups"
         v-bind:key="group.key"
         v-bind:messages="group.messages"
         v-bind:userId="group.userId"
@@ -56,10 +75,20 @@ Vue.component("messages-section", {
         v-bind:timestamp="group.minTimestamp">
       </message-group>
     </div>
-  `,
-  updated() {
-    this.$el.scrollTop = this.$el.scrollHeight;
-  }
+  `
+});
+
+Vue.component("date-separator", {
+  props: ["date"],
+  computed: {
+    dateString: function() {
+      const options = { weekday: "long", month: "long", day: "numeric" };
+      return new Date(this.date).toLocaleDateString("en-US", options);
+    }
+  },
+  template: /* html */ `
+    <h3 class="date-heading">{{dateString}}</h3>
+  `
 });
 
 Vue.component("message-group", {
