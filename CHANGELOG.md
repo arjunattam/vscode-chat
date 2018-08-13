@@ -2,6 +2,12 @@
 
 All notable changes to the vscode-chat extension will be documented in this file. This follows the [Keep a Changelog](http://keepachangelog.com/) format.
 
+## [0.4.9] - 2018-08-13
+
+### Fixed
+
+- Fixed issue where new messages were not getting updated on the UI.
+
 ## [0.4.8] - 2018-08-09
 
 ### Added
