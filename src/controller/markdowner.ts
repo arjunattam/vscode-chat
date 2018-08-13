@@ -19,10 +19,12 @@ export const emojify = (
     const { text, reactions } = message;
     emojifiedMessages[key] = {
       ...message,
-      reactions: reactions.map(reaction => ({
-        ...reaction,
-        name: emoji.replace_colons(`:${reaction.name}:`)
-      })),
+      reactions: reactions
+        ? reactions.map(reaction => ({
+            ...reaction,
+            name: emoji.replace_colons(`:${reaction.name}:`)
+          }))
+        : [],
       text: emoji.replace_colons(text ? text : "")
     };
   });
