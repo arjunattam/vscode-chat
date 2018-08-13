@@ -2,7 +2,12 @@ import { RTMClient, RTMClientOptions } from "@slack/client";
 import * as HttpsProxyAgent from "https-proxy-agent";
 import ConfigHelper from "../configuration";
 import SlackAPIClient, { getMessage } from "../client";
-import { SlackCurrentUser, IStore, IMessenger } from "../interfaces";
+import {
+  SlackChannelMessages,
+  SlackCurrentUser,
+  IStore,
+  IMessenger
+} from "../interfaces";
 
 const RTMEvents = {
   AUTHENTICATED: "authenticated",
@@ -34,7 +39,7 @@ class SlackMessenger implements IMessenger {
 
     this.rtmClient.on(RTMEvents.MESSAGE, event => {
       const { subtype } = event;
-      let newMessages = {};
+      let newMessages: SlackChannelMessages = {};
 
       switch (subtype) {
         case EventSubTypes.DELETED:
@@ -129,11 +134,13 @@ class SlackMessenger implements IMessenger {
     return client
       .sendMessage({ channel: channelId, text: cleanText })
       .then((result: any) => {
-        let newMessages = {};
+        let newMessages: SlackChannelMessages = {};
         newMessages[result.ts] = {
           userId: this.store.currentUserInfo.id,
           timestamp: result.ts,
-          text
+          text,
+          content: null,
+          reactions: []
         };
         this.store.updateMessages(channelId, newMessages);
       })

@@ -4,6 +4,34 @@ import * as str from "../strings";
 const MarkdownIt = require("markdown-it");
 const markdownItSlack = require("markdown-it-slack");
 
+export const parseUsernames = (uiMessage: UIMessage): UIMessage => {
+  // Find and replace names like <@UBCQ8LF28>
+  const { messages, users } = uiMessage;
+  let newMessages = {};
+  Object.keys(messages).map(ts => {
+    const message = messages[ts];
+    let { text } = message;
+    const matched = text.match(/<@([A-Z0-9]+)>/);
+
+    if (matched && matched.length > 0) {
+      const userId = matched[1];
+      if (userId in users) {
+        const { name } = users[userId];
+        text = text.replace(matched[0], `@${name}`);
+      }
+    }
+
+    newMessages[ts] = {
+      ...message,
+      text
+    };
+  });
+  return {
+    ...uiMessage,
+    messages: newMessages
+  };
+};
+
 export const emojify = (
   messages: SlackChannelMessages
 ): SlackChannelMessages => {
@@ -118,7 +146,7 @@ export const markdownify = (
 };
 
 const transformChain = (uiMessage: UIMessage): UIMessage => {
-  const { messages } = uiMessage;
+  const { messages } = parseUsernames(uiMessage);
   return {
     ...uiMessage,
     messages: markdownify(parseLinks(emojify(messages)))
