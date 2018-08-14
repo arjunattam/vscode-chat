@@ -53,8 +53,9 @@ class SlackMessenger implements IMessenger {
           break;
 
         default:
-          const { text } = event;
-          if (text) {
+          const { text, attachments } = event;
+          const hasAttachment = attachments && attachments.length > 0;
+          if (!!text || hasAttachment) {
             // Some messages (like keep-alive) have no text, we ignore them
             newMessages = {
               ...newMessages,

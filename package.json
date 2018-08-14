@@ -38,7 +38,7 @@
   "contributes": {
     "configuration": {
       "type": "object",
-      "title": "Slack Chat configuration",
+      "title": "Slack Chat",
       "properties": {
         "chat.slack.legacyToken": {
           "type": "string",

@@ -56,7 +56,6 @@ export default class WebviewContainer {
   update(uiMessage: UIMessage) {
     const { messages, users } = uiMessage;
     const groups = this.getMessageGroups(messages, users);
-    console.log(groups);
     this.panel.webview.postMessage({ ...uiMessage, messages: groups });
     this.panel.title = uiMessage.channelName;
   }
