@@ -2,6 +2,19 @@
 
 All notable changes to the vscode-chat extension will be documented in this file. This follows the [Keep a Changelog](http://keepachangelog.com/) format.
 
+## [0.4.10] - 2018-08-14
+
+### Added
+
+- Slack username tags in messages are not cryptic anymore.
+- Better keyboard-only support: pressing tab will focus the input text box, ignoring other selectable HTML elements in the webview.
+- Added date separators on the messages UI
+
+### Fixed
+
+- Fixed real-time UI updates for bot messages.
+- Fixed select-all behaviour through the cmd+A keybinding (needs VS Code 1.26+).
+
 ## [0.4.9] - 2018-08-13
 
 ### Fixed
