@@ -209,7 +209,10 @@ Vue.component("message-title", {
   },
   template: /* html */ `
     <div class="msg-title">
-      <a v-bind:href="content.titleLink" v-bind:onclick="titleOnclick">
+      <a
+        v-bind:href="content.titleLink"
+        v-bind:onclick="titleOnclick"
+        v-bind:tabindex="-1">
         {{ content.title }}
       </a>
     </div>

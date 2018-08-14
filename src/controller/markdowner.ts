@@ -120,6 +120,7 @@ export const markdownify = (
     const index = tokens[idx].attrIndex("href");
     const value = tokens[idx].attrs[index][1];
     tokens[idx].attrPush(["onclick", `openLink('${value}'); return false;`]);
+    tokens[idx].attrPush(["tabindex", "-1"]);
     return defaultRender(tokens, idx, options, env, self);
   };
 

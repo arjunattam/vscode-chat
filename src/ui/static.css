@@ -90,7 +90,7 @@ ul.message-reactions li div:first-child {
   resize: none;
   color: var(--vscode-input-foreground);
   background-color: var(--vscode-input-background);
-  border: var(--vscode-input-border);
+  border: 1px solid var(--vscode-sideBar-background);
   outline-color: var(--vscode-inputOption-activeBorder);
 }
 
