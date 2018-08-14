@@ -53,7 +53,7 @@ Vue.component("messages-section", {
         v-bind:key="dateGroup.date"
         v-bind:groups="dateGroup.groups"
         v-bind:date="dateGroup.date">
-      </message-date-group>
+      </messages-date-group>
     </div>
   `,
   updated() {
@@ -251,6 +251,7 @@ Vue.component("form-section", {
           v-model="text"
           v-bind:placeholder="placeholder"
           v-on:keydown="onKeydown"
+          v-on:keydown.meta.65="onSelectAll"
           v-on:focus="onFocus"
           v-focus
           rows="1">
@@ -268,6 +269,10 @@ Vue.component("form-section", {
     },
     onFocus: function(event) {
       return sendMessage("is_focused", "internal");
+    },
+    onSelectAll: function(event) {
+      // Should we check for keydown.ctrl.65 on Windows?
+      this.$refs.messageInput.select();
     },
     onKeydown: function(event) {
       // Usability fixes
