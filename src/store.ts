@@ -1,5 +1,5 @@
 import * as vscode from "vscode";
-import SlackAPIClient from "../client";
+import SlackAPIClient from "./client";
 import {
   SlackChannel,
   SlackCurrentUser,
@@ -8,9 +8,9 @@ import {
   SlackUsers,
   IStore,
   UIMessage
-} from "../interfaces";
-import StatusItem from "../status";
-import ConfigHelper from "../configuration";
+} from "./interfaces";
+import StatusItem from "./status";
+import ConfigHelper from "./configuration";
 
 const stateKeys = {
   LAST_CHANNEL: "lastChannel", // TODO: deprecate this
@@ -90,6 +90,20 @@ export default class Store implements IStore {
 
   getChannel(channelId: string): SlackChannel {
     return this.channels.find(channel => channel.id === channelId);
+  }
+
+  getChannelLabels() {
+    return this.channels
+      .map(channel => {
+        const unread = this.getUnreadCount(channel);
+        const { name } = channel;
+        return {
+          ...channel,
+          unread,
+          label: `${name} ${unread > 0 ? `(${unread} new)` : ""}`
+        };
+      })
+      .sort((a, b) => b.unread - a.unread);
   }
 
   updateUi() {

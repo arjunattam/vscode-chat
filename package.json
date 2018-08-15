@@ -32,7 +32,8 @@
   ],
   "activationEvents": [
     "onCommand:extension.chat.openSlackPanel",
-    "onCommand:extension.chat.changeChannel"
+    "onCommand:extension.chat.changeChannel",
+    "onView:channels-tree-view"
   ],
   "main": "./out/extension",
   "contributes": {
@@ -66,7 +67,24 @@
         "command": "extension.chat.changeChannel",
         "title": "Slack: Change Channel"
       }
-    ]
+    ],
+    "views": {
+      "chat-activity": [
+        {
+          "id": "channels-tree-view",
+          "name": "Channels"
+        }
+      ]
+    },
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "chat-activity",
+          "title": "Slack Chat",
+          "icon": "public/activity-bar-icon.svg"
+        }
+      ]
+    }
   },
   "scripts": {
     "copy-static": "rm -rf static && mkdir -p static && cp src/ui/static* static/.",

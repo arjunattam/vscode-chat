@@ -7,6 +7,7 @@ import Store from "./store";
 import * as str from "./strings";
 import { SlackChannel } from "./interfaces";
 import { SelfCommands } from "./constants";
+import ChannelTreeProvider from "./tree";
 import travisProvider, { TRAVIS_URI_SCHEME } from "./providers/travis";
 
 let reporter: Reporter | undefined = undefined;
@@ -36,19 +37,8 @@ export function activate(context: vscode.ExtensionContext) {
     }
 
     return channelsPromise
-      .then(channels => {
-        let channelList = channels
-          .map(channel => ({
-            name: channel.name,
-            unread: store.getUnreadCount(channel)
-          }))
-          .sort((a, b) => b.unread - a.unread)
-          .map(
-            channel =>
-              `${channel.name} ${
-                channel.unread > 0 ? `(${channel.unread} new)` : ""
-              }`
-          );
+      .then(() => {
+        let channelList = store.getChannelLabels().map(c => c.label);
         return vscode.window.showQuickPick(
           [...channelList, str.RELOAD_CHANNELS],
           {
@@ -98,7 +88,15 @@ export function activate(context: vscode.ExtensionContext) {
     }
   };
 
-  const openSlackPanel = () => {
+  const openSlackPanel = (args?) => {
+    let selectedChannelId: string = store.lastChannelId;
+
+    if (!!args && !!args.channel) {
+      const { channel } = args;
+      store.updateLastChannel(channel);
+      selectedChannelId = channel.id;
+    }
+
     reporter.sendOpenSlackEvent();
     controller.loadUi();
 
@@ -122,7 +120,7 @@ export function activate(context: vscode.ExtensionContext) {
           : store.fetchChannels();
       })
       .then(() => {
-        return !!store.lastChannelId
+        return !!selectedChannelId
           ? new Promise((resolve, _) => {
               resolve();
             })
@@ -164,6 +162,9 @@ export function activate(context: vscode.ExtensionContext) {
     reporter,
     disposableProvider
   );
+
+  const treeProvider = new ChannelTreeProvider(store);
+  vscode.window.registerTreeDataProvider("channels-tree-view", treeProvider);
 }
 
 export function deactivate() {
