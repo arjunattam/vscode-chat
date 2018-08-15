@@ -66,6 +66,14 @@
       {
         "command": "extension.chat.changeChannel",
         "title": "Slack: Change Channel"
+      },
+      {
+        "command": "extension.chat.startLiveShare",
+        "title": "Slack: Share Collaboration Session Link",
+        "icon": {
+          "light": "public/light/refresh.svg",
+          "dark": "public/dark/refresh.svg"
+        }
       }
     ],
     "views": {
@@ -82,6 +90,15 @@
           "id": "chat-activity",
           "title": "Slack Chat",
           "icon": "public/activity-bar-icon.svg"
+        }
+      ]
+    },
+    "menus": {
+      "view/item/context": [
+        {
+          "command": "extension.chat.startLiveShare",
+          "when": "view == channels-tree-view",
+          "group": "inline"
         }
       ]
     }
@@ -111,6 +128,7 @@
     "markdown-it-slack": "^1.2.0",
     "request": "^2.87.0",
     "request-promise-native": "^1.0.5",
-    "vscode-extension-telemetry": "^0.0.17"
+    "vscode-extension-telemetry": "^0.0.17",
+    "vsls": "^0.3.426"
   }
 }

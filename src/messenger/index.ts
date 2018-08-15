@@ -122,6 +122,11 @@ class SlackMessenger implements IMessenger {
   };
 
   sendMessage(text: string) {
+    const { lastChannelId: channelId } = this.store;
+    return this.sendMessageToChannel(text, channelId);
+  }
+
+  sendMessageToChannel(text: string, channelId: string) {
     // The rtm gives an error while sending messages. Might be related to
     // https://github.com/slackapi/node-slack-sdk/issues/527
     // https://github.com/slackapi/node-slack-sdk/issues/550
@@ -129,7 +134,7 @@ class SlackMessenger implements IMessenger {
     // So we use the webclient instead of
     // this.rtmClient.sendMessage(cleanText, id)
     const cleanText = this.stripLinkSymbols(text);
-    const { slackToken, lastChannelId: channelId } = this.store;
+    const { slackToken } = this.store;
     const client = new SlackAPIClient(slackToken);
 
     return client

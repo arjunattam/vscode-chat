@@ -1,4 +1,5 @@
 import * as vscode from "vscode";
+import * as vsls from "vsls/vscode";
 import SlackMessenger from "./messenger";
 import ViewController from "./controller";
 import Logger from "./logger";
@@ -144,6 +145,29 @@ export function activate(context: vscode.ExtensionContext) {
     });
   };
 
+  const shareVslsLink = async (args?) => {
+    const liveshare = await vsls.getApiAsync();
+    // TODO: what happens if the vsls extension is not available?
+    let channelId: string;
+
+    if (!!args && !!args.channel) {
+      channelId = args.channel.value;
+    } else {
+      // askForChannel also sets this as a the last channel. Is that ok?
+      const channel = await askForChannel();
+      channelId = channel.id;
+    }
+
+    // share() creates a new session if required
+    const vslsUri = await liveshare.share({ suppressNotification: true });
+
+    if (!messenger) {
+      await setupMessenger();
+    }
+
+    messenger.sendMessageToChannel(vslsUri.toString(), channelId);
+  };
+
   const resetConfiguration = () => {
     store = new Store(context);
     store.setUiCallback(uiMessage => controller.sendToUI(uiMessage));
@@ -158,6 +182,9 @@ export function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(
     vscode.commands.registerCommand(SelfCommands.OPEN, openSlackPanel),
     vscode.commands.registerCommand(SelfCommands.CHANGE, channelChanger),
+    vscode.commands.registerCommand(SelfCommands.LIVE_SHARE, channelItem =>
+      shareVslsLink({ channel: channelItem })
+    ),
     vscode.workspace.onDidChangeConfiguration(resetConfiguration),
     reporter,
     disposableProvider

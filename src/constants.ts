@@ -18,7 +18,8 @@ export const VSCodeCommands = {
 
 export const SelfCommands = {
   OPEN: "extension.chat.openSlackPanel",
-  CHANGE: "extension.chat.changeChannel"
+  CHANGE: "extension.chat.changeChannel",
+  LIVE_SHARE: "extension.chat.startLiveShare"
 };
 
 export const SLASH_COMMANDS = {

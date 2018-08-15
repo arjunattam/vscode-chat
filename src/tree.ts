@@ -9,11 +9,17 @@ interface ChannelItem {
   label: string;
 }
 
-export default class ChannelTreeProvider
-  implements vscode.TreeDataProvider<ChannelItem> {
-  onDidChangeTreeData?: vscode.Event<ChannelItem>;
+class ChannelTreeProvider implements vscode.TreeDataProvider<ChannelItem> {
+  private _onDidChangeTreeData = new vscode.EventEmitter<ChannelItem>();
+  readonly onDidChangeTreeData? = this._onDidChangeTreeData.event;
 
   constructor(private store: Store) {}
+
+  refresh(): void {
+    // We can also refresh specific items, but since the ordering might change
+    // we refresh the entire tree.
+    this._onDidChangeTreeData.fire();
+  }
 
   getTreeItem(
     element: ChannelItem
@@ -82,3 +88,5 @@ export default class ChannelTreeProvider
     throw new Error("Method not implemented");
   }
 }
+
+export default ChannelTreeProvider;
