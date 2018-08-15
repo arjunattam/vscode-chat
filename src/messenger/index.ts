@@ -1,3 +1,4 @@
+import * as vscode from "vscode";
 import { RTMClient, RTMClientOptions } from "@slack/client";
 import * as HttpsProxyAgent from "https-proxy-agent";
 import ConfigHelper from "../configuration";
@@ -8,6 +9,7 @@ import {
   IStore,
   IMessenger
 } from "../interfaces";
+import { LIVE_SHARE_BASE_URL, LiveShareCommands } from "../constants";
 
 const RTMEvents = {
   AUTHENTICATED: "authenticated",
@@ -58,10 +60,12 @@ class SlackMessenger implements IMessenger {
           const hasAttachment = attachments && attachments.length > 0;
           if (!!text || hasAttachment) {
             // Some messages (like keep-alive) have no text, we ignore them
+            const message = getMessage(event);
             newMessages = {
               ...newMessages,
-              ...getMessage(event)
+              ...message
             };
+            this.handleMessageCommands(message);
           }
       }
 
@@ -110,6 +114,52 @@ class SlackMessenger implements IMessenger {
 
       this.rtmClient.start();
     });
+  };
+
+  handleMessageCommands = (incoming: SlackChannelMessages) => {
+    // We are going to check for vsls links here, as an approach to auto-joining
+    // TODO: merge this with the command handler
+    const messageTs = Object.keys(incoming)[0];
+    const message = incoming[messageTs];
+    let { text, userId } = message;
+    let uri: vscode.Uri | undefined;
+
+    if (userId === this.store.currentUserInfo.id) {
+      // If this is our own message, we will ignore it
+      return;
+    }
+
+    try {
+      if (text.startsWith("<") && text.endsWith(">")) {
+        text = text.substring(1, text.length - 1);
+      }
+
+      const user = this.store.users[userId];
+      uri = vscode.Uri.parse(text);
+
+      if (uri.authority === LIVE_SHARE_BASE_URL && !!user) {
+        // We should prompt for auto-joining here
+        const infoMessage = `@${
+          user.name
+        } has invited you for a Live Share collaboration session.`;
+        const actionItems = ["Join", "Ignore"];
+
+        vscode.window
+          .showInformationMessage(infoMessage, ...actionItems)
+          .then(selected => {
+            if (selected === "Join") {
+              const opts = { newWindow: false };
+              vscode.commands.executeCommand(
+                LiveShareCommands.JOIN,
+                uri.toString(),
+                opts
+              );
+            }
+          });
+      }
+    } catch (err) {
+      // Ignore for now
+    }
   };
 
   stripLinkSymbols = (text: string): string => {
