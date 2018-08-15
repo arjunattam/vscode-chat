@@ -113,6 +113,9 @@ export function activate(context: vscode.ExtensionContext) {
       })
       .then(() => {
         const { channels } = store;
+        // We will have users here, so subscribing for presence updates
+        // TODO: this will break if the sidebar is opened and webview is closed
+        messenger.subscribePresence();
         return channels
           ? new Promise((resolve, _) => {
               store.fetchChannels(); // update new data async

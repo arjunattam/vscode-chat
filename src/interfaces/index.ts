@@ -2,7 +2,8 @@ interface SlackUser {
   id: string;
   name: string;
   imageUrl: string;
-  isBot?: Boolean;
+  isOnline: boolean;
+  isBot?: boolean;
 }
 
 export interface SlackCurrentUser {
@@ -121,6 +122,7 @@ export interface IStore {
   ) => void;
   loadChannelHistory: () => Promise<void>;
   updateReadMarker: (string) => void;
+  updateUserPresence: (string, Boolean) => void;
   addReaction: (
     channelId: string,
     msgTimestamp: string,

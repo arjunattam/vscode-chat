@@ -14,7 +14,8 @@ const RTMEvents = {
   MESSAGE: "message",
   ERROR: "unable_to_rtm_start",
   REACTION_ADDED: "reaction_added",
-  REACTION_REMOVED: "reaction_removed"
+  REACTION_REMOVED: "reaction_removed",
+  PRESENCE_CHANGE: "presence_change"
 };
 
 const EventSubTypes = {
@@ -78,6 +79,12 @@ class SlackMessenger implements IMessenger {
       const { channel: channelId, ts: msgTs } = item;
       this.store.removeReaction(channelId, msgTs, userId, name);
     });
+
+    this.rtmClient.on(RTMEvents.PRESENCE_CHANGE, event => {
+      const { user, presence } = event;
+      const isOnline = presence === "active";
+      this.store.updateUserPresence(user, isOnline);
+    });
   }
 
   start = (): Promise<SlackCurrentUser> => {
@@ -119,6 +126,11 @@ class SlackMessenger implements IMessenger {
     } else {
       return text;
     }
+  };
+
+  subscribePresence = () => {
+    const { users } = this.store;
+    this.rtmClient.subscribePresence(Object.keys(users));
   };
 
   sendMessage(text: string) {

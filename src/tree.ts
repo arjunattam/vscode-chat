@@ -1,4 +1,5 @@
 import * as vscode from "vscode";
+import * as path from "path";
 import Store from "./store";
 import { SelfCommands } from "./constants";
 import * as str from "./strings";
@@ -36,11 +37,37 @@ class ChannelTreeProvider implements vscode.TreeDataProvider<ChannelItem> {
 
       if (channel) {
         const treeItem = new vscode.TreeItem(label);
+        const { name, type } = channel;
         treeItem.command = {
           command: SelfCommands.OPEN,
           title: "",
           arguments: [{ channel }]
         };
+
+        if (type === "im") {
+          const isOnline = Object.keys(this.store.users).find(value => {
+            const user = this.store.users[value];
+            const { name: username, isOnline } = user;
+            return `@${username}` === name && isOnline;
+          });
+
+          if (isOnline) {
+            // TODO: this will only work if webview is opened first
+            const greenPath = path.join(
+              __filename,
+              "..",
+              "..",
+              "public",
+              "green.svg"
+            );
+
+            treeItem.iconPath = {
+              light: greenPath,
+              dark: greenPath
+            };
+          }
+        }
+
         return treeItem;
       }
     }

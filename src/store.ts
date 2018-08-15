@@ -145,6 +145,15 @@ export default class Store implements IStore {
     this.statusItem.updateCount(totalUnreads);
   }
 
+  updateUserPresence = (userId, isOnline) => {
+    if (userId in this.users) {
+      this.users[userId] = {
+        ...this.users[userId],
+        isOnline
+      };
+    }
+  };
+
   updateUsers = users => {
     this.users = users;
     this.context.globalState.update(stateKeys.USERS, users);
