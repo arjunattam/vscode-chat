@@ -79,6 +79,7 @@ export function activate(context: vscode.ExtensionContext) {
         .start()
         .then(currentUser => {
           store.updateCurrentUser(currentUser);
+          messenger.subscribePresence();
         })
         .catch(error => {
           Logger.log(error);
@@ -114,7 +115,6 @@ export function activate(context: vscode.ExtensionContext) {
       .then(() => {
         const { channels } = store;
         // We will have users here, so subscribing for presence updates
-        // TODO: this will break if the sidebar is opened and webview is closed
         messenger.subscribePresence();
         return channels
           ? new Promise((resolve, _) => {
@@ -194,7 +194,11 @@ export function activate(context: vscode.ExtensionContext) {
   );
 
   const treeProvider = new ChannelTreeProvider(store);
+  store.setTreeCallback(() => treeProvider.refresh());
   vscode.window.registerTreeDataProvider("channels-tree-view", treeProvider);
+
+  // Setup RTM messenger to get real-time unreads and presence updates
+  setupMessenger();
 }
 
 export function deactivate() {

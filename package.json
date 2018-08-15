@@ -97,7 +97,7 @@
       "view/item/context": [
         {
           "command": "extension.chat.startLiveShare",
-          "when": "view == channels-tree-view",
+          "when": "view == channels-tree-view && viewItem == channel",
           "group": "inline"
         }
       ]

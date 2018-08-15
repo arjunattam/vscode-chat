@@ -44,8 +44,10 @@ export default class Store implements IStore {
   currentUserInfo: SlackCurrentUser;
   users: SlackUsers;
   messages: SlackMessages = {};
-  uiCallback: (message: UIMessage) => void;
 
+  // We could merge these 3 store subscribers with one protocol
+  uiCallback: (message: UIMessage) => void;
+  treeCallback: () => void;
   statusItem: StatusItem;
 
   constructor(private context: vscode.ExtensionContext) {
@@ -86,6 +88,10 @@ export default class Store implements IStore {
 
   setUiCallback(uiCallback) {
     this.uiCallback = uiCallback;
+  }
+
+  setTreeCallback(treeCallback) {
+    this.treeCallback = treeCallback;
   }
 
   getChannel(channelId: string): SlackChannel {
@@ -143,6 +149,10 @@ export default class Store implements IStore {
     const unreads = this.channels.map(channel => this.getUnreadCount(channel));
     const totalUnreads = unreads.reduce((a, b) => a + b, 0);
     this.statusItem.updateCount(totalUnreads);
+
+    if (!!this.treeCallback) {
+      this.treeCallback();
+    }
   }
 
   updateUserPresence = (userId, isOnline) => {
@@ -151,6 +161,10 @@ export default class Store implements IStore {
         ...this.users[userId],
         isOnline
       };
+    }
+
+    if (!!this.treeCallback) {
+      this.treeCallback();
     }
   };
 

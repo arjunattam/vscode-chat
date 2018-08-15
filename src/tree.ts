@@ -22,9 +22,7 @@ class ChannelTreeProvider implements vscode.TreeDataProvider<ChannelItem> {
     this._onDidChangeTreeData.fire();
   }
 
-  getTreeItem(
-    element: ChannelItem
-  ): vscode.TreeItem | Thenable<vscode.TreeItem> {
+  getTreeItem(element: ChannelItem): vscode.TreeItem {
     const { value, isHeading, label } = element;
 
     if (isHeading) {
@@ -38,9 +36,10 @@ class ChannelTreeProvider implements vscode.TreeDataProvider<ChannelItem> {
       if (channel) {
         const treeItem = new vscode.TreeItem(label);
         const { name, type } = channel;
+        treeItem.contextValue = "channel";
         treeItem.command = {
           command: SelfCommands.OPEN,
-          title: "",
+          title: `Open ${name}`,
           arguments: [{ channel }]
         };
 
@@ -52,7 +51,6 @@ class ChannelTreeProvider implements vscode.TreeDataProvider<ChannelItem> {
           });
 
           if (isOnline) {
-            // TODO: this will only work if webview is opened first
             const greenPath = path.join(
               __filename,
               "..",

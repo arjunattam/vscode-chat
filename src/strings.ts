@@ -8,3 +8,5 @@ export const LIVE_REQUEST_MESSAGE = "wants to start a Live Share session";
 export const CHANNELS_LABEL = "Channels";
 export const GROUPS_LABEL = "Groups";
 export const IM_LABEL = "Direct Messages";
+export const LIVE_SHARE_INVITE = name =>
+  `${name} has invited you to a Live Share collaboration session.`;

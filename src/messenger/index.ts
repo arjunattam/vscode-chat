@@ -1,4 +1,5 @@
 import * as vscode from "vscode";
+import * as str from "../strings";
 import { RTMClient, RTMClientOptions } from "@slack/client";
 import * as HttpsProxyAgent from "https-proxy-agent";
 import ConfigHelper from "../configuration";
@@ -139,9 +140,7 @@ class SlackMessenger implements IMessenger {
 
       if (uri.authority === LIVE_SHARE_BASE_URL && !!user) {
         // We should prompt for auto-joining here
-        const infoMessage = `@${
-          user.name
-        } has invited you for a Live Share collaboration session.`;
+        const infoMessage = str.LIVE_SHARE_INVITE(user.name);
         const actionItems = ["Join", "Ignore"];
 
         vscode.window
