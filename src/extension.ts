@@ -6,7 +6,7 @@ import Logger from "./logger";
 import Reporter from "./telemetry";
 import Store from "./store";
 import * as str from "./strings";
-import { SlackChannel } from "./interfaces";
+import { SlackChannel, ChatArgs } from "./interfaces";
 import { SelfCommands } from "./constants";
 import ChatTreeProviders from "./tree";
 import travisProvider, { TRAVIS_URI_SCHEME } from "./providers/travis";
@@ -27,7 +27,7 @@ export function activate(context: vscode.ExtensionContext) {
 
   store.setUiCallback(uiMessage => controller.sendToUI(uiMessage));
 
-  const askForChannel = (): Thenable<SlackChannel> => {
+  const askForChannel = (): Promise<SlackChannel> => {
     const { channels } = store;
     let channelsPromise: Promise<SlackChannel[]>;
 
@@ -39,7 +39,9 @@ export function activate(context: vscode.ExtensionContext) {
 
     return channelsPromise
       .then(() => {
-        let channelList = store.getChannelLabels().map(c => c.label);
+        // TODO: should we use icons for presentation?
+        let channelList = store.getChannelLabels().map(c => `${c.label}`);
+
         return vscode.window.showQuickPick(
           [...channelList, str.RELOAD_CHANNELS],
           {
@@ -64,7 +66,7 @@ export function activate(context: vscode.ExtensionContext) {
             vscode.window.showErrorMessage(str.INVALID_CHANNEL);
           }
 
-          store.updateLastChannel(selectedChannel);
+          store.updateLastChannelId(selectedChannel.id);
           return selectedChannel;
         }
       });
@@ -90,15 +92,39 @@ export function activate(context: vscode.ExtensionContext) {
     }
   };
 
-  const openSlackPanel = (args?) => {
-    let selectedChannelId: string = store.lastChannelId;
+  const getChatChannelId = (args?: ChatArgs): Promise<string> => {
+    const { lastChannelId } = store;
+    let channelIdPromise: Promise<string> = null;
+    reporter.sendOpenSlackEvent();
+    controller.loadUi();
 
-    if (!!args && !!args.channel) {
-      const { channel } = args;
-      store.updateLastChannel(channel);
-      selectedChannelId = channel.id;
+    if (!channelIdPromise && !!lastChannelId) {
+      channelIdPromise = Promise.resolve(lastChannelId);
     }
 
+    if (!!args) {
+      if (!!args.channel) {
+        // We have a channel in args
+        const { channel } = args;
+        store.updateLastChannelId(channel.id);
+        channelIdPromise = Promise.resolve(channel.id);
+      } else if (!!args.user) {
+        // We have a user, but no corresponding channel
+        // So we create one
+        channelIdPromise = store.createIMChannel(args.user).then(channel => {
+          return store.updateLastChannelId(channel.id).then(() => {
+            return channel.id;
+          });
+        });
+      }
+    }
+
+    return !!channelIdPromise
+      ? channelIdPromise
+      : askForChannel().then(channel => channel.id);
+  };
+
+  const openSlackPanel = (args?: ChatArgs) => {
     reporter.sendOpenSlackEvent();
     controller.loadUi();
 
@@ -123,13 +149,7 @@ export function activate(context: vscode.ExtensionContext) {
             })
           : store.fetchChannels();
       })
-      .then(() => {
-        return !!selectedChannelId
-          ? new Promise((resolve, _) => {
-              resolve();
-            })
-          : askForChannel();
-      })
+      .then(() => getChatChannelId(args))
       .then(() => {
         store.loadChannelHistory();
       })
@@ -148,19 +168,9 @@ export function activate(context: vscode.ExtensionContext) {
     });
   };
 
-  const shareVslsLink = async (args?) => {
-    const liveshare = await vsls.getApiAsync();
+  const shareVslsLink = async (args?: ChatArgs) => {
     // TODO: what happens if the vsls extension is not available?
-    let channelId: string;
-
-    if (!!args && !!args.channel) {
-      channelId = args.channel.value;
-    } else {
-      // askForChannel also sets this as a the last channel. Is that ok?
-      const channel = await askForChannel();
-      channelId = channel.id;
-    }
-
+    const liveshare = await vsls.getApiAsync();
     // share() creates a new session if required
     const vslsUri = await liveshare.share({ suppressNotification: true });
 
@@ -168,6 +178,7 @@ export function activate(context: vscode.ExtensionContext) {
       await setupMessenger();
     }
 
+    let channelId: string = await getChatChannelId(args);
     messenger.sendMessageToChannel(vslsUri.toString(), channelId);
   };
 
@@ -182,20 +193,21 @@ export function activate(context: vscode.ExtensionContext) {
     travisProvider
   );
 
+  // Setup tree providers
+  const chatTreeProvider = new ChatTreeProviders(store);
+  const treeDisposables: vscode.Disposable[] = chatTreeProvider.register();
+
   context.subscriptions.push(
     vscode.commands.registerCommand(SelfCommands.OPEN, openSlackPanel),
     vscode.commands.registerCommand(SelfCommands.CHANGE, channelChanger),
-    vscode.commands.registerCommand(SelfCommands.LIVE_SHARE, channelItem =>
-      shareVslsLink({ channel: channelItem })
+    vscode.commands.registerCommand(SelfCommands.LIVE_SHARE, item =>
+      shareVslsLink({ channel: item.channel, user: item.user })
     ),
     vscode.workspace.onDidChangeConfiguration(resetConfiguration),
     reporter,
-    disposableProvider
+    disposableProvider,
+    ...treeDisposables
   );
-
-  // Setup tree providers
-  const chatTreeProvider = new ChatTreeProviders(store);
-  chatTreeProvider.register();
 
   // Setup RTM messenger to get real-time unreads and presence updates
   setupMessenger();

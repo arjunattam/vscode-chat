@@ -73,7 +73,7 @@
       },
       {
         "command": "extension.chat.startLiveShare",
-        "title": "Slack: Share Collaboration Session Link",
+        "title": "Invite to Live Share",
         "icon": {
           "light": "public/icons/light/share.svg",
           "dark": "public/icons/dark/share.svg"

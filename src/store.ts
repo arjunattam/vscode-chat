@@ -7,7 +7,8 @@ import {
   SlackMessages,
   SlackUsers,
   IStore,
-  UIMessage
+  UIMessage,
+  SlackUser
 } from "./interfaces";
 import StatusItem from "./status";
 import ConfigHelper from "./configuration";
@@ -118,14 +119,40 @@ export default class Store implements IStore {
           }
         }
 
+        let icon;
+        switch (type) {
+          case "channel":
+            icon = "comment";
+            break;
+          case "group":
+            icon = name.startsWith("@") ? "organization" : "lock";
+            break;
+          case "im":
+            icon = "person";
+            break;
+        }
+
         return {
           ...channel,
           unread,
+          icon,
           label: `${name} ${unread > 0 ? `(${unread} new)` : ""}`,
           isOnline
         };
       })
       .sort((a, b) => b.unread - a.unread);
+  }
+
+  getIMChannel(user: SlackUser): SlackChannel | undefined {
+    return this.channels.find(channel => channel.name === `@${user.name}`);
+  }
+
+  createIMChannel(user: SlackUser): Promise<SlackChannel> {
+    const client = new SlackAPIClient(this.slackToken);
+    return client.openIMChannel({ userId: user.id }).then(channel => {
+      this.updateChannel(channel);
+      return channel;
+    });
   }
 
   updateUi() {
@@ -155,20 +182,27 @@ export default class Store implements IStore {
     const messages = id in this.messages ? this.messages[id] : {};
     const unreadMessages = Object.keys(messages).filter(ts => {
       const isSomeotherUser = messages[ts].userId !== this.currentUserInfo.id;
-      const isNewTimestamp = !!readTimestamp ? +ts > +readTimestamp : false;
+      // We need to round off these because Slack responses seem to be inconsistent
+      // eg, last msg at 1534328706.000100 and channel read ts at 1534328706.000001
+      const isNewTimestamp = !!readTimestamp
+        ? Math.round(+ts) > Math.round(+readTimestamp)
+        : false;
       return isSomeotherUser && isNewTimestamp;
     });
     return unreadCount ? unreadCount : unreadMessages.length;
+  }
+
+  updateTreeViews() {
+    if (!!this.treeCallbacks) {
+      this.treeCallbacks.forEach(callable => callable());
+    }
   }
 
   updateUnreadCount() {
     const unreads = this.channels.map(channel => this.getUnreadCount(channel));
     const totalUnreads = unreads.reduce((a, b) => a + b, 0);
     this.statusItem.updateCount(totalUnreads);
-
-    if (!!this.treeCallbacks) {
-      this.treeCallbacks.forEach(callable => callable());
-    }
+    this.updateTreeViews();
   }
 
   updateUserPresence = (userId, isOnline) => {
@@ -177,10 +211,8 @@ export default class Store implements IStore {
         ...this.users[userId],
         isOnline
       };
-    }
 
-    if (!!this.treeCallbacks) {
-      this.treeCallbacks.forEach(callable => callable());
+      this.updateTreeViews();
     }
   };
 
@@ -192,13 +224,16 @@ export default class Store implements IStore {
   updateChannels = channels => {
     this.channels = channels;
     this.context.globalState.update(stateKeys.CHANNELS, channels);
+    this.updateTreeViews();
   };
 
-  updateChannel = newChannel => {
+  updateChannel = (newChannel: SlackChannel) => {
     // Adds/updates channel in this.channels
-    const newChannels = this.channels.map(channel => {
+    let found = false;
+    let updatedChannels = this.channels.map(channel => {
       const { id } = channel;
       if (id === newChannel.id) {
+        found = true;
         return {
           ...channel,
           ...newChannel
@@ -207,13 +242,29 @@ export default class Store implements IStore {
         return channel;
       }
     });
-    this.updateChannels(newChannels);
+
+    if (!found) {
+      updatedChannels = [...updatedChannels, newChannel];
+    }
+
+    this.updateChannels(updatedChannels);
   };
 
   fetchUsers = (): Promise<SlackUsers> => {
     const client = new SlackAPIClient(this.slackToken);
-    return client.getAllUsers().then(users => {
-      this.updateUsers(users);
+    return client.getAllUsers().then((users: SlackUsers) => {
+      // Update users for their presence status, if already known
+      let usersWithPresence: SlackUsers = {};
+
+      Object.keys(users).forEach(userId => {
+        const existingUser = !!this.users ? this.users[userId] : null;
+        usersWithPresence[userId] = {
+          ...users[userId],
+          isOnline: !!existingUser ? existingUser.isOnline : false
+        };
+      });
+
+      this.updateUsers(usersWithPresence);
       return users;
     });
   };
@@ -223,7 +274,7 @@ export default class Store implements IStore {
     let usersPromise: Promise<SlackUsers>;
 
     if (this.users) {
-      usersPromise = new Promise((resolve, _) => resolve(this.users));
+      usersPromise = Promise.resolve(this.users);
     } else {
       usersPromise = this.fetchUsers();
     }
@@ -237,16 +288,17 @@ export default class Store implements IStore {
             return this.updateChannel(newChannel);
           })
         );
+
         Promise.all(promises).then(() => this.updateUnreadCount());
         return channels;
       });
   };
 
-  updateLastChannel = (channel: SlackChannel): Thenable<void> => {
-    this.lastChannelId = channel.id;
+  updateLastChannelId = (channelId: string): Thenable<void> => {
+    this.lastChannelId = channelId;
     return this.context.globalState.update(
       stateKeys.LAST_CHANNEL_ID,
-      channel.id
+      channelId
     );
   };
 
@@ -332,8 +384,9 @@ export default class Store implements IStore {
 
     if (channel && lastTs) {
       const { readTimestamp } = channel;
+      const hasNewerMsgs = Math.round(+readTimestamp) < Math.round(+lastTs);
 
-      if (!readTimestamp || +readTimestamp < +lastTs) {
+      if (!readTimestamp || hasNewerMsgs) {
         const client = new SlackAPIClient(this.slackToken);
         const channel = this.getChannel(this.lastChannelId);
         client.markChannel({ channel, ts: lastTs }).then(response => {
@@ -342,6 +395,8 @@ export default class Store implements IStore {
           if (ok) {
             this.updateChannel({
               id: this.lastChannelId,
+              name: channel.name,
+              type: channel.type,
               readTimestamp: lastTs,
               unreadCount: 0
             });

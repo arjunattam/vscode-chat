@@ -5,36 +5,41 @@ import { SlackUsers, SlackChannel, SlackChannelMessages } from "../interfaces";
 
 const HISTORY_LIMIT = 50;
 
+const getFile = rawFile => {
+  return { name: rawFile.name, permalink: rawFile.permalink };
+};
+
+const getContent = rawAttachment => {
+  return {
+    author: rawAttachment.author_name,
+    authorIcon: rawAttachment.author_icon,
+    pretext: rawAttachment.pretext,
+    title: rawAttachment.title,
+    titleLink: rawAttachment.title_link,
+    text: rawAttachment.text,
+    footer: rawAttachment.footer,
+    borderColor: rawAttachment.color
+  };
+};
+
+const getReaction = rawReaction => ({
+  name: rawReaction.name,
+  count: rawReaction.count,
+  userIds: rawReaction.users
+});
+
 export const getMessage = (raw: any): SlackChannelMessages => {
   const { files, ts, user, text, edited, bot_id, attachments, reactions } = raw;
-  const fileAttachment = files
-    ? { name: files[0].name, permalink: files[0].permalink }
-    : null;
-
   let parsed: SlackChannelMessages = {};
+
   parsed[ts] = {
     userId: user ? user : bot_id,
     timestamp: ts,
     isEdited: !!edited,
     text: text,
-    attachment: fileAttachment,
-    reactions: reactions
-      ? reactions.map(r => ({
-          name: r.name,
-          count: r.count,
-          userIds: r.users
-        }))
-      : [],
-    content: {
-      author: attachments ? attachments[0].author_name : "",
-      authorIcon: attachments ? attachments[0].author_icon : "",
-      pretext: attachments ? attachments[0].pretext : "",
-      title: attachments ? attachments[0].title : "",
-      titleLink: attachments ? attachments[0].title_link : "",
-      text: attachments ? attachments[0].text : "",
-      footer: attachments ? attachments[0].footer : "",
-      borderColor: attachments ? attachments[0].color : ""
-    }
+    attachment: files ? getFile(files[0]) : null,
+    reactions: reactions ? reactions.map(r => getReaction(r)) : [],
+    content: attachments ? getContent(attachments[0]) : null
   };
 
   return parsed;
@@ -75,7 +80,6 @@ export default class SlackAPIClient {
   };
 
   getAllUsers(): Promise<SlackUsers> {
-    // TODO(arjun): This might need some pagination?
     return this.client.apiCall("users.list", {}).then((response: any) => {
       const { members, ok } = response;
       let users = {};
@@ -238,5 +242,18 @@ export default class SlackAPIClient {
       case "im":
         return this.client.im.mark({ channel: id, ts });
     }
+  };
+
+  openIMChannel = ({ userId }): Promise<SlackChannel> => {
+    return this.client.im
+      .open({ user: userId, return_im: true })
+      .then((response: any) => {
+        console.log(response);
+        const { ok, channel } = response;
+
+        if (ok) {
+          return channel;
+        }
+      });
   };
 }

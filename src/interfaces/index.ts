@@ -1,4 +1,4 @@
-interface SlackUser {
+export interface SlackUser {
   id: string;
   name: string;
   imageUrl: string;
@@ -140,4 +140,9 @@ export interface IStore {
 export interface IMessenger {
   start: () => Promise<SlackCurrentUser>;
   sendMessage: (text: string) => Promise<any>;
+}
+
+export interface ChatArgs {
+  channel: SlackChannel;
+  user: SlackUser;
 }
