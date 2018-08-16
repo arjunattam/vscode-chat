@@ -10,6 +10,7 @@ export const LiveShareCommands = {
 
 // Is there a way to get this URL from the extension?
 export const LIVE_SHARE_BASE_URL = `insiders.liveshare.vsengsaas.visualstudio.com`;
+export const LIVE_SHARE_EXTENSION = `ms-vsliveshare.vsliveshare`;
 export const TRAVIS_BASE_URL = `travis-ci.org`;
 
 export const VSCodeCommands = {

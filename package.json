@@ -102,7 +102,8 @@
       "vsliveshareTreeExplorerActivityBar": [
         {
           "id": "online-users-tree-view",
-          "name": "Slack Users"
+          "name": "Slack Users",
+          "when": "chat:vslsEnabled"
         }
       ]
     },
@@ -119,7 +120,7 @@
       "view/item/context": [
         {
           "command": "extension.chat.startLiveShare",
-          "when": "viewItem == channel",
+          "when": "chat:vslsEnabled && viewItem == channel",
           "group": "inline"
         }
       ]

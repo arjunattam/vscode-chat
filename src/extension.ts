@@ -7,7 +7,7 @@ import Reporter from "./telemetry";
 import Store from "./store";
 import * as str from "./strings";
 import { SlackChannel, ChatArgs } from "./interfaces";
-import { SelfCommands } from "./constants";
+import { SelfCommands, LIVE_SHARE_EXTENSION } from "./constants";
 import ChatTreeProviders from "./tree";
 import travisProvider, { TRAVIS_URI_SCHEME } from "./providers/travis";
 
@@ -188,6 +188,17 @@ export function activate(context: vscode.ExtensionContext) {
     messenger = null;
   };
 
+  const setVslsContext = () => {
+    const vsls = vscode.extensions.getExtension(LIVE_SHARE_EXTENSION);
+    const isEnabled = !!vsls;
+
+    if (isEnabled) {
+      vscode.commands.executeCommand("setContext", "chat:vslsEnabled", true);
+    } else {
+      vscode.commands.executeCommand("setContext", "chat:vslsEnabled", false);
+    }
+  };
+
   const disposableProvider = vscode.workspace.registerTextDocumentContentProvider(
     TRAVIS_URI_SCHEME,
     travisProvider
@@ -211,6 +222,9 @@ export function activate(context: vscode.ExtensionContext) {
 
   // Setup RTM messenger to get real-time unreads and presence updates
   setupMessenger();
+
+  // Setup context for views
+  setVslsContext();
 }
 
 export function deactivate() {
