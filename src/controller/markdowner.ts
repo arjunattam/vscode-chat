@@ -39,11 +39,9 @@ export const emojify = (
   // emoji skin tones. If that changes, we can remove this method.
   const emoji = new EmojiConvertor();
   emoji.allow_native = true;
+  // We have added node_modules/emoji-datasource to vscodeignore since we use
+  // allow_native. If this changes, we might have to emoji sheeets (through CDN?)
   emoji.replace_mode = "unified";
-  emoji.img_sets.apple.sheet =
-    "https://cdn.jsdelivr.net/npm/emoji-datasource-apple@4.1.0/img/apple/sheets/64.png";
-  emoji.use_sheet = true;
-
   let emojifiedMessages = {};
 
   Object.keys(messages).forEach(key => {
