@@ -3,7 +3,6 @@ import * as vsls from "vsls/vscode";
 import SlackMessenger from "./messenger";
 import ViewController from "./controller";
 import Logger from "./logger";
-import Reporter from "./telemetry";
 import Store from "./store";
 import * as str from "./strings";
 import { SlackChannel, ChatArgs } from "./interfaces";
@@ -11,7 +10,6 @@ import { SelfCommands, LIVE_SHARE_EXTENSION } from "./constants";
 import ChatTreeProviders from "./tree";
 import travisProvider, { TRAVIS_URI_SCHEME } from "./providers/travis";
 
-let reporter: Reporter | undefined = undefined;
 let store: Store | undefined = undefined;
 let controller: ViewController | undefined = undefined;
 let chatTreeProvider: ChatTreeProviders | undefined = undefined;
@@ -19,7 +17,6 @@ let chatTreeProvider: ChatTreeProviders | undefined = undefined;
 export function activate(context: vscode.ExtensionContext) {
   let messenger: SlackMessenger | undefined = undefined;
   store = new Store(context);
-  reporter = new Reporter();
   controller = new ViewController(
     context,
     () => store.loadChannelHistory(),
@@ -170,7 +167,6 @@ export function activate(context: vscode.ExtensionContext) {
   };
 
   const openSlackPanel = (args?: ChatArgs) => {
-    reporter.sendOpenSlackEvent();
     controller.loadUi();
 
     setupMessenger()
@@ -184,7 +180,6 @@ export function activate(context: vscode.ExtensionContext) {
   };
 
   const changeSlackChannel = () => {
-    reporter.sendChangeChannelEvent();
     return askForChannel().then(() => {
       if (controller.isUILoaded()) {
         store.loadChannelHistory();
@@ -260,7 +255,6 @@ export function activate(context: vscode.ExtensionContext) {
       shareVslsLink({ channel: item.channel, user: item.user })
     ),
     vscode.workspace.onDidChangeConfiguration(resetConfiguration),
-    reporter,
     disposableProvider,
     ...treeDisposables
   );
@@ -269,10 +263,5 @@ export function activate(context: vscode.ExtensionContext) {
 export function deactivate() {
   if (store) {
     store.dispose();
-  }
-
-  if (reporter) {
-    // Return promise sync this operation is async
-    return reporter.dispose();
   }
 }

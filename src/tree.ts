@@ -176,10 +176,10 @@ class IMsTreeProvider extends BaseTreeProvider {
 class OnlineUsersTreeProvider extends BaseTreeProvider {
   getChildren(element?: ChatTreeItem): vscode.ProviderResult<ChatTreeItem[]> {
     return new Promise(resolve => {
+      const { id: currentId } = this.store.currentUserInfo;
       const users: SlackUser[] = Object.keys(this.store.users)
         .map(userId => this.store.users[userId])
-        .filter(user => user.isOnline);
-
+        .filter(user => user.isOnline && user.id !== currentId);
       resolve(
         users.map(user => ({
           value: user.name,

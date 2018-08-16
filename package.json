@@ -31,6 +31,7 @@
     "live"
   ],
   "activationEvents": [
+    "*",
     "onCommand:extension.chat.openSlackPanel",
     "onCommand:extension.chat.changeChannel",
     "onView:online-users-tree-view",
