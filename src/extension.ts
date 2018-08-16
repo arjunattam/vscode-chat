@@ -14,6 +14,7 @@ import travisProvider, { TRAVIS_URI_SCHEME } from "./providers/travis";
 let reporter: Reporter | undefined = undefined;
 let store: Store | undefined = undefined;
 let controller: ViewController | undefined = undefined;
+let chatTreeProvider: ChatTreeProviders | undefined = undefined;
 
 export function activate(context: vscode.ExtensionContext) {
   let messenger: SlackMessenger | undefined = undefined;
@@ -24,7 +25,6 @@ export function activate(context: vscode.ExtensionContext) {
     () => store.loadChannelHistory(),
     () => store.updateReadMarker()
   );
-
   store.setUiCallback(uiMessage => controller.sendToUI(uiMessage));
 
   const askForChannel = (): Promise<SlackChannel> => {
@@ -92,6 +92,50 @@ export function activate(context: vscode.ExtensionContext) {
     }
   };
 
+  const shouldFetchNew = (lastFetchedAt: Date): boolean => {
+    if (!lastFetchedAt) {
+      return true;
+    }
+
+    const now = new Date();
+    const difference = now.valueOf() - lastFetchedAt.valueOf();
+    const FETCH_THRESHOLD = 15 * 60 * 1000; // 15-mins
+    return difference > FETCH_THRESHOLD;
+  };
+
+  const setupStore = (): Promise<any> => {
+    const { users, usersFetchedAt } = store;
+    const usersPromise = !!users
+      ? new Promise(resolve => {
+          if (shouldFetchNew(usersFetchedAt)) {
+            // async update
+            store.fetchUsers();
+          }
+          resolve(users);
+        })
+      : store.fetchUsers();
+
+    return usersPromise.then(users => {
+      const { channels, channelsFetchedAt } = store;
+
+      if (!!messenger) {
+        messenger.subscribePresence();
+      }
+
+      const channelsPromise = !!channels
+        ? new Promise(resolve => {
+            if (shouldFetchNew(channelsFetchedAt)) {
+              // async update
+              store.fetchChannels();
+            }
+            resolve(channels);
+          })
+        : store.fetchChannels();
+
+      return channelsPromise;
+    });
+  };
+
   const getChatChannelId = (args?: ChatArgs): Promise<string> => {
     const { lastChannelId } = store;
     let channelIdPromise: Promise<string> = null;
@@ -129,26 +173,7 @@ export function activate(context: vscode.ExtensionContext) {
     controller.loadUi();
 
     setupMessenger()
-      .then(() => {
-        const { users } = store;
-        return users
-          ? new Promise((resolve, _) => {
-              store.fetchUsers(); // update new data async
-              return resolve(users);
-            })
-          : store.fetchUsers();
-      })
-      .then(() => {
-        const { channels } = store;
-        // We will have users here, so subscribing for presence updates
-        messenger.subscribePresence();
-        return channels
-          ? new Promise((resolve, _) => {
-              store.fetchChannels(); // update new data async
-              return resolve(channels);
-            })
-          : store.fetchChannels();
-      })
+      .then(() => setupStore())
       .then(() => getChatChannelId(args))
       .then(() => {
         store.loadChannelHistory();
@@ -156,7 +181,7 @@ export function activate(context: vscode.ExtensionContext) {
       .catch(error => console.error(error));
   };
 
-  const channelChanger = () => {
+  const changeSlackChannel = () => {
     reporter.sendChangeChannelEvent();
     return askForChannel().then(() => {
       if (controller.isUILoaded()) {
@@ -169,9 +194,8 @@ export function activate(context: vscode.ExtensionContext) {
   };
 
   const shareVslsLink = async (args?: ChatArgs) => {
-    // TODO: what happens if the vsls extension is not available?
     const liveshare = await vsls.getApiAsync();
-    // share() creates a new session if required
+    // liveshare.share() creates a new session if required
     const vslsUri = await liveshare.share({ suppressNotification: true });
 
     if (!messenger) {
@@ -185,6 +209,12 @@ export function activate(context: vscode.ExtensionContext) {
   const resetConfiguration = () => {
     store = new Store(context);
     store.setUiCallback(uiMessage => controller.sendToUI(uiMessage));
+
+    if (!!chatTreeProvider) {
+      chatTreeProvider.updateStore(store);
+    }
+
+    store.updateTreeViews();
     messenger = null;
   };
 
@@ -205,12 +235,19 @@ export function activate(context: vscode.ExtensionContext) {
   );
 
   // Setup tree providers
-  const chatTreeProvider = new ChatTreeProviders(store);
+  chatTreeProvider = new ChatTreeProviders(store);
   const treeDisposables: vscode.Disposable[] = chatTreeProvider.register();
+
+  // Setup RTM messenger to get real-time unreads and presence updates
+  setupMessenger();
+  setupStore();
+
+  // Setup context for conditional views
+  setVslsContext();
 
   context.subscriptions.push(
     vscode.commands.registerCommand(SelfCommands.OPEN, openSlackPanel),
-    vscode.commands.registerCommand(SelfCommands.CHANGE, channelChanger),
+    vscode.commands.registerCommand(SelfCommands.CHANGE, changeSlackChannel),
     vscode.commands.registerCommand(SelfCommands.LIVE_SHARE, item =>
       shareVslsLink({ channel: item.channel, user: item.user })
     ),
@@ -219,12 +256,6 @@ export function activate(context: vscode.ExtensionContext) {
     disposableProvider,
     ...treeDisposables
   );
-
-  // Setup RTM messenger to get real-time unreads and presence updates
-  setupMessenger();
-
-  // Setup context for views
-  setVslsContext();
 }
 
 export function deactivate() {

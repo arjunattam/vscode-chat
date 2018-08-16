@@ -14,7 +14,6 @@ import StatusItem from "./status";
 import ConfigHelper from "./configuration";
 
 const stateKeys = {
-  LAST_CHANNEL: "lastChannel", // TODO: deprecate this
   LAST_CHANNEL_ID: "lastChannelId",
   CHANNELS: "channels",
   USER_INFO: "userInfo",
@@ -41,9 +40,11 @@ function difference(setA, setB) {
 export default class Store implements IStore {
   slackToken: string;
   lastChannelId: string;
-  channels: SlackChannel[];
+  channels: SlackChannel[] = [];
+  channelsFetchedAt: Date;
   currentUserInfo: SlackCurrentUser;
-  users: SlackUsers;
+  users: SlackUsers = {};
+  usersFetchedAt: Date;
   messages: SlackMessages = {};
 
   // We could merge these 3 store subscribers with one protocol
@@ -61,13 +62,6 @@ export default class Store implements IStore {
     this.currentUserInfo = globalState.get(stateKeys.USER_INFO);
     this.users = globalState.get(stateKeys.USERS);
     this.lastChannelId = globalState.get(stateKeys.LAST_CHANNEL_ID);
-    const lastChannel: SlackChannel = globalState.get(stateKeys.LAST_CHANNEL);
-
-    if (lastChannel && !this.lastChannelId) {
-      // We have old state lying around, which we will clean up now
-      this.lastChannelId = !!lastChannel.id ? lastChannel.id : null;
-      globalState.update(stateKeys.LAST_CHANNEL, null);
-    }
 
     if (this.currentUserInfo && this.slackToken) {
       if (this.currentUserInfo.token !== this.slackToken) {
@@ -182,11 +176,7 @@ export default class Store implements IStore {
     const messages = id in this.messages ? this.messages[id] : {};
     const unreadMessages = Object.keys(messages).filter(ts => {
       const isSomeotherUser = messages[ts].userId !== this.currentUserInfo.id;
-      // We need to round off these because Slack responses seem to be inconsistent
-      // eg, last msg at 1534328706.000100 and channel read ts at 1534328706.000001
-      const isNewTimestamp = !!readTimestamp
-        ? Math.round(+ts) > Math.round(+readTimestamp)
-        : false;
+      const isNewTimestamp = !!readTimestamp ? +ts > +readTimestamp : false;
       return isSomeotherUser && isNewTimestamp;
     });
     return unreadCount ? unreadCount : unreadMessages.length;
@@ -219,6 +209,16 @@ export default class Store implements IStore {
   updateUsers = users => {
     this.users = users;
     this.context.globalState.update(stateKeys.USERS, users);
+  };
+
+  updateUsersFetchedAt = () => {
+    const now = new Date();
+    this.usersFetchedAt = now;
+  };
+
+  updateChannelsFetchedAt = () => {
+    const now = new Date();
+    this.channelsFetchedAt = now;
   };
 
   updateChannels = channels => {
@@ -265,6 +265,7 @@ export default class Store implements IStore {
       });
 
       this.updateUsers(usersWithPresence);
+      this.updateUsersFetchedAt();
       return users;
     });
   };
@@ -283,6 +284,8 @@ export default class Store implements IStore {
       .then(users => client.getChannels(users))
       .then(channels => {
         this.updateChannels(channels);
+        this.updateChannelsFetchedAt();
+
         const promises = channels.map(channel =>
           client.getChannelInfo(channel).then((newChannel: SlackChannel) => {
             return this.updateChannel(newChannel);
@@ -384,7 +387,7 @@ export default class Store implements IStore {
 
     if (channel && lastTs) {
       const { readTimestamp } = channel;
-      const hasNewerMsgs = Math.round(+readTimestamp) < Math.round(+lastTs);
+      const hasNewerMsgs = +readTimestamp < +lastTs;
 
       if (!readTimestamp || hasNewerMsgs) {
         const client = new SlackAPIClient(this.slackToken);

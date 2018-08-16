@@ -8,13 +8,19 @@ export const LiveShareCommands = {
   JOIN: "liveshare.join"
 };
 
-// Is there a way to get this URL from the extension?
+// Setup token urls
+export const SETUP_URL = "https://github.com/karigari/vscode-chat#setup";
+export const SLACK_TOKEN_URL =
+  "https://api.slack.com/custom-integrations/legacy-tokens";
+
+// Is there a way to get this url from the vsls extension?
 export const LIVE_SHARE_BASE_URL = `insiders.liveshare.vsengsaas.visualstudio.com`;
 export const LIVE_SHARE_EXTENSION = `ms-vsliveshare.vsliveshare`;
 export const TRAVIS_BASE_URL = `travis-ci.org`;
 
 export const VSCodeCommands = {
-  OPEN: "vscode.open"
+  OPEN: "vscode.open",
+  OPEN_SETTINGS: "workbench.action.openSettings"
 };
 
 export const SelfCommands = {

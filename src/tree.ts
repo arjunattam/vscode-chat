@@ -22,31 +22,49 @@ const GREEN_DOT = path.join(
 );
 
 export default class ChatTreeProviders {
-  constructor(private store: Store) {}
+  unreads: UnreadsTreeProvider;
+  channels: ChannelTreeProvider;
+  ims: IMsTreeProvider;
+  groups: GroupTreeProvider;
+  users: OnlineUsersTreeProvider;
+
+  constructor(private store: Store) {
+    this.unreads = new UnreadsTreeProvider(store);
+    this.channels = new ChannelTreeProvider(store);
+    this.groups = new GroupTreeProvider(store);
+    this.ims = new IMsTreeProvider(store);
+    this.users = new OnlineUsersTreeProvider(store);
+
+    this.setupCallbacks();
+  }
+
+  setupCallbacks() {
+    this.store.setTreeCallback(() => this.unreads.refresh());
+    this.store.setTreeCallback(() => this.channels.refresh());
+    this.store.setTreeCallback(() => this.groups.refresh());
+    this.store.setTreeCallback(() => this.ims.refresh());
+    this.store.setTreeCallback(() => this.users.refresh());
+  }
+
+  updateStore(store: Store) {
+    this.store = store;
+    this.unreads.updateStore(store);
+    this.channels.updateStore(store);
+    this.groups.updateStore(store);
+    this.ims.updateStore(store);
+    this.users.updateStore(store);
+
+    this.setupCallbacks();
+  }
 
   register(): vscode.Disposable[] {
-    const unreadsTreeProvider = new UnreadsTreeProvider(this.store);
-    this.store.setTreeCallback(() => unreadsTreeProvider.refresh());
-
-    const channelsTreeProvider = new ChannelTreeProvider(this.store);
-    this.store.setTreeCallback(() => channelsTreeProvider.refresh());
-
-    const groupsTreeProvider = new GroupTreeProvider(this.store);
-    this.store.setTreeCallback(() => groupsTreeProvider.refresh());
-
-    const imsTreeProvider = new IMsTreeProvider(this.store);
-    this.store.setTreeCallback(() => imsTreeProvider.refresh());
-
-    const usersTreeProvider = new OnlineUsersTreeProvider(this.store);
-    this.store.setTreeCallback(() => usersTreeProvider.refresh());
-
     const registrar = vscode.window.registerTreeDataProvider;
     return [
-      registrar("unreads-tree-view", unreadsTreeProvider),
-      registrar("channels-tree-view", channelsTreeProvider),
-      registrar("groups-tree-view", groupsTreeProvider),
-      registrar("ims-tree-view", imsTreeProvider),
-      registrar("online-users-tree-view", usersTreeProvider)
+      registrar("unreads-tree-view", this.unreads),
+      registrar("channels-tree-view", this.channels),
+      registrar("groups-tree-view", this.groups),
+      registrar("ims-tree-view", this.ims),
+      registrar("online-users-tree-view", this.users)
     ];
   }
 }
@@ -89,6 +107,10 @@ class BaseTreeProvider implements vscode.TreeDataProvider<ChatTreeItem> {
     this._onDidChangeTreeData.fire();
   }
 
+  updateStore(store: Store) {
+    this.store = store;
+  }
+
   getTreeItem(element: ChatTreeItem): vscode.TreeItem {
     const { label, isOnline, channel, user } = element;
     const treeItem = new CustomTreeItem(label, isOnline, channel, user);
@@ -106,6 +128,7 @@ class BaseTreeProvider implements vscode.TreeDataProvider<ChatTreeItem> {
   getChildrenForType(filterFn): vscode.ProviderResult<ChatTreeItem[]> {
     return new Promise(resolve => {
       const channels = this.store.getChannelLabels();
+
       resolve(
         channels.filter(filterFn).map(channel => ({
           value: channel.id,
