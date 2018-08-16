@@ -33,11 +33,11 @@
   "activationEvents": [
     "onCommand:extension.chat.openSlackPanel",
     "onCommand:extension.chat.changeChannel",
+    "onView:online-users-tree-view",
     "onView:unreads-tree-view",
     "onView:channels-tree-view",
     "onView:groups-tree-view",
-    "onView:ims-tree-view",
-    "onView:online-users-tree-view"
+    "onView:ims-tree-view"
   ],
   "main": "./out/extension",
   "contributes": {

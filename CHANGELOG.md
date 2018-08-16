@@ -2,6 +2,19 @@
 
 All notable changes to the vscode-chat extension will be documented in this file. This follows the [Keep a Changelog](http://keepachangelog.com/) format.
 
+## [0.5.0] - 2018-08-16
+
+### Added
+
+- Sidebar view to show channels, private groups and direct messages.
+- Support to show user presence (online/offline) in the sidebar view.
+- Better integration with VS Live Share: one-click action to invite users or channels to your collaboration session.
+- Minor improvements to extension setup for first-time users.
+
+### Fixed
+
+- Fixed a case where the unread count would get updated incorrectly.
+
 ## [0.4.10] - 2018-08-14
 
 ### Added
