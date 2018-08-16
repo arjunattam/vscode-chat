@@ -94,47 +94,45 @@ export default class Store implements IStore {
   }
 
   getChannelLabels() {
-    return this.channels
-      .map(channel => {
-        const unread = this.getUnreadCount(channel);
-        const { name, type } = channel;
-        let isOnline = false;
+    return this.channels.map(channel => {
+      const unread = this.getUnreadCount(channel);
+      const { name, type } = channel;
+      let isOnline = false;
 
-        if (type === "im") {
-          const relatedUserId = Object.keys(this.users).find(value => {
-            const user = this.users[value];
-            const { name: username } = user;
-            return `@${username}` === name;
-          });
+      if (type === "im") {
+        const relatedUserId = Object.keys(this.users).find(value => {
+          const user = this.users[value];
+          const { name: username } = user;
+          return `@${username}` === name;
+        });
 
-          if (!!relatedUserId) {
-            const relatedUser = this.users[relatedUserId];
-            isOnline = relatedUser.isOnline;
-          }
+        if (!!relatedUserId) {
+          const relatedUser = this.users[relatedUserId];
+          isOnline = relatedUser.isOnline;
         }
+      }
 
-        let icon;
-        switch (type) {
-          case "channel":
-            icon = "comment";
-            break;
-          case "group":
-            icon = name.startsWith("@") ? "organization" : "lock";
-            break;
-          case "im":
-            icon = "person";
-            break;
-        }
+      let icon;
+      switch (type) {
+        case "channel":
+          icon = "comment";
+          break;
+        case "group":
+          icon = name.startsWith("@") ? "organization" : "lock";
+          break;
+        case "im":
+          icon = "person";
+          break;
+      }
 
-        return {
-          ...channel,
-          unread,
-          icon,
-          label: `${name} ${unread > 0 ? `(${unread} new)` : ""}`,
-          isOnline
-        };
-      })
-      .sort((a, b) => b.unread - a.unread);
+      return {
+        ...channel,
+        unread,
+        icon,
+        label: `${name} ${unread > 0 ? `(${unread} new)` : ""}`,
+        isOnline
+      };
+    });
   }
 
   getIMChannel(user: SlackUser): SlackChannel | undefined {
@@ -366,9 +364,7 @@ export default class Store implements IStore {
       .then(messages => {
         this.updateMessages(this.lastChannelId, messages);
       })
-      .catch(error => {
-        console.error(error);
-      });
+      .catch(error => console.error(error));
   }
 
   getLastTimestamp(): string {
@@ -392,15 +388,15 @@ export default class Store implements IStore {
       if (!readTimestamp || hasNewerMsgs) {
         const client = new SlackAPIClient(this.slackToken);
         const channel = this.getChannel(this.lastChannelId);
-        client.markChannel({ channel, ts: lastTs }).then(response => {
+        const incremented = (+lastTs + 1).toString(); // Slack API workaround
+        client.markChannel({ channel, ts: incremented }).then(response => {
           const { ok } = response;
-
           if (ok) {
             this.updateChannel({
               id: this.lastChannelId,
               name: channel.name,
               type: channel.type,
-              readTimestamp: lastTs,
+              readTimestamp: incremented,
               unreadCount: 0
             });
           }

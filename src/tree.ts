@@ -125,10 +125,12 @@ class BaseTreeProvider implements vscode.TreeDataProvider<ChatTreeItem> {
     throw new Error("Method not implemented");
   }
 
-  getChildrenForType(filterFn): vscode.ProviderResult<ChatTreeItem[]> {
+  getChildrenForType(
+    filterFn,
+    sortingFn?
+  ): vscode.ProviderResult<ChatTreeItem[]> {
     return new Promise(resolve => {
-      const channels = this.store.getChannelLabels();
-
+      const channels = this.store.getChannelLabels().sort(sortingFn);
       resolve(
         channels.filter(filterFn).map(channel => ({
           value: channel.id,
@@ -144,7 +146,10 @@ class BaseTreeProvider implements vscode.TreeDataProvider<ChatTreeItem> {
 
 class UnreadsTreeProvider extends BaseTreeProvider {
   getChildren(element?: ChatTreeItem): vscode.ProviderResult<ChatTreeItem[]> {
-    return this.getChildrenForType(c => c.unread > 0);
+    return this.getChildrenForType(
+      c => c.unread > 0,
+      (a, b) => b.unread - a.unread
+    );
   }
 }
 

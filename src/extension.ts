@@ -40,7 +40,10 @@ export function activate(context: vscode.ExtensionContext) {
     return channelsPromise
       .then(() => {
         // TODO: should we use icons for presentation?
-        let channelList = store.getChannelLabels().map(c => `${c.label}`);
+        let channelList = store
+          .getChannelLabels()
+          .sort((a, b) => b.unread - a.unread)
+          .map(c => `${c.label}`);
 
         return vscode.window.showQuickPick(
           [...channelList, str.RELOAD_CHANNELS],
@@ -176,6 +179,7 @@ export function activate(context: vscode.ExtensionContext) {
       .then(() => setupStore())
       .then(() => getChatChannelId(args))
       .then(() => {
+        store.updateUi();
         store.loadChannelHistory();
       })
       .catch(error => console.error(error));
@@ -216,6 +220,8 @@ export function activate(context: vscode.ExtensionContext) {
 
     store.updateTreeViews();
     messenger = null;
+    setupStore();
+    setupMessenger();
   };
 
   const setVslsContext = () => {
