@@ -61,7 +61,7 @@ export interface SlackMessages {
   [channelId: string]: SlackChannelMessages;
 }
 
-enum ChannelType {
+export enum ChannelType {
   channel = "channel",
   group = "group",
   im = "im"

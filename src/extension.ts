@@ -142,8 +142,6 @@ export function activate(context: vscode.ExtensionContext) {
   const getChatChannelId = (args?: ChatArgs): Promise<string> => {
     const { lastChannelId } = store;
     let channelIdPromise: Promise<string> = null;
-    reporter.sendOpenSlackEvent();
-    controller.loadUi();
 
     if (!channelIdPromise && !!lastChannelId) {
       channelIdPromise = Promise.resolve(lastChannelId);
@@ -211,6 +209,10 @@ export function activate(context: vscode.ExtensionContext) {
   };
 
   const resetConfiguration = () => {
+    if (!!store) {
+      store.dispose(); // Removes the old status item
+    }
+
     store = new Store(context);
     store.setUiCallback(uiMessage => controller.sendToUI(uiMessage));
 

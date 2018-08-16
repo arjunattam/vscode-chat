@@ -112,6 +112,8 @@ class BaseTreeProvider implements vscode.TreeDataProvider<ChatTreeItem> {
   }
 
   getTreeItem(element: ChatTreeItem): vscode.TreeItem {
+    // TODO: when selected, the highlight on the tree item seems to stick. This might
+    // be because we don't use URIs (~= each channel is a URI) to open/close. Need to investigate.
     const { label, isOnline, channel, user } = element;
     const treeItem = new CustomTreeItem(label, isOnline, channel, user);
     return treeItem;

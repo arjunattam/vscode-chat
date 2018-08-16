@@ -141,7 +141,7 @@ export default class Store implements IStore {
 
   createIMChannel(user: SlackUser): Promise<SlackChannel> {
     const client = new SlackAPIClient(this.slackToken);
-    return client.openIMChannel({ userId: user.id }).then(channel => {
+    return client.openIMChannel(user).then(channel => {
       this.updateChannel(channel);
       return channel;
     });

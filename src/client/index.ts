@@ -1,7 +1,13 @@
 import { WebClient, WebClientOptions } from "@slack/client";
 import * as HttpsProxyAgent from "https-proxy-agent";
 import ConfigHelper from "../configuration";
-import { SlackUsers, SlackChannel, SlackChannelMessages } from "../interfaces";
+import {
+  SlackUsers,
+  SlackChannel,
+  SlackChannelMessages,
+  ChannelType,
+  SlackUser
+} from "../interfaces";
 
 const HISTORY_LIMIT = 50;
 
@@ -238,15 +244,21 @@ export default class SlackAPIClient {
     }
   };
 
-  openIMChannel = ({ userId }): Promise<SlackChannel> => {
+  openIMChannel = (user: SlackUser): Promise<SlackChannel> => {
+    const { id, name } = user;
     return this.client.im
-      .open({ user: userId, return_im: true })
+      .open({ user: id, return_im: true })
       .then((response: any) => {
-        console.log(response);
         const { ok, channel } = response;
 
         if (ok) {
-          return channel;
+          return {
+            id: channel.id,
+            name: `@${name}`,
+            type: ChannelType.im,
+            unreadCount: 0,
+            readTimestamp: null
+          };
         }
       });
   };
