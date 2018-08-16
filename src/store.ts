@@ -47,7 +47,7 @@ export default class Store implements IStore {
 
   // We could merge these 3 store subscribers with one protocol
   uiCallback: (message: UIMessage) => void;
-  treeCallback: () => void;
+  treeCallbacks: (() => void)[] = [];
   statusItem: StatusItem;
 
   constructor(private context: vscode.ExtensionContext) {
@@ -91,7 +91,7 @@ export default class Store implements IStore {
   }
 
   setTreeCallback(treeCallback) {
-    this.treeCallback = treeCallback;
+    this.treeCallbacks.push(treeCallback);
   }
 
   getChannel(channelId: string): SlackChannel {
@@ -102,11 +102,27 @@ export default class Store implements IStore {
     return this.channels
       .map(channel => {
         const unread = this.getUnreadCount(channel);
-        const { name } = channel;
+        const { name, type } = channel;
+        let isOnline = false;
+
+        if (type === "im") {
+          const relatedUserId = Object.keys(this.users).find(value => {
+            const user = this.users[value];
+            const { name: username } = user;
+            return `@${username}` === name;
+          });
+
+          if (!!relatedUserId) {
+            const relatedUser = this.users[relatedUserId];
+            isOnline = relatedUser.isOnline;
+          }
+        }
+
         return {
           ...channel,
           unread,
-          label: `${name} ${unread > 0 ? `(${unread} new)` : ""}`
+          label: `${name} ${unread > 0 ? `(${unread} new)` : ""}`,
+          isOnline
         };
       })
       .sort((a, b) => b.unread - a.unread);
@@ -150,8 +166,8 @@ export default class Store implements IStore {
     const totalUnreads = unreads.reduce((a, b) => a + b, 0);
     this.statusItem.updateCount(totalUnreads);
 
-    if (!!this.treeCallback) {
-      this.treeCallback();
+    if (!!this.treeCallbacks) {
+      this.treeCallbacks.forEach(callable => callable());
     }
   }
 
@@ -163,8 +179,8 @@ export default class Store implements IStore {
       };
     }
 
-    if (!!this.treeCallback) {
-      this.treeCallback();
+    if (!!this.treeCallbacks) {
+      this.treeCallbacks.forEach(callable => callable());
     }
   };
 

@@ -2,116 +2,162 @@ import * as vscode from "vscode";
 import * as path from "path";
 import Store from "./store";
 import { SelfCommands } from "./constants";
-import * as str from "./strings";
+import { SlackChannel } from "./interfaces";
 
-interface ChannelItem {
-  isHeading: Boolean;
+interface ChatTreeItem {
+  isOnline: boolean;
   value: string;
   label: string;
 }
 
-class ChannelTreeProvider implements vscode.TreeDataProvider<ChannelItem> {
-  private _onDidChangeTreeData = new vscode.EventEmitter<ChannelItem>();
-  readonly onDidChangeTreeData? = this._onDidChangeTreeData.event;
+const GREEN_DOT = path.join(
+  __filename,
+  "..",
+  "..",
+  "public",
+  "icons",
+  "green.svg"
+);
 
+export default class ChatTreeProviders {
   constructor(private store: Store) {}
 
-  refresh(): void {
-    // We can also refresh specific items, but since the ordering might change
-    // we refresh the entire tree.
-    this._onDidChangeTreeData.fire();
-  }
+  register() {
+    const unreadsTreeProvider = new UnreadsTreeProvider(this.store);
+    this.store.setTreeCallback(() => unreadsTreeProvider.refresh());
+    vscode.window.registerTreeDataProvider(
+      "unreads-tree-view",
+      unreadsTreeProvider
+    );
 
-  getTreeItem(element: ChannelItem): vscode.TreeItem {
-    const { value, isHeading, label } = element;
+    const channelsTreeProvider = new ChannelTreeProvider(this.store);
+    this.store.setTreeCallback(() => channelsTreeProvider.refresh());
+    vscode.window.registerTreeDataProvider(
+      "channels-tree-view",
+      channelsTreeProvider
+    );
 
-    if (isHeading) {
-      return new vscode.TreeItem(
-        label,
-        vscode.TreeItemCollapsibleState.Expanded
-      );
-    } else {
-      const channel = this.store.channels.find(c => c.id === value);
+    const groupsTreeProvider = new GroupTreeProvider(this.store);
+    this.store.setTreeCallback(() => groupsTreeProvider.refresh());
+    vscode.window.registerTreeDataProvider(
+      "groups-tree-view",
+      groupsTreeProvider
+    );
 
-      if (channel) {
-        const treeItem = new vscode.TreeItem(label);
-        const { name, type } = channel;
-        treeItem.contextValue = "channel";
-        treeItem.command = {
-          command: SelfCommands.OPEN,
-          title: `Open ${name}`,
-          arguments: [{ channel }]
-        };
+    const imsTreeProvider = new IMsTreeProvider(this.store);
+    this.store.setTreeCallback(() => imsTreeProvider.refresh());
+    vscode.window.registerTreeDataProvider("ims-tree-view", imsTreeProvider);
 
-        if (type === "im") {
-          const isOnline = Object.keys(this.store.users).find(value => {
-            const user = this.store.users[value];
-            const { name: username, isOnline } = user;
-            return `@${username}` === name && isOnline;
-          });
-
-          if (isOnline) {
-            const greenPath = path.join(
-              __filename,
-              "..",
-              "..",
-              "public",
-              "green.svg"
-            );
-
-            treeItem.iconPath = {
-              light: greenPath,
-              dark: greenPath
-            };
-          }
-        }
-
-        return treeItem;
-      }
-    }
-  }
-
-  getChildren(element?: ChannelItem): vscode.ProviderResult<ChannelItem[]> {
-    if (element) {
-      const { value } = element;
-
-      return new Promise(resolve => {
-        const channels = this.store.getChannelLabels();
-        // TODO: it is possible that channels is empty
-        resolve(
-          channels
-            .filter(c => c.type === value.toLocaleLowerCase())
-            .map(c => ({ isHeading: false, value: c.id, label: c.label }))
-        );
-      });
-    } else {
-      return new Promise(resolve => {
-        const types = ["channel", "group", "im"];
-        resolve(
-          types.map(value => ({
-            isHeading: true,
-            value,
-            label: this.getHeadingLabel(value)
-          }))
-        );
-      });
-    }
-  }
-
-  getHeadingLabel = type => {
-    switch (type) {
-      case "channel":
-        return str.CHANNELS_LABEL;
-      case "group":
-        return str.GROUPS_LABEL;
-      case "im":
-        return str.IM_LABEL;
-    }
-  };
-
-  getParent?(element: ChannelItem): vscode.ProviderResult<ChannelItem> {
-    throw new Error("Method not implemented");
+    const usersTreeProvider = new OnlineUsersTreeProvider(this.store);
+    this.store.setTreeCallback(() => usersTreeProvider.refresh());
+    vscode.window.registerTreeDataProvider(
+      "online-users-tree-view",
+      usersTreeProvider
+    );
   }
 }
 
-export default ChannelTreeProvider;
+class CustomTreeItem extends vscode.TreeItem {
+  constructor(label: string, isOnline: boolean, channel: SlackChannel) {
+    super(label);
+
+    this.contextValue = "channel";
+
+    if (isOnline) {
+      this.iconPath = {
+        light: GREEN_DOT,
+        dark: GREEN_DOT
+      };
+    }
+
+    if (channel) {
+      this.command = {
+        command: SelfCommands.OPEN,
+        title: `Open ${channel.name}`,
+        arguments: [{ channel }]
+      };
+    }
+  }
+}
+
+class BaseTreeProvider implements vscode.TreeDataProvider<ChatTreeItem> {
+  private _onDidChangeTreeData = new vscode.EventEmitter<ChatTreeItem>();
+  readonly onDidChangeTreeData? = this._onDidChangeTreeData.event;
+
+  constructor(protected store: Store) {}
+
+  refresh(): void {
+    // We can also refresh specific items, but since the ordering
+    // might change we refresh the entire tree.
+    this._onDidChangeTreeData.fire();
+  }
+
+  getTreeItem(element: ChatTreeItem): vscode.TreeItem {
+    const { value, label, isOnline } = element;
+    const channel = this.store.channels.find(c => c.id === value);
+    const treeItem = new CustomTreeItem(label, isOnline, channel);
+    return treeItem;
+  }
+
+  getChildren(element?: ChatTreeItem): vscode.ProviderResult<ChatTreeItem[]> {
+    throw new Error("Method not implemented");
+  }
+
+  getParent?(element: ChatTreeItem): vscode.ProviderResult<ChatTreeItem> {
+    throw new Error("Method not implemented");
+  }
+
+  getChildrenForType(filterFn): vscode.ProviderResult<ChatTreeItem[]> {
+    return new Promise(resolve => {
+      const channels = this.store.getChannelLabels();
+      resolve(
+        channels.filter(filterFn).map(c => ({
+          value: c.id,
+          label: c.label,
+          isOnline: c.isOnline
+        }))
+      );
+    });
+  }
+}
+
+class UnreadsTreeProvider extends BaseTreeProvider {
+  getChildren(element?: ChatTreeItem): vscode.ProviderResult<ChatTreeItem[]> {
+    return this.getChildrenForType(c => c.unread > 0);
+  }
+}
+
+class ChannelTreeProvider extends BaseTreeProvider {
+  getChildren(element?: ChatTreeItem): vscode.ProviderResult<ChatTreeItem[]> {
+    return this.getChildrenForType(c => c.type === "channel");
+  }
+}
+
+class GroupTreeProvider extends BaseTreeProvider {
+  getChildren(element?: ChatTreeItem): vscode.ProviderResult<ChatTreeItem[]> {
+    return this.getChildrenForType(c => c.type === "group");
+  }
+}
+
+class IMsTreeProvider extends BaseTreeProvider {
+  getChildren(element?: ChatTreeItem): vscode.ProviderResult<ChatTreeItem[]> {
+    return this.getChildrenForType(c => c.type === "im");
+  }
+}
+
+class OnlineUsersTreeProvider extends BaseTreeProvider {
+  getChildren(element?: ChatTreeItem): vscode.ProviderResult<ChatTreeItem[]> {
+    return new Promise(resolve => {
+      const users = Object.keys(this.store.users)
+        .map(userId => this.store.users[userId])
+        .filter(user => user.isOnline);
+      resolve(
+        users.map(c => ({
+          value: c.name,
+          label: c.name,
+          isOnline: c.isOnline
+        }))
+      );
+    });
+  }
+}

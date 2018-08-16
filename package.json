@@ -33,7 +33,11 @@
   "activationEvents": [
     "onCommand:extension.chat.openSlackPanel",
     "onCommand:extension.chat.changeChannel",
-    "onView:channels-tree-view"
+    "onView:unreads-tree-view",
+    "onView:channels-tree-view",
+    "onView:groups-tree-view",
+    "onView:ims-tree-view",
+    "onView:online-users-tree-view"
   ],
   "main": "./out/extension",
   "contributes": {
@@ -71,16 +75,34 @@
         "command": "extension.chat.startLiveShare",
         "title": "Slack: Share Collaboration Session Link",
         "icon": {
-          "light": "public/light/refresh.svg",
-          "dark": "public/dark/refresh.svg"
+          "light": "public/icons/light/share.svg",
+          "dark": "public/icons/dark/share.svg"
         }
       }
     ],
     "views": {
       "chat-activity": [
         {
+          "id": "unreads-tree-view",
+          "name": "Unreads"
+        },
+        {
           "id": "channels-tree-view",
           "name": "Channels"
+        },
+        {
+          "id": "groups-tree-view",
+          "name": "Groups"
+        },
+        {
+          "id": "ims-tree-view",
+          "name": "Direct Messages"
+        }
+      ],
+      "vsliveshareTreeExplorerActivityBar": [
+        {
+          "id": "online-users-tree-view",
+          "name": "Slack Users"
         }
       ]
     },
@@ -89,7 +111,7 @@
         {
           "id": "chat-activity",
           "title": "Slack Chat",
-          "icon": "public/activity-bar-icon.svg"
+          "icon": "public/icons/activity-bar-icon.svg"
         }
       ]
     },
@@ -97,7 +119,7 @@
       "view/item/context": [
         {
           "command": "extension.chat.startLiveShare",
-          "when": "view == channels-tree-view && viewItem == channel",
+          "when": "viewItem == channel",
           "group": "inline"
         }
       ]

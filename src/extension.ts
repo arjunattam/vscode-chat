@@ -8,7 +8,7 @@ import Store from "./store";
 import * as str from "./strings";
 import { SlackChannel } from "./interfaces";
 import { SelfCommands } from "./constants";
-import ChannelTreeProvider from "./tree";
+import ChatTreeProviders from "./tree";
 import travisProvider, { TRAVIS_URI_SCHEME } from "./providers/travis";
 
 let reporter: Reporter | undefined = undefined;
@@ -193,9 +193,9 @@ export function activate(context: vscode.ExtensionContext) {
     disposableProvider
   );
 
-  const treeProvider = new ChannelTreeProvider(store);
-  store.setTreeCallback(() => treeProvider.refresh());
-  vscode.window.registerTreeDataProvider("channels-tree-view", treeProvider);
+  // Setup tree providers
+  const chatTreeProvider = new ChatTreeProviders(store);
+  chatTreeProvider.register();
 
   // Setup RTM messenger to get real-time unreads and presence updates
   setupMessenger();
