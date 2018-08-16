@@ -2,6 +2,12 @@
 
 All notable changes to the vscode-chat extension will be documented in this file. This follows the [Keep a Changelog](http://keepachangelog.com/) format.
 
+## [0.5.1] - 2018-08-16
+
+### Fixed
+
+- Fixed extension activation for the VS Live Share activity bar.
+
 ## [0.5.0] - 2018-08-16
 
 ### Added
