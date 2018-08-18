@@ -2,6 +2,13 @@
 
 All notable changes to the vscode-chat extension will be documented in this file. This follows the [Keep a Changelog](http://keepachangelog.com/) format.
 
+## [0.5.3] - 2018-08-18
+
+### Fixed
+
+- Fixed issues with duplicated state when configuration gets changed in the editor.
+- Fixed unread message notifications for messages with files.
+
 ## [0.5.2] - 2018-08-18
 
 ### Fixed

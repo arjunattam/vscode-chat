@@ -4,6 +4,7 @@ import {
   CommandResponse,
   MessageCommand
 } from "../controller/commands";
+import { TRAVIS_SCHEME } from "../constants";
 const rp = require("request-promise-native");
 
 function getTravisBuild(username, reponame, build) {
@@ -35,8 +36,6 @@ function stripAnsiEscapes(input: string) {
   );
 }
 
-export const TRAVIS_URI_SCHEME = "chat-travis-ci";
-
 export class TravisLinkHandler implements CommandHandler {
   handle(cmd: MessageCommand): Promise<CommandResponse> {
     const { subcommand } = cmd;
@@ -48,7 +47,7 @@ export class TravisLinkHandler implements CommandHandler {
       const repo = matched[2];
       const buildId = matched[4];
       vscode.window.showTextDocument(
-        vscode.Uri.parse(`${TRAVIS_URI_SCHEME}://${user}/${repo}/${buildId}`),
+        vscode.Uri.parse(`${TRAVIS_SCHEME}://${user}/${repo}/${buildId}`),
         { viewColumn: vscode.ViewColumn.One }
       );
     }

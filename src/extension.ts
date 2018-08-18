@@ -2,13 +2,15 @@ import * as vscode from "vscode";
 import * as vsls from "vsls/vscode";
 import SlackMessenger from "./messenger";
 import ViewController from "./controller";
-import Logger from "./logger";
 import Store from "./store";
+import Logger from "./logger";
 import * as str from "./strings";
-import { SlackChannel, ChatArgs } from "./interfaces";
-import { SelfCommands, LIVE_SHARE_EXTENSION, CONFIG_ROOT } from "./constants";
+import { SlackChannel, ChatArgs, SlackCurrentUser } from "./interfaces";
+import { SelfCommands } from "./constants";
+import { VSLS_EXTENSION_ID, CONFIG_ROOT, TRAVIS_SCHEME } from "./constants";
 import ChatTreeProviders from "./tree";
-import travisProvider, { TRAVIS_URI_SCHEME } from "./providers/travis";
+import travis from "./providers/travis";
+import { SlackProtocolHandler } from "./uri";
 
 let store: Store | undefined = undefined;
 let controller: ViewController | undefined = undefined;
@@ -17,6 +19,7 @@ let messenger: SlackMessenger | undefined = undefined;
 
 export function activate(context: vscode.ExtensionContext) {
   store = new Store(context);
+
   controller = new ViewController(
     context,
     () => store.loadChannelHistory(store.lastChannelId),
@@ -24,50 +27,56 @@ export function activate(context: vscode.ExtensionContext) {
   );
   store.setUiCallback(uiMessage => controller.sendToUI(uiMessage));
 
-  const askForChannel = (): Promise<SlackChannel> => {
-    return store
-      .getUsersPromise()
-      .then(() => store.getChannelsPromise())
-      .then(() => {
-        let channelList = store
-          .getChannelLabels()
-          .sort((a, b) => b.unread - a.unread);
-        const placeHolder = str.CHANGE_CHANNEL_TITLE;
-        const labels = channelList.map(c => `${c.label}`);
-
-        return vscode.window
-          .showQuickPick([...labels, str.RELOAD_CHANNELS], { placeHolder })
-          .then(selected => {
-            if (selected) {
-              if (selected === str.RELOAD_CHANNELS) {
-                return store
-                  .fetchUsers()
-                  .then(() => store.fetchChannels())
-                  .then(() => askForChannel());
-              }
-              const selectedChannel = channelList.find(
-                x => x.label === selected
-              );
-              store.updateLastChannelId(selectedChannel.id);
-              return selectedChannel;
-            }
-          });
-      });
-  };
-
   const setup = (): Promise<any> => {
-    messenger = new SlackMessenger(store);
-    controller.setMessenger(messenger);
+    let messengerPromise: Promise<SlackCurrentUser>;
+    const isConnected = !!messenger && messenger.isConnected();
+    const hasUser = !!store.currentUserInfo;
 
-    // This will re-start messenger again. Is that ok?
-    return messenger
-      .start()
+    if (isConnected && hasUser) {
+      messengerPromise = Promise.resolve(store.currentUserInfo);
+    } else {
+      messenger = new SlackMessenger(store);
+      controller.setMessenger(messenger);
+      messengerPromise = messenger.start();
+    }
+
+    return messengerPromise
       .then(currentUser => {
         store.updateCurrentUser(currentUser);
-        messenger.subscribePresence();
         return store.getUsersPromise();
       })
-      .then(() => store.getChannelsPromise());
+      .then(() => {
+        // Presence subscription assumes we have store.users
+        messenger.subscribePresence();
+        return store.getChannelsPromise();
+      })
+      .catch(error => Logger.log(error));
+  };
+
+  const askForChannel = (): Promise<SlackChannel> => {
+    return setup().then(() => {
+      let channelList = store
+        .getChannelLabels()
+        .sort((a, b) => b.unread - a.unread);
+      const placeHolder = str.CHANGE_CHANNEL_TITLE;
+      const labels = channelList.map(c => `${c.label}`);
+
+      return vscode.window
+        .showQuickPick([...labels, str.RELOAD_CHANNELS], { placeHolder })
+        .then(selected => {
+          if (selected) {
+            if (selected === str.RELOAD_CHANNELS) {
+              return store
+                .fetchUsers()
+                .then(() => store.fetchChannels())
+                .then(() => askForChannel());
+            }
+            const selectedChannel = channelList.find(x => x.label === selected);
+            store.updateLastChannelId(selectedChannel.id);
+            return selectedChannel;
+          }
+        });
+    });
   };
 
   const getChatChannelId = (args?: ChatArgs): Promise<string> => {
@@ -141,7 +150,7 @@ export function activate(context: vscode.ExtensionContext) {
   };
 
   const setVslsContext = () => {
-    const vsls = vscode.extensions.getExtension(LIVE_SHARE_EXTENSION);
+    const vsls = vscode.extensions.getExtension(VSLS_EXTENSION_ID);
     const isEnabled = !!vsls;
 
     if (isEnabled) {
@@ -150,11 +159,6 @@ export function activate(context: vscode.ExtensionContext) {
       vscode.commands.executeCommand("setContext", "chat:vslsEnabled", false);
     }
   };
-
-  const disposableProvider = vscode.workspace.registerTextDocumentContentProvider(
-    TRAVIS_URI_SCHEME,
-    travisProvider
-  );
 
   // Setup tree providers
   chatTreeProvider = new ChatTreeProviders(store);
@@ -166,6 +170,7 @@ export function activate(context: vscode.ExtensionContext) {
   // Setup context for conditional views
   setVslsContext();
 
+  const uriHandler = new SlackProtocolHandler();
   context.subscriptions.push(
     vscode.commands.registerCommand(SelfCommands.OPEN, openSlackPanel),
     vscode.commands.registerCommand(SelfCommands.CHANGE, changeSlackChannel),
@@ -173,7 +178,8 @@ export function activate(context: vscode.ExtensionContext) {
       shareVslsLink({ channel: item.channel, user: item.user })
     ),
     vscode.workspace.onDidChangeConfiguration(resetConfiguration),
-    disposableProvider,
+    vscode.workspace.registerTextDocumentContentProvider(TRAVIS_SCHEME, travis),
+    vscode.window.registerUriHandler(uriHandler),
     ...treeDisposables
   );
 }

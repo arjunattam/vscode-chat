@@ -92,6 +92,10 @@ class SlackMessenger implements IMessenger {
     });
   }
 
+  isConnected(): boolean {
+    return !!this.rtmClient && this.rtmClient.connected;
+  }
+
   start = (): Promise<SlackCurrentUser> => {
     return new Promise((resolve, reject) => {
       this.rtmClient.once(RTMEvents.AUTHENTICATED, response => {
@@ -113,6 +117,7 @@ class SlackMessenger implements IMessenger {
         return reject(error);
       });
 
+      // rtm.start is heavily rate-limited
       this.rtmClient.start();
     });
   };

@@ -16,7 +16,7 @@ export const SLACK_TOKEN_URL =
 
 // Is there a way to get this url from the vsls extension?
 export const LIVE_SHARE_BASE_URL = `insiders.liveshare.vsengsaas.visualstudio.com`;
-export const LIVE_SHARE_EXTENSION = `ms-vsliveshare.vsliveshare`;
+export const VSLS_EXTENSION_ID = `ms-vsliveshare.vsliveshare`;
 export const TRAVIS_BASE_URL = `travis-ci.org`;
 
 export const VSCodeCommands = {
@@ -46,3 +46,10 @@ export const REVERSE_SLASH_COMMANDS = {
     request: {}
   }
 };
+
+// Internal uri schemes
+export const TRAVIS_SCHEME = "chat-travis-ci";
+
+// Slack App
+export const CLIENT_ID = "282186700213.419156835749";
+export const SLACK_OAUTH = `https://slack.com/oauth/authorize?scope=client&client_id=${CLIENT_ID}`;
