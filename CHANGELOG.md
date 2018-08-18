@@ -2,6 +2,12 @@
 
 All notable changes to the vscode-chat extension will be documented in this file. This follows the [Keep a Changelog](http://keepachangelog.com/) format.
 
+## [0.5.4] - 2018-08-18
+
+### Added
+
+- Added "Sign in with Slack" for an easier onboarding experience
+
 ## [0.5.3] - 2018-08-18
 
 ### Fixed
