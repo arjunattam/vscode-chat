@@ -64,6 +64,22 @@ export default class WebviewContainer {
     this.panel.reveal();
   }
 
+  getLocaleDateString(date: Date) {
+    // Returns ISO-format date string for a given date
+    let month = date.getMonth().toString();
+    let day = date.getDate().toString();
+
+    if (month.length === 1) {
+      month = `0${month}`;
+    }
+
+    if (day.length === 1) {
+      day = `0${day}`;
+    }
+
+    return `${date.getFullYear()}-${month}-${day}`;
+  }
+
   getMessageGroups(
     input: SlackChannelMessages,
     users: SlackUsers
@@ -71,7 +87,7 @@ export default class WebviewContainer {
     let result = {};
     Object.keys(input).forEach(ts => {
       const date = new Date(+ts * 1000);
-      const dateStr = date.toISOString().substr(0, 10);
+      const dateStr = this.getLocaleDateString(date);
       if (!(dateStr in result)) {
         result[dateStr] = {};
       }

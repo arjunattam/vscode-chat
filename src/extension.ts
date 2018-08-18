@@ -173,7 +173,7 @@ export function activate(context: vscode.ExtensionContext) {
       .then(() => setupStore())
       .then(() => getChatChannelId(args))
       .then(() => {
-        store.updateUi();
+        store.updateWebviewUI();
         store.loadChannelHistory();
       })
       .catch(error => console.error(error));
@@ -183,7 +183,7 @@ export function activate(context: vscode.ExtensionContext) {
     return askForChannel().then(() => {
       if (controller.isUILoaded()) {
         store.loadChannelHistory();
-        store.updateUi();
+        store.updateWebviewUI();
       } else {
         openSlackPanel();
       }

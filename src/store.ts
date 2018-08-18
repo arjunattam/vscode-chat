@@ -147,14 +147,9 @@ export default class Store implements IStore {
     });
   }
 
-  updateUi() {
+  updateWebviewUI() {
     const channel = this.getChannel(this.lastChannelId);
-    let name = "";
-
-    if (channel) {
-      name = channel.name;
-    }
-
+    const channelName = !!channel ? channel.name : "";
     const messages =
       this.lastChannelId in this.messages
         ? this.messages[this.lastChannelId]
@@ -164,7 +159,7 @@ export default class Store implements IStore {
       messages,
       users: this.users,
       currentUser: this.currentUserInfo,
-      channelName: name,
+      channelName,
       statusText: ""
     });
   }
@@ -331,7 +326,7 @@ export default class Store implements IStore {
       this.fillUpBots(difference(userIds, allIds));
     }
 
-    this.updateUi();
+    this.updateWebviewUI();
     this.updateUnreadCount();
   };
 
@@ -352,7 +347,7 @@ export default class Store implements IStore {
       })
     )
       .then(() => {
-        return this.updateUi();
+        return this.updateWebviewUI();
       })
       .catch(error => console.error(error));
   }
