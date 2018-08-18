@@ -1,12 +1,14 @@
 import * as vscode from "vscode";
 import * as str from "./strings";
-import { VSCodeCommands, SETUP_URL, SLACK_TOKEN_URL } from "./constants";
-
-const CONFIG_ROOT = "chat";
+import {
+  VSCodeCommands,
+  SETUP_URL,
+  SLACK_TOKEN_URL,
+  CONFIG_ROOT
+} from "./constants";
 
 class ConfigHelper {
   static getRootConfig() {
-    // Returns config under namespace CONFIG_ROOT
     return vscode.workspace.getConfiguration(CONFIG_ROOT);
   }
 

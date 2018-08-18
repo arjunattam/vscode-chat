@@ -174,7 +174,8 @@ class ViewController {
       this.pendingMessage = uiMessage;
     } else {
       const { messages } = uiMessage;
-      Logger.log(`Sending to ui: ${Object.keys(messages).length} messages`);
+      const size = Object.keys(messages).length;
+      Logger.log(`Sending to webview: ${size} messages`);
 
       // Handle markdown
       const mdMessages = markdownTransform(uiMessage);

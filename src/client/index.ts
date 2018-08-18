@@ -55,7 +55,7 @@ export default class SlackAPIClient {
   client: WebClient;
 
   constructor(token: string) {
-    let options: WebClientOptions = {};
+    let options: WebClientOptions = { retryConfig: { retries: 1 } };
     const proxyUrl = ConfigHelper.getProxyUrl();
 
     if (proxyUrl) {

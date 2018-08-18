@@ -6,16 +6,16 @@ import Logger from "./logger";
 import Store from "./store";
 import * as str from "./strings";
 import { SlackChannel, ChatArgs } from "./interfaces";
-import { SelfCommands, LIVE_SHARE_EXTENSION } from "./constants";
+import { SelfCommands, LIVE_SHARE_EXTENSION, CONFIG_ROOT } from "./constants";
 import ChatTreeProviders from "./tree";
 import travisProvider, { TRAVIS_URI_SCHEME } from "./providers/travis";
 
 let store: Store | undefined = undefined;
 let controller: ViewController | undefined = undefined;
 let chatTreeProvider: ChatTreeProviders | undefined = undefined;
+let messenger: SlackMessenger | undefined = undefined;
 
 export function activate(context: vscode.ExtensionContext) {
-  let messenger: SlackMessenger | undefined = undefined;
   store = new Store(context);
   controller = new ViewController(
     context,
@@ -25,98 +25,49 @@ export function activate(context: vscode.ExtensionContext) {
   store.setUiCallback(uiMessage => controller.sendToUI(uiMessage));
 
   const askForChannel = (): Promise<SlackChannel> => {
-    const { channels } = store;
-    let channelsPromise: Promise<SlackChannel[]> = !channels
-      ? store.fetchChannels()
-      : Promise.resolve(channels);
+    return store
+      .getUsersPromise()
+      .then(() => store.getChannelsPromise())
+      .then(() => {
+        let channelList = store
+          .getChannelLabels()
+          .sort((a, b) => b.unread - a.unread);
+        const placeHolder = str.CHANGE_CHANNEL_TITLE;
+        const labels = channelList.map(c => `${c.label}`);
 
-    return channelsPromise.then(() => {
-      // TODO: should we use icons for presentation?
-      let channelList = store
-        .getChannelLabels()
-        .sort((a, b) => b.unread - a.unread);
-      const placeHolder = str.CHANGE_CHANNEL_TITLE;
-      const labels = channelList.map(c => `${c.label}`);
-      return vscode.window
-        .showQuickPick([...labels, str.RELOAD_CHANNELS], { placeHolder })
-        .then(selected => {
-          if (selected) {
-            if (selected === str.RELOAD_CHANNELS) {
-              return store
-                .fetchUsers()
-                .then(() => store.fetchChannels())
-                .then(() => askForChannel());
+        return vscode.window
+          .showQuickPick([...labels, str.RELOAD_CHANNELS], { placeHolder })
+          .then(selected => {
+            if (selected) {
+              if (selected === str.RELOAD_CHANNELS) {
+                return store
+                  .fetchUsers()
+                  .then(() => store.fetchChannels())
+                  .then(() => askForChannel());
+              }
+              const selectedChannel = channelList.find(
+                x => x.label === selected
+              );
+              store.updateLastChannelId(selectedChannel.id);
+              return selectedChannel;
             }
-            const selectedChannel = channelList.find(x => x.label === selected);
-            store.updateLastChannelId(selectedChannel.id);
-            return selectedChannel;
-          }
-        });
-    });
+          });
+      });
   };
 
-  const setupMessenger = (): Promise<void> => {
-    if (!messenger) {
-      messenger = new SlackMessenger(store);
-      controller.setMessenger(messenger);
+  const setup = (): Promise<any> => {
+    messenger = new SlackMessenger(store);
+    controller.setMessenger(messenger);
 
-      return messenger
-        .start()
-        .then(currentUser => {
-          store.updateCurrentUser(currentUser);
-          messenger.subscribePresence();
-        })
-        .catch(error => {
-          Logger.log(error);
-          return error;
-        });
-    } else {
-      return new Promise((resolve, _) => resolve());
-    }
-  };
-
-  const shouldFetchNew = (lastFetchedAt: Date): boolean => {
-    if (!lastFetchedAt) {
-      return true;
-    }
-
-    const now = new Date();
-    const difference = now.valueOf() - lastFetchedAt.valueOf();
-    const FETCH_THRESHOLD = 15 * 60 * 1000; // 15-mins
-    return difference > FETCH_THRESHOLD;
-  };
-
-  const setupStore = (): Promise<any> => {
-    const { users, usersFetchedAt } = store;
-    const usersPromise = !!users
-      ? new Promise(resolve => {
-          if (shouldFetchNew(usersFetchedAt)) {
-            // async update
-            store.fetchUsers();
-          }
-          resolve(users);
-        })
-      : store.fetchUsers();
-
-    return usersPromise.then(users => {
-      const { channels, channelsFetchedAt } = store;
-
-      if (!!messenger) {
+    // This will re-start messenger again. Is that ok?
+    return messenger
+      .start()
+      .then(currentUser => {
+        store.updateCurrentUser(currentUser);
         messenger.subscribePresence();
-      }
-
-      const channelsPromise = !!channels
-        ? new Promise(resolve => {
-            if (shouldFetchNew(channelsFetchedAt)) {
-              // async update
-              store.fetchChannels();
-            }
-            resolve(channels);
-          })
-        : store.fetchChannels();
-
-      return channelsPromise;
-    });
+        return store.getUsersPromise();
+      })
+      .then(() => store.getChannelsPromise());
   };
 
   const getChatChannelId = (args?: ChatArgs): Promise<string> => {
@@ -152,8 +103,7 @@ export function activate(context: vscode.ExtensionContext) {
   const openSlackPanel = (args?: ChatArgs) => {
     controller.loadUi();
 
-    setupMessenger()
-      .then(() => setupStore())
+    setup()
       .then(() => getChatChannelId(args))
       .then(() => {
         store.updateWebviewUI();
@@ -173,29 +123,21 @@ export function activate(context: vscode.ExtensionContext) {
     const vslsUri = await liveshare.share({ suppressNotification: true });
 
     if (!messenger) {
-      await setupMessenger();
+      await setup();
     }
 
     let channelId: string = await getChatChannelId(args);
     messenger.sendMessageToChannel(vslsUri.toString(), channelId);
   };
 
-  const resetConfiguration = () => {
-    if (!!store) {
-      store.dispose(); // Removes the old status item
+  const resetConfiguration = (event: vscode.ConfigurationChangeEvent) => {
+    const affectsExtension = event.affectsConfiguration(CONFIG_ROOT);
+
+    if (affectsExtension) {
+      store.reset();
+      setup();
+      store.updateAllUI();
     }
-
-    store = new Store(context);
-    store.setUiCallback(uiMessage => controller.sendToUI(uiMessage));
-
-    if (!!chatTreeProvider) {
-      chatTreeProvider.updateStore(store);
-    }
-
-    store.updateTreeViews();
-    messenger = null;
-    setupStore();
-    setupMessenger();
   };
 
   const setVslsContext = () => {
@@ -218,9 +160,8 @@ export function activate(context: vscode.ExtensionContext) {
   chatTreeProvider = new ChatTreeProviders(store);
   const treeDisposables: vscode.Disposable[] = chatTreeProvider.register();
 
-  // Setup RTM messenger to get real-time unreads and presence updates
-  setupMessenger();
-  setupStore();
+  // Setup real-time messenger and updated local state
+  setup();
 
   // Setup context for conditional views
   setVslsContext();
@@ -239,6 +180,6 @@ export function activate(context: vscode.ExtensionContext) {
 
 export function deactivate() {
   if (store) {
-    store.dispose();
+    store.disposeStatusItem();
   }
 }

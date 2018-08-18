@@ -8,7 +8,8 @@ import {
   SlackUsers,
   IStore,
   UIMessage,
-  SlackUser
+  SlackUser,
+  ChannelType
 } from "./interfaces";
 import StatusItem from "./status";
 import ConfigHelper from "./configuration";
@@ -53,10 +54,8 @@ export default class Store implements IStore {
   statusItem: StatusItem;
 
   constructor(private context: vscode.ExtensionContext) {
-    // Load token first
     this.slackToken = ConfigHelper.getToken();
 
-    // Now load global state
     const { globalState } = context;
     this.channels = globalState.get(stateKeys.CHANNELS);
     this.currentUserInfo = globalState.get(stateKeys.USER_INFO);
@@ -66,18 +65,37 @@ export default class Store implements IStore {
     if (this.currentUserInfo && this.slackToken) {
       if (this.currentUserInfo.token !== this.slackToken) {
         // Token has changed, all state is suspicious now
-        this.lastChannelId = null;
-        this.channels = null;
-        this.currentUserInfo = null;
-        this.users = null;
+        this.clear();
       }
     }
 
-    // Status bar item
     this.statusItem = new StatusItem();
   }
 
-  dispose() {
+  clear() {
+    this.updateLastChannelId(null);
+    this.updateChannels([]);
+    this.updateCurrentUser(null);
+    this.updateUsers({});
+
+    this.usersFetchedAt = null;
+    this.channelsFetchedAt = null;
+    this.messages = {};
+  }
+
+  updateAllUI() {
+    this.updateUnreadCount();
+    this.updateTreeViews();
+    this.updateWebviewUI();
+  }
+
+  reset() {
+    this.clear();
+    this.slackToken = ConfigHelper.getToken();
+    this.updateAllUI();
+  }
+
+  disposeStatusItem() {
     this.statusItem.dispose();
   }
 
@@ -99,7 +117,7 @@ export default class Store implements IStore {
       const { name, type } = channel;
       let isOnline = false;
 
-      if (type === "im") {
+      if (type === ChannelType.im) {
         const relatedUserId = Object.keys(this.users).find(value => {
           const user = this.users[value];
           const { name: username } = user;
@@ -114,13 +132,13 @@ export default class Store implements IStore {
 
       let icon;
       switch (type) {
-        case "channel":
+        case ChannelType.channel:
           icon = "comment";
           break;
-        case "group":
+        case ChannelType.group:
           icon = name.startsWith("@") ? "organization" : "lock";
           break;
-        case "im":
+        case ChannelType.im:
           icon = "person";
           break;
       }
@@ -217,7 +235,6 @@ export default class Store implements IStore {
   updateChannels = channels => {
     this.channels = channels;
     this.context.globalState.update(stateKeys.CHANNELS, channels);
-    this.updateTreeViews();
   };
 
   updateChannel = (newChannel: SlackChannel) => {
@@ -241,6 +258,7 @@ export default class Store implements IStore {
     }
 
     this.updateChannels(updatedChannels);
+    this.updateTreeViews();
   };
 
   fetchUsers = (): Promise<SlackUsers> => {
@@ -250,7 +268,7 @@ export default class Store implements IStore {
       let usersWithPresence: SlackUsers = {};
 
       Object.keys(users).forEach(userId => {
-        const existingUser = !!this.users ? this.users[userId] : null;
+        const existingUser = userId in this.users ? this.users[userId] : null;
         usersWithPresence[userId] = {
           ...users[userId],
           isOnline: !!existingUser ? existingUser.isOnline : false
@@ -265,30 +283,59 @@ export default class Store implements IStore {
 
   fetchChannels = (): Promise<SlackChannel[]> => {
     const client = new SlackAPIClient(this.slackToken);
-    let usersPromise: Promise<SlackUsers>;
+    return client.getChannels(this.users).then(channels => {
+      this.updateChannels(channels);
+      this.updateChannelsFetchedAt();
+      this.updateTreeViews();
 
-    if (this.users) {
-      usersPromise = Promise.resolve(this.users);
-    } else {
-      usersPromise = this.fetchUsers();
+      const promises = channels.map(channel =>
+        client.getChannelInfo(channel).then((newChannel: SlackChannel) => {
+          return this.updateChannel(newChannel);
+        })
+      );
+
+      Promise.all(promises).then(() => this.updateUnreadCount());
+      return channels;
+    });
+  };
+
+  shouldFetchNew = (lastFetchedAt: Date): boolean => {
+    if (!lastFetchedAt) {
+      return true;
     }
 
-    return usersPromise
-      .then(users => client.getChannels(users))
-      .then(channels => {
-        this.updateChannels(channels);
-        this.updateChannelsFetchedAt();
-
-        const promises = channels.map(channel =>
-          client.getChannelInfo(channel).then((newChannel: SlackChannel) => {
-            return this.updateChannel(newChannel);
-          })
-        );
-
-        Promise.all(promises).then(() => this.updateUnreadCount());
-        return channels;
-      });
+    const now = new Date();
+    const difference = now.valueOf() - lastFetchedAt.valueOf();
+    const FETCH_THRESHOLD = 15 * 60 * 1000; // 15-mins
+    return difference > FETCH_THRESHOLD;
   };
+
+  getUsersPromise(): Promise<SlackUsers> {
+    function isNotEmpty(obj) {
+      return Object.keys(obj).length !== 0;
+    }
+
+    return isNotEmpty(this.users)
+      ? new Promise(resolve => {
+          if (this.shouldFetchNew(this.usersFetchedAt)) {
+            this.fetchUsers(); // async update
+          }
+          resolve(this.users);
+        })
+      : this.fetchUsers();
+  }
+
+  getChannelsPromise(): Promise<SlackChannel[]> {
+    // This assumes that users are available
+    return !!this.channels
+      ? new Promise(resolve => {
+          if (this.shouldFetchNew(this.channelsFetchedAt)) {
+            this.fetchChannels(); // async update
+          }
+          resolve(this.channels);
+        })
+      : this.fetchChannels();
+  }
 
   updateLastChannelId = (channelId: string): Thenable<void> => {
     this.lastChannelId = channelId;
