@@ -1,7 +1,11 @@
 out
 node_modules
+jspm_packages
 .vscode-test/
 .vs
 *.vsix
 static
 tokens
+.serverless
+.webpack
+env.yml

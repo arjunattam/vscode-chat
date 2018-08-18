@@ -7,24 +7,18 @@
 
 ![Demo gif](public/example-v2.gif)
 
+## Setup
+
+1.  Install the extension from the [VS Marketplace](https://marketplace.visualstudio.com/items?itemName=karigari.chat).
+2.  Post install, run **Slack: Sign In** from the command palette.
+3.  You're set!
+
 ## Why though? 🤔
 
 1.  No context switches for [quick code reviews](#rich-formatting)
 2.  [Companion chat](#vs-live-share) for VS Live Share
 3.  Open [CI logs and other bot integrations](#bots-integration) inside your editor
 4.  Why run two Electron apps when you can do with one?
-
-## Setup
-
-1.  Install from the [Visual Studio Marketplace](https://marketplace.visualstudio.com/items?itemName=karigari.chat)
-2.  Generate a [Slack legacy token](https://api.slack.com/custom-integrations/legacy-tokens)
-3.  Add the token to your settings (File/Code > Preferences > Settings)
-
-```json
-{
-  "chat.slack.legacyToken": "xoxp-2854..."
-}
-```
 
 ## Commands
 

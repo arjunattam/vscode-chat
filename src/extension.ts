@@ -6,11 +6,12 @@ import Store from "./store";
 import Logger from "./logger";
 import * as str from "./strings";
 import { SlackChannel, ChatArgs, SlackCurrentUser } from "./interfaces";
-import { SelfCommands } from "./constants";
+import { SelfCommands, SLACK_OAUTH } from "./constants";
 import { VSLS_EXTENSION_ID, CONFIG_ROOT, TRAVIS_SCHEME } from "./constants";
 import ChatTreeProviders from "./tree";
 import travis from "./providers/travis";
 import { SlackProtocolHandler } from "./uri";
+import ConfigHelper from "./configuration";
 
 let store: Store | undefined = undefined;
 let controller: ViewController | undefined = undefined;
@@ -139,6 +140,10 @@ export function activate(context: vscode.ExtensionContext) {
     messenger.sendMessageToChannel(vslsUri.toString(), channelId);
   };
 
+  const authenticate = () => {
+    return ConfigHelper.openUrl(SLACK_OAUTH);
+  };
+
   const resetConfiguration = (event: vscode.ConfigurationChangeEvent) => {
     const affectsExtension = event.affectsConfiguration(CONFIG_ROOT);
 
@@ -174,6 +179,7 @@ export function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(
     vscode.commands.registerCommand(SelfCommands.OPEN, openSlackPanel),
     vscode.commands.registerCommand(SelfCommands.CHANGE, changeSlackChannel),
+    vscode.commands.registerCommand(SelfCommands.SIGN_IN, authenticate),
     vscode.commands.registerCommand(SelfCommands.LIVE_SHARE, item =>
       shareVslsLink({ channel: item.channel, user: item.user })
     ),

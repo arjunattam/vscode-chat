@@ -6,10 +6,11 @@ If you want to work on something, just create a discussion thread (on PRs/issues
 
 ## Repo structure
 
-The repo has two parts that communicate with message passing.
+The repo has three parts:
 
-- `src/ui/...`: the webview UI code, written with Vue.js
-- `src/...`: everything else except UI. This is the main extension code, written in TypeScript
+1. Main extension code in TypeScript, in `src/**`
+2. Webview UI code, written with Vue.js, in `src/ui/**`
+3. OAuth service, built with the Serverless framework, in `oauth-service/**`
 
 ## Building
 

@@ -1,0 +1,19 @@
+service:
+  name: vscode-chat-oauth-service
+
+plugins:
+  - serverless-webpack
+  - serverless-offline
+
+provider:
+  name: aws
+  runtime: nodejs8.10
+  environment: ${file(./env.yml):${opt:stage, self:provider.stage}}
+
+functions:
+  redirect:
+    handler: handler.redirect
+    events:
+      - http:
+          method: get
+          path: redirect

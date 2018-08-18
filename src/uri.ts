@@ -1,11 +1,31 @@
 import * as vscode from "vscode";
+import ConfigHelper from "./configuration";
 
 export class SlackProtocolHandler implements vscode.UriHandler {
   handleUri(uri: vscode.Uri): vscode.ProviderResult<void> {
-    // vscode://karigari.chat/clone?url=foobar
-    console.log("handle uri called", uri);
+    // vscode://karigari.chat/redirect?url=foobar
+    const { path, query } = uri;
 
-    // Get code query param
-    // http://localhost:3000/test?code=282186700213.419161402101.5a3c6fa9ecb33362174a7a31739284373903de28bee85649599414d530794110&state=
+    switch (path) {
+      case "/redirect":
+        const parsed = this.parseQuery(query);
+        return ConfigHelper.setToken(parsed.token);
+    }
+  }
+
+  parseQuery(queryString): any {
+    // From https://stackoverflow.com/a/13419367
+    var query = {};
+    var pairs = (queryString[0] === "?"
+      ? queryString.substr(1)
+      : queryString
+    ).split("&");
+
+    for (var i = 0; i < pairs.length; i++) {
+      var pair = pairs[i].split("=");
+      query[decodeURIComponent(pair[0])] = decodeURIComponent(pair[1] || "");
+    }
+
+    return query;
   }
 }

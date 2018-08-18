@@ -73,6 +73,10 @@
         "title": "Slack: Change Channel"
       },
       {
+        "command": "extension.chat.authenticate",
+        "title": "Slack: Sign In"
+      },
+      {
         "command": "extension.chat.startLiveShare",
         "title": "Invite to Live Share",
         "icon": {
@@ -150,7 +154,7 @@
     "https-proxy-agent": "^2.2.1",
     "markdown-it": "^8.4.1",
     "markdown-it-slack": "^1.2.0",
-    "request": "^2.87.0",
+    "request": "^2.88.0",
     "request-promise-native": "^1.0.5",
     "vscode-extension-telemetry": "^0.0.17",
     "vsls": "^0.3.426"

@@ -9,11 +9,6 @@ export const LiveShareCommands = {
   JOIN: "liveshare.join"
 };
 
-// Setup token urls
-export const SETUP_URL = "https://github.com/karigari/vscode-chat#setup";
-export const SLACK_TOKEN_URL =
-  "https://api.slack.com/custom-integrations/legacy-tokens";
-
 // Is there a way to get this url from the vsls extension?
 export const LIVE_SHARE_BASE_URL = `insiders.liveshare.vsengsaas.visualstudio.com`;
 export const VSLS_EXTENSION_ID = `ms-vsliveshare.vsliveshare`;
@@ -27,6 +22,7 @@ export const VSCodeCommands = {
 export const SelfCommands = {
   OPEN: "extension.chat.openSlackPanel",
   CHANGE: "extension.chat.changeChannel",
+  SIGN_IN: "extension.chat.authenticate",
   LIVE_SHARE: "extension.chat.startLiveShare"
 };
 
@@ -51,5 +47,4 @@ export const REVERSE_SLASH_COMMANDS = {
 export const TRAVIS_SCHEME = "chat-travis-ci";
 
 // Slack App
-export const CLIENT_ID = "282186700213.419156835749";
-export const SLACK_OAUTH = `https://slack.com/oauth/authorize?scope=client&client_id=${CLIENT_ID}`;
+export const SLACK_OAUTH = `https://slack.com/oauth/authorize?scope=client&client_id=282186700213.419156835749`;

@@ -1,46 +1,43 @@
 import * as vscode from "vscode";
 import * as str from "./strings";
-import {
-  VSCodeCommands,
-  SETUP_URL,
-  SLACK_TOKEN_URL,
-  CONFIG_ROOT
-} from "./constants";
+import { VSCodeCommands, CONFIG_ROOT, SLACK_OAUTH } from "./constants";
+
+const TOKEN_CONFIG_SECTION = "slack.legacyToken";
 
 class ConfigHelper {
   static getRootConfig() {
     return vscode.workspace.getConfiguration(CONFIG_ROOT);
   }
 
-  static getToken() {
+  static getToken(): string {
     // Stored under CONFIG_ROOT.slack.legacyToken
-    const { slack } = this.getRootConfig();
+    const rootConfig = this.getRootConfig();
 
-    if (slack && slack.legacyToken) {
+    if (!!rootConfig.get(TOKEN_CONFIG_SECTION)) {
+      const { slack } = rootConfig;
       return slack.legacyToken;
     } else {
-      const actionItems = [
-        str.GENERATE_TOKEN,
-        str.OPEN_SETTINGS,
-        str.OPEN_SETUP_INSTRUCTIONS
-      ];
-      // TODO: we should raise a friendly input box to set the token
+      const actionItems = [str.SIGN_IN_SLACK];
+
       vscode.window
         .showInformationMessage(str.TOKEN_NOT_FOUND, ...actionItems)
         .then(selected => {
           switch (selected) {
-            case str.GENERATE_TOKEN:
-              this.openUrl(SLACK_TOKEN_URL);
-              break;
-            case str.OPEN_SETTINGS:
-              this.openSettings();
-              break;
-            case str.OPEN_SETUP_INSTRUCTIONS:
-              this.openUrl(SETUP_URL);
+            case str.SIGN_IN_SLACK:
+              this.openUrl(SLACK_OAUTH);
               break;
           }
         });
     }
+  }
+
+  static setToken(token: string): Thenable<void> {
+    const rootConfig = this.getRootConfig();
+    return rootConfig.update(
+      TOKEN_CONFIG_SECTION,
+      token,
+      vscode.ConfigurationTarget.Global
+    );
   }
 
   static openUrl(url: string) {
