@@ -19,57 +19,40 @@ export function activate(context: vscode.ExtensionContext) {
   store = new Store(context);
   controller = new ViewController(
     context,
-    () => store.loadChannelHistory(),
+    () => store.loadChannelHistory(store.lastChannelId),
     () => store.updateReadMarker()
   );
   store.setUiCallback(uiMessage => controller.sendToUI(uiMessage));
 
   const askForChannel = (): Promise<SlackChannel> => {
     const { channels } = store;
-    let channelsPromise: Promise<SlackChannel[]>;
+    let channelsPromise: Promise<SlackChannel[]> = !channels
+      ? store.fetchChannels()
+      : Promise.resolve(channels);
 
-    if (!channels) {
-      channelsPromise = store.fetchChannels();
-    } else {
-      channelsPromise = new Promise((resolve, _) => resolve(channels));
-    }
-
-    return channelsPromise
-      .then(() => {
-        // TODO: should we use icons for presentation?
-        let channelList = store
-          .getChannelLabels()
-          .sort((a, b) => b.unread - a.unread)
-          .map(c => `${c.label}`);
-
-        return vscode.window.showQuickPick(
-          [...channelList, str.RELOAD_CHANNELS],
-          {
-            placeHolder: str.CHANGE_CHANNEL_TITLE
+    return channelsPromise.then(() => {
+      // TODO: should we use icons for presentation?
+      let channelList = store
+        .getChannelLabels()
+        .sort((a, b) => b.unread - a.unread);
+      const placeHolder = str.CHANGE_CHANNEL_TITLE;
+      const labels = channelList.map(c => `${c.label}`);
+      return vscode.window
+        .showQuickPick([...labels, str.RELOAD_CHANNELS], { placeHolder })
+        .then(selected => {
+          if (selected) {
+            if (selected === str.RELOAD_CHANNELS) {
+              return store
+                .fetchUsers()
+                .then(() => store.fetchChannels())
+                .then(() => askForChannel());
+            }
+            const selectedChannel = channelList.find(x => x.label === selected);
+            store.updateLastChannelId(selectedChannel.id);
+            return selectedChannel;
           }
-        );
-      })
-      .then(selected => {
-        if (selected) {
-          if (selected === str.RELOAD_CHANNELS) {
-            return store
-              .fetchUsers()
-              .then(() => store.fetchChannels())
-              .then(() => askForChannel());
-          }
-
-          const selectedChannel = store.channels.find(
-            x => selected.indexOf(x.name) === 0
-          );
-
-          if (!selectedChannel) {
-            vscode.window.showErrorMessage(str.INVALID_CHANNEL);
-          }
-
-          store.updateLastChannelId(selectedChannel.id);
-          return selectedChannel;
-        }
-      });
+        });
+    });
   };
 
   const setupMessenger = (): Promise<void> => {
@@ -174,20 +157,14 @@ export function activate(context: vscode.ExtensionContext) {
       .then(() => getChatChannelId(args))
       .then(() => {
         store.updateWebviewUI();
-        store.loadChannelHistory();
+        const { lastChannelId } = store;
+        store.loadChannelHistory(lastChannelId);
       })
       .catch(error => console.error(error));
   };
 
   const changeSlackChannel = () => {
-    return askForChannel().then(() => {
-      if (controller.isUILoaded()) {
-        store.loadChannelHistory();
-        store.updateWebviewUI();
-      } else {
-        openSlackPanel();
-      }
-    });
+    return askForChannel().then(() => openSlackPanel());
   };
 
   const shareVslsLink = async (args?: ChatArgs) => {

@@ -120,7 +120,7 @@ export interface IStore {
     channelId: string,
     newMessages: SlackChannelMessages
   ) => void;
-  loadChannelHistory: () => Promise<void>;
+  loadChannelHistory: (string) => Promise<void>;
   updateReadMarker: (string) => void;
   updateUserPresence: (string, Boolean) => void;
   addReaction: (

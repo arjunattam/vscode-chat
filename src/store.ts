@@ -352,13 +352,11 @@ export default class Store implements IStore {
       .catch(error => console.error(error));
   }
 
-  loadChannelHistory(): Promise<void> {
+  loadChannelHistory(channelId: string): Promise<void> {
     const client = new SlackAPIClient(this.slackToken);
     return client
-      .getConversationHistory(this.lastChannelId)
-      .then(messages => {
-        this.updateMessages(this.lastChannelId, messages);
-      })
+      .getConversationHistory(channelId)
+      .then(messages => this.updateMessages(channelId, messages))
       .catch(error => console.error(error));
   }
 
@@ -373,7 +371,8 @@ export default class Store implements IStore {
   }
 
   updateReadMarker(): void {
-    const channel = this.getChannel(this.lastChannelId);
+    const channelId = this.lastChannelId;
+    const channel = this.getChannel(channelId);
     const lastTs = this.getLastTimestamp();
 
     if (channel && lastTs) {
@@ -382,15 +381,14 @@ export default class Store implements IStore {
 
       if (!readTimestamp || hasNewerMsgs) {
         const client = new SlackAPIClient(this.slackToken);
-        const channel = this.getChannel(this.lastChannelId);
+        const channel = this.getChannel(channelId);
         const incremented = (+lastTs + 1).toString(); // Slack API workaround
         client.markChannel({ channel, ts: incremented }).then(response => {
           const { ok } = response;
+
           if (ok) {
             this.updateChannel({
-              id: this.lastChannelId,
-              name: channel.name,
-              type: channel.type,
+              ...channel,
               readTimestamp: incremented,
               unreadCount: 0
             });

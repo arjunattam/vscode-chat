@@ -1,6 +1,5 @@
 export const CHANGE_CHANNEL_TITLE = "Select a channel";
 export const RELOAD_CHANNELS = "Reload Channels";
-export const INVALID_CHANNEL = "Invalid channel selected";
 export const TOKEN_NOT_FOUND = "Slack token not found in settings.";
 export const GENERATE_TOKEN = "Generate token";
 export const OPEN_SETTINGS = "Open settings";

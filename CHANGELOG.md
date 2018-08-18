@@ -2,6 +2,13 @@
 
 All notable changes to the vscode-chat extension will be documented in this file. This follows the [Keep a Changelog](http://keepachangelog.com/) format.
 
+## [0.5.2] - 2018-08-18
+
+### Fixed
+
+- Fixed date separators computation for local time zones
+- Fixed a race condition where loading channel message history would assign messages to an incorrect channel.
+
 ## [0.5.1] - 2018-08-16
 
 ### Fixed
