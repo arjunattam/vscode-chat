@@ -12,14 +12,23 @@ import {
   ChannelType
 } from "./interfaces";
 import StatusItem from "./status";
-import ConfigHelper from "./configuration";
+import ConfigHelper from "./config";
 
 const stateKeys = {
+  INSTALLATION_ID: "installationId",
   LAST_CHANNEL_ID: "lastChannelId",
   CHANNELS: "channels",
   USER_INFO: "userInfo",
   USERS: "users"
 };
+
+function uuidv4() {
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function(c) {
+    var r = (Math.random() * 16) | 0,
+      v = c == "x" ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
+}
 
 function isSuperset(set, subset) {
   for (var elem of subset) {
@@ -40,6 +49,7 @@ function difference(setA, setB) {
 
 export default class Store implements IStore {
   slackToken: string;
+  installationId: string;
   lastChannelId: string;
   channels: SlackChannel[] = [];
   channelsFetchedAt: Date;
@@ -61,6 +71,14 @@ export default class Store implements IStore {
     this.currentUserInfo = globalState.get(stateKeys.USER_INFO);
     this.users = globalState.get(stateKeys.USERS);
     this.lastChannelId = globalState.get(stateKeys.LAST_CHANNEL_ID);
+    this.installationId = globalState.get(stateKeys.INSTALLATION_ID);
+
+    if (!this.installationId) {
+      // Generate one-time installation id and save it
+      const uuidStr = uuidv4();
+      globalState.update(stateKeys.INSTALLATION_ID, uuidStr);
+      this.installationId = uuidStr;
+    }
 
     if (this.currentUserInfo && this.slackToken) {
       if (this.currentUserInfo.token !== this.slackToken) {

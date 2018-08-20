@@ -1,18 +1,17 @@
 export const CONFIG_ROOT = "chat";
 export const EXTENSION_ID = "karigari.chat";
 export const OUTPUT_CHANNEL_NAME = "Slack Chat";
-export const APP_INSIGHTS_KEY = "ac30cb4c-9282-4947-8652-4a0ac828f0ce";
+export const AMPLITUDE_API_KEY = "0a0e040e22c5bd1989d1aec93fb5b9eb";
+
+// Is there a way to get this url from the vsls extension?
+export const LIVE_SHARE_BASE_URL = `insiders.liveshare.vsengsaas.visualstudio.com`;
+export const VSLS_EXTENSION_ID = `ms-vsliveshare.vsliveshare`;
 
 export const LiveShareCommands = {
   START: "liveshare.start",
   END: "liveshare.end",
   JOIN: "liveshare.join"
 };
-
-// Is there a way to get this url from the vsls extension?
-export const LIVE_SHARE_BASE_URL = `insiders.liveshare.vsengsaas.visualstudio.com`;
-export const VSLS_EXTENSION_ID = `ms-vsliveshare.vsliveshare`;
-export const TRAVIS_BASE_URL = `travis-ci.org`;
 
 export const VSCodeCommands = {
   OPEN: "vscode.open",
@@ -45,6 +44,7 @@ export const REVERSE_SLASH_COMMANDS = {
 };
 
 // Internal uri schemes
+export const TRAVIS_BASE_URL = `travis-ci.org`;
 export const TRAVIS_SCHEME = "chat-travis-ci";
 
 // Slack App

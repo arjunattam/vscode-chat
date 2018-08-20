@@ -12,7 +12,7 @@ import ChatTreeProviders from "./tree";
 import travis from "./providers/travis";
 import { SlackProtocolHandler } from "./uri";
 import { openUrl } from "./utils";
-import ConfigHelper from "./configuration";
+import ConfigHelper from "./config";
 
 let store: Store | undefined = undefined;
 let controller: ViewController | undefined = undefined;
@@ -21,6 +21,7 @@ let messenger: SlackMessenger | undefined = undefined;
 
 export function activate(context: vscode.ExtensionContext) {
   store = new Store(context);
+  console.log(store.installationId);
 
   controller = new ViewController(
     context,

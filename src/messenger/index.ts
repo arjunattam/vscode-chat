@@ -2,7 +2,7 @@ import * as vscode from "vscode";
 import * as str from "../strings";
 import { RTMClient, RTMClientOptions } from "@slack/client";
 import * as HttpsProxyAgent from "https-proxy-agent";
-import ConfigHelper from "../configuration";
+import ConfigHelper from "../config";
 import SlackAPIClient, { getMessage } from "../client";
 import {
   SlackChannelMessages,

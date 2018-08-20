@@ -1,6 +1,6 @@
 import { ExtensionContext } from "vscode";
 import SlackMessenger from "../messenger";
-import WebviewContainer from "../ui";
+import WebviewContainer from "../webview";
 import { ExtensionMessage, UIMessage } from "../interfaces";
 import { SLASH_COMMANDS, REVERSE_SLASH_COMMANDS } from "../constants";
 import * as str from "../strings";

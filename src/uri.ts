@@ -1,7 +1,7 @@
 import * as vscode from "vscode";
 import * as str from "./strings";
-import ConfigHelper from "./configuration";
 import IssueReporter from "./issues";
+import ConfigHelper from "./config";
 
 export class SlackProtocolHandler implements vscode.UriHandler {
   handleUri(uri: vscode.Uri): vscode.ProviderResult<void> {

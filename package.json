@@ -136,12 +136,12 @@
     }
   },
   "scripts": {
-    "copy-static": "rm -rf static && mkdir -p static && cp src/ui/static* static/.",
     "compile": "tsc -p ./",
-    "postcompile": "npm run copy-static",
-    "watch": "tsc-watch -p ./ --onSuccess \"npm run copy-static\"",
+    "postcompile": "npm run webview:setup",
+    "watch": "tsc-watch -p ./ --onSuccess \"npm run webview:setup\"",
     "postinstall": "node ./node_modules/vscode/bin/install",
     "test": "npm run compile && node ./node_modules/vscode/bin/test",
+    "webview:setup": "rm -rf static && mkdir -p static && cp src/webview/static* static/.",
     "vscode:prepublish": "npm run compile"
   },
   "devDependencies": {
@@ -160,7 +160,6 @@
     "markdown-it-slack": "^1.2.0",
     "request": "^2.88.0",
     "request-promise-native": "^1.0.5",
-    "vscode-extension-telemetry": "^0.0.17",
     "vsls": "^0.3.426"
   }
 }
