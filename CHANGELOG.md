@@ -2,6 +2,12 @@
 
 All notable changes to the vscode-chat extension will be documented in this file. This follows the [Keep a Changelog](http://keepachangelog.com/) format.
 
+## [0.5.5] - 2018-08-20
+
+### Added
+
+- Added a fallback for "Sign in with Slack" for situations where the system-level URI scheme handler fails.
+
 ## [0.5.4] - 2018-08-18
 
 ### Added
