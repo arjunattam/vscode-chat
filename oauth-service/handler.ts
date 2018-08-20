@@ -1,6 +1,6 @@
 import { APIGatewayEvent, Callback, Context, Handler } from "aws-lambda";
 import * as request from "request-promise-native";
-const fs = require("fs");
+import html from "./index.template.html";
 
 interface APIResponse {
   token: string;
@@ -51,22 +51,15 @@ const handleSuccess = (code: string, cb: Callback) => {
 
 const handleError = (error: string, cb: Callback) => {
   console.log("Running handleError:", error);
-
-  fs.readFile("index.template.html", "utf8", (err, input) => {
-    if (err) {
-      console.log("fs error:", err);
-    }
-
-    const html = input.replace("{{error}}", error);
-    const response = {
-      statusCode: 200,
-      headers: {
-        "Content-Type": "text/html"
-      },
-      body: html
-    };
-    cb(null, response);
-  });
+  const htmlResponse = html.replace("{{error}}", error);
+  const response = {
+    statusCode: 200,
+    headers: {
+      "Content-Type": "text/html"
+    },
+    body: htmlResponse
+  };
+  cb(null, response);
 };
 
 export const redirect: Handler = (

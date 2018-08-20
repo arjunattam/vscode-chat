@@ -14,6 +14,7 @@
   "devDependencies": {
     "@types/aws-lambda": "8.10.1",
     "@types/node": "^8.0.57",
+    "html-loader": "^0.5.5",
     "serverless-offline": "^3.25.8",
     "serverless-webpack": "^5.1.1",
     "ts-loader": "^4.2.0",
