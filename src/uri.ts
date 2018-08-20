@@ -1,16 +1,34 @@
 import * as vscode from "vscode";
+import * as str from "./strings";
 import ConfigHelper from "./configuration";
+import IssueReporter from "./issues";
 
 export class SlackProtocolHandler implements vscode.UriHandler {
   handleUri(uri: vscode.Uri): vscode.ProviderResult<void> {
     // vscode://karigari.chat/redirect?url=foobar
     const { path, query } = uri;
+    const parsed = this.parseQuery(query);
 
     switch (path) {
       case "/redirect":
-        const parsed = this.parseQuery(query);
         return ConfigHelper.setToken(parsed.token);
+      case "/error":
+        return this.showIssuePrompt(parsed.msg);
     }
+  }
+
+  showIssuePrompt(errorMsg: string) {
+    const actionItems = [str.REPORT_ISSUE];
+    vscode.window
+      .showWarningMessage(str.AUTH_FAILED_MESSAGE, ...actionItems)
+      .then(selected => {
+        switch (selected) {
+          case str.REPORT_ISSUE:
+            const body = `Sign in with Slack failed: ${errorMsg}`;
+            const title = `[vscode] ${body}`;
+            IssueReporter.openNewIssue(title, body);
+        }
+      });
   }
 
   parseQuery(queryString): any {

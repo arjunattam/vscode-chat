@@ -1,6 +1,7 @@
 import * as vscode from "vscode";
 import * as str from "./strings";
-import { VSCodeCommands, CONFIG_ROOT, SLACK_OAUTH } from "./constants";
+import { CONFIG_ROOT, SLACK_OAUTH } from "./constants";
+import { openUrl } from "./utils";
 
 const TOKEN_CONFIG_SECTION = "slack.legacyToken";
 
@@ -18,13 +19,12 @@ class ConfigHelper {
       return slack.legacyToken;
     } else {
       const actionItems = [str.SIGN_IN_SLACK];
-
       vscode.window
         .showInformationMessage(str.TOKEN_NOT_FOUND, ...actionItems)
         .then(selected => {
           switch (selected) {
             case str.SIGN_IN_SLACK:
-              this.openUrl(SLACK_OAUTH);
+              openUrl(SLACK_OAUTH);
               break;
           }
         });
@@ -32,21 +32,13 @@ class ConfigHelper {
   }
 
   static setToken(token: string): Thenable<void> {
+    // TODO: There is no token validation. We need to add one.
     const rootConfig = this.getRootConfig();
     return rootConfig.update(
       TOKEN_CONFIG_SECTION,
       token,
       vscode.ConfigurationTarget.Global
     );
-  }
-
-  static openUrl(url: string) {
-    const parsed = vscode.Uri.parse(url);
-    return vscode.commands.executeCommand(VSCodeCommands.OPEN, parsed);
-  }
-
-  static openSettings() {
-    vscode.commands.executeCommand(VSCodeCommands.OPEN_SETTINGS);
   }
 
   static getProxyUrl() {

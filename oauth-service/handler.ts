@@ -1,6 +1,7 @@
 import { APIGatewayEvent, Callback, Context, Handler } from "aws-lambda";
 import * as request from "request-promise-native";
-import html from "./index.template.html";
+import errorHtml from "./error.template.html";
+import successHtml from "./success.template.html";
 
 interface APIResponse {
   token: string;
@@ -37,11 +38,15 @@ const handleSuccess = (code: string, cb: Callback) => {
     if (!token) {
       handleError(error, cb);
     } else {
+      const redirect = `vscode://karigari.chat/redirect?token=${token}`;
       const response = {
-        statusCode: 301,
+        statusCode: 200,
         headers: {
-          Location: `vscode://karigari.chat/redirect?token=${token}`
-        }
+          "Content-Type": "text/html"
+        },
+        body: successHtml
+          .replace(/{{redirect}}/g, redirect)
+          .replace(/{{token}}/g, token)
       };
 
       cb(null, response);
@@ -51,13 +56,21 @@ const handleSuccess = (code: string, cb: Callback) => {
 
 const handleError = (error: string, cb: Callback) => {
   console.log("Running handleError:", error);
-  const htmlResponse = html.replace("{{error}}", error);
+  const encode = encodeURIComponent;
+  const title = `[oauth-service] Sign in with Slack failed: ${error}`;
+  const body = `- Extension version:\n- VS Code version:`;
+  const baseUrl = "https://github.com/karigari/vscode-chat/issues/new/";
+  const issueUrl = `${baseUrl}?title=${encode(title)}&body=${encode(body)}`;
+  const redirect = `vscode://karigari.chat/error?msg=${error}`;
   const response = {
     statusCode: 200,
     headers: {
       "Content-Type": "text/html"
     },
-    body: htmlResponse
+    body: errorHtml
+      .replace(/{{error}}/g, error)
+      .replace(/{{redirect}}/g, redirect)
+      .replace(/{{issues}}/g, issueUrl)
   };
   cb(null, response);
 };

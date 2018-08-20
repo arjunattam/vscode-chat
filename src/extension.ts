@@ -11,6 +11,7 @@ import { VSLS_EXTENSION_ID, CONFIG_ROOT, TRAVIS_SCHEME } from "./constants";
 import ChatTreeProviders from "./tree";
 import travis from "./providers/travis";
 import { SlackProtocolHandler } from "./uri";
+import { openUrl } from "./utils";
 import ConfigHelper from "./configuration";
 
 let store: Store | undefined = undefined;
@@ -141,7 +142,7 @@ export function activate(context: vscode.ExtensionContext) {
   };
 
   const authenticate = () => {
-    return ConfigHelper.openUrl(SLACK_OAUTH);
+    return openUrl(SLACK_OAUTH);
   };
 
   const resetConfiguration = (event: vscode.ConfigurationChangeEvent) => {
@@ -165,6 +166,19 @@ export function activate(context: vscode.ExtensionContext) {
     }
   };
 
+  const configureToken = () => {
+    vscode.window
+      .showInputBox({
+        placeHolder: str.TOKEN_PLACEHOLDER,
+        password: true
+      })
+      .then(input => {
+        if (!!input) {
+          return ConfigHelper.setToken(input);
+        }
+      });
+  };
+
   // Setup tree providers
   chatTreeProvider = new ChatTreeProviders(store);
   const treeDisposables: vscode.Disposable[] = chatTreeProvider.register();
@@ -180,6 +194,10 @@ export function activate(context: vscode.ExtensionContext) {
     vscode.commands.registerCommand(SelfCommands.OPEN, openSlackPanel),
     vscode.commands.registerCommand(SelfCommands.CHANGE, changeSlackChannel),
     vscode.commands.registerCommand(SelfCommands.SIGN_IN, authenticate),
+    vscode.commands.registerCommand(
+      SelfCommands.CONFIGURE_TOKEN,
+      configureToken
+    ),
     vscode.commands.registerCommand(SelfCommands.LIVE_SHARE, item =>
       shareVslsLink({ channel: item.channel, user: item.user })
     ),
