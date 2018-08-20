@@ -1,7 +1,13 @@
 import { APIGatewayEvent, Callback, Context, Handler } from "aws-lambda";
 import * as request from "request-promise-native";
+const fs = require("fs");
 
-const getSlackToken = async (code: string): Promise<string> => {
+interface APIResponse {
+  token: string;
+  error: string;
+}
+
+const getSlackToken = async (code: string): Promise<APIResponse> => {
   const uri = "https://slack.com/api/oauth.access";
   var options = {
     uri,
@@ -16,10 +22,51 @@ const getSlackToken = async (code: string): Promise<string> => {
   const { ok, error, access_token } = result;
 
   if (!ok) {
-    console.error("OAuth error:", error);
+    return { token: null, error };
   } else {
-    return access_token;
+    return { token: access_token, error: null };
   }
+};
+
+const handleSuccess = (code: string, cb: Callback) => {
+  const tokenPromise = getSlackToken(code);
+  tokenPromise.then((result: APIResponse) => {
+    // Redirect to native vscode uri
+    const { token, error } = result;
+
+    if (!token) {
+      handleError(error, cb);
+    } else {
+      const response = {
+        statusCode: 301,
+        headers: {
+          Location: `vscode://karigari.chat/redirect?token=${token}`
+        }
+      };
+
+      cb(null, response);
+    }
+  });
+};
+
+const handleError = (error: string, cb: Callback) => {
+  console.log("Running handleError:", error);
+
+  fs.readFile("index.template.html", "utf8", (err, input) => {
+    if (err) {
+      console.log("fs error:", err);
+    }
+
+    const html = input.replace("{{error}}", error);
+    const response = {
+      statusCode: 200,
+      headers: {
+        "Content-Type": "text/html"
+      },
+      body: html
+    };
+    cb(null, response);
+  });
 };
 
 export const redirect: Handler = (
@@ -28,18 +75,13 @@ export const redirect: Handler = (
   cb: Callback
 ) => {
   const { queryStringParameters } = event;
-  const { code } = queryStringParameters;
-  const tokenPromise = getSlackToken(code);
+  const { code, error } = queryStringParameters;
 
-  tokenPromise.then(token => {
-    // Response is a redirect to vscode url
-    const response = {
-      statusCode: 301,
-      headers: {
-        Location: `vscode://karigari.chat/redirect?token=${token}`
-      }
-    };
+  if (!!code) {
+    handleSuccess(code, cb);
+  }
 
-    cb(null, response);
-  });
+  if (!!error) {
+    handleError(error, cb);
+  }
 };
