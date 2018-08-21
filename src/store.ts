@@ -47,7 +47,7 @@ function difference(setA, setB) {
   return _difference;
 }
 
-export default class Store implements IStore {
+export default class Store implements IStore, vscode.Disposable {
   slackToken: string;
   installationId: string;
   lastChannelId: string;
@@ -113,7 +113,7 @@ export default class Store implements IStore {
     this.updateAllUI();
   }
 
-  disposeStatusItem() {
+  dispose() {
     this.statusItem.dispose();
   }
 

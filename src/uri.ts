@@ -3,7 +3,7 @@ import * as str from "./strings";
 import IssueReporter from "./issues";
 import ConfigHelper from "./config";
 
-export class SlackProtocolHandler implements vscode.UriHandler {
+export class ExtensionUriHandler implements vscode.UriHandler {
   handleUri(uri: vscode.Uri): vscode.ProviderResult<void> {
     // vscode://karigari.chat/redirect?url=foobar
     const { path, query } = uri;

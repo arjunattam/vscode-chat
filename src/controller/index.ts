@@ -1,5 +1,4 @@
 import { ExtensionContext } from "vscode";
-import SlackMessenger from "../messenger";
 import WebviewContainer from "../webview";
 import { ExtensionMessage, UIMessage } from "../interfaces";
 import { SLASH_COMMANDS, REVERSE_SLASH_COMMANDS } from "../constants";
@@ -22,7 +21,6 @@ export const getCommand = (text: string): MessageCommand => {
  * Handles message passing between the UI and extension
  */
 class ViewController {
-  messenger: SlackMessenger | undefined;
   ui: WebviewContainer | undefined;
   isUIReady: Boolean = false; // Vuejs loaded
   pendingMessage: UIMessage = undefined;
@@ -30,12 +28,9 @@ class ViewController {
   constructor(
     private context: ExtensionContext,
     private onUIVisible: () => void,
-    private onUIFocus: () => void
+    private onUIFocus: () => void,
+    private msgSender: (string) => Promise<void>
   ) {}
-
-  setMessenger(messenger: SlackMessenger) {
-    this.messenger = messenger;
-  }
 
   isUILoaded = () => !!this.ui;
 
@@ -119,7 +114,7 @@ class ViewController {
   };
 
   sendToSlack = (text: string) => {
-    return this.messenger.sendMessage(text);
+    return this.msgSender(text);
   };
 
   sendToExtension = (message: ExtensionMessage) => {

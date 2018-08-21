@@ -1,34 +1,82 @@
 import * as vscode from "vscode";
-// import * as amplitude from "amplitude-js";
-// import TelemetryReporter from "vscode-extension-telemetry";
-import { EXTENSION_ID } from "./constants";
+import * as Mixpanel from "mixpanel";
+import { MIXPANEL_TOKEN } from "./constants";
 import ConfigHelper from "./config";
+import { TelemetryEvent, IStore, EventType, EventSource } from "./interfaces";
+import { getVersions, Versions } from "./utils";
 
 export default class Reporter implements vscode.Disposable {
   private hasUserOptIn: boolean = false;
-  // private reporter: TelemetryReporter;
-  static shared: Reporter;
+  private uniqueId: string;
+  private mixpanel: Mixpanel.Mixpanel;
+  private versions: Versions;
 
-  constructor(uniqueId: string) {
-    const extension = vscode.extensions.getExtension(EXTENSION_ID);
-    const extensionVersion = extension.packageJSON.version;
+  constructor(private store: IStore) {
+    this.uniqueId = this.store.installationId;
+    this.versions = getVersions();
 
-    if (process.env.IS_DEBUG !== "true") {
-      this.hasUserOptIn = ConfigHelper.hasTelemetry();
+    // TODO: remove these comments after testing
+    // if (process.env.IS_DEBUG !== "true") {
+    this.hasUserOptIn = ConfigHelper.hasTelemetry();
+    // }
+
+    if (this.hasUserOptIn) {
+      this.mixpanel = Mixpanel.init(MIXPANEL_TOKEN);
     }
-
-    // this.reporter = new TelemetryReporter(
-    //   EXTENSION_ID,
-    //   extensionVersion,
-    //   APP_INSIGHTS_KEY
-    // );
   }
 
   dispose() {
-    // return this.reporter.dispose();
+    // TODO: clear pending events here (return Promise<any>)
   }
 
-  sendEvent(eventName: string) {
-    // return this.reporter.sendTelemetryEvent(eventName);
+  record(
+    name: EventType,
+    source: EventSource | undefined,
+    channelId: string | undefined
+  ) {
+    let channelType = undefined;
+
+    if (!!channelId) {
+      const channel = this.store.getChannel(channelId);
+      channelType = !!channel ? channel.type : undefined;
+    }
+
+    return this.sendEvent({
+      type: name,
+      time: new Date(),
+      properties: {
+        source: source,
+        channel_type: channelType
+      }
+    });
+  }
+
+  sendEvent(event: TelemetryEvent): Promise<any> {
+    if (!!this.mixpanel) {
+      const { os, extension, editor } = this.versions;
+      const { type: name, properties, time } = event;
+
+      return new Promise((resolve, reject) => {
+        this.mixpanel.track(
+          name,
+          {
+            distinct_id: this.uniqueId,
+            // TODO: move versions to user properties?
+            extension_version: extension,
+            os_version: os,
+            editor_version: editor,
+            ...properties,
+            time
+          },
+          error => {
+            if (!error) {
+              resolve();
+            } else {
+              reject(error);
+            }
+          }
+        );
+      });
+    }
   }
 }

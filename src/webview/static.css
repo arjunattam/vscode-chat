@@ -17,10 +17,12 @@ body,
 }
 
 .date-heading {
-  border-bottom: 2px solid var(--vscode-sideBar-background);
   color: var(--vscode-sideBar-foreground);
-  text-align: right;
   font-weight: normal;
+}
+
+.message-timestamp {
+  color: var(--vscode-sideBar-foreground);
 }
 
 .message-group {

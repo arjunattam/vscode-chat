@@ -1,7 +1,6 @@
 export const CONFIG_ROOT = "chat";
 export const EXTENSION_ID = "karigari.chat";
 export const OUTPUT_CHANNEL_NAME = "Slack Chat";
-export const AMPLITUDE_API_KEY = "0a0e040e22c5bd1989d1aec93fb5b9eb";
 
 // Is there a way to get this url from the vsls extension?
 export const LIVE_SHARE_BASE_URL = `insiders.liveshare.vsengsaas.visualstudio.com`;
@@ -20,7 +19,7 @@ export const VSCodeCommands = {
 
 export const SelfCommands = {
   OPEN: "extension.chat.openSlackPanel",
-  CHANGE: "extension.chat.changeChannel",
+  CHANGE_CHANNEL: "extension.chat.changeChannel",
   SIGN_IN: "extension.chat.authenticate",
   CONFIGURE_TOKEN: "extension.chat.configureToken",
   LIVE_SHARE: "extension.chat.startLiveShare"
@@ -49,3 +48,6 @@ export const TRAVIS_SCHEME = "chat-travis-ci";
 
 // Slack App
 export const SLACK_OAUTH = `https://slack.com/oauth/authorize?scope=client&client_id=282186700213.419156835749`;
+
+// Telemetry
+export const MIXPANEL_TOKEN = "14c9fea2bf4e06ba766e16eca1bce728";

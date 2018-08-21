@@ -1,7 +1,7 @@
 import * as vscode from "vscode";
 import * as str from "./strings";
-import { CONFIG_ROOT, SLACK_OAUTH } from "./constants";
-import { openUrl } from "./utils";
+import { CONFIG_ROOT, SelfCommands } from "./constants";
+import { EventSource } from "./interfaces";
 
 const TOKEN_CONFIG_KEY = "slack.legacyToken";
 const TELEMETRY_CONFIG_ROOT = "telemetry";
@@ -26,7 +26,9 @@ class ConfigHelper {
         .then(selected => {
           switch (selected) {
             case str.SIGN_IN_SLACK:
-              openUrl(SLACK_OAUTH);
+              vscode.commands.executeCommand(SelfCommands.SIGN_IN, {
+                source: EventSource.info
+              });
               break;
           }
         });
@@ -49,12 +51,12 @@ class ConfigHelper {
     return proxyUrl;
   }
 
-  static hasTelemetry() {
+  static hasTelemetry(): boolean {
     const config = vscode.workspace.getConfiguration(TELEMETRY_CONFIG_ROOT);
     return !!config.get<boolean>(TELEMETRY_CONFIG_KEY);
   }
 
-  static hasTravisProvider() {
+  static hasTravisProvider(): boolean {
     // Stored under CONFIG_ROOT.providers, which is string[]
     const { providers } = this.getRootConfig();
     return providers && providers.indexOf("travis") >= 0;

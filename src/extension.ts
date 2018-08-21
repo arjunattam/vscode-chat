@@ -5,28 +5,37 @@ import ViewController from "./controller";
 import Store from "./store";
 import Logger from "./logger";
 import * as str from "./strings";
-import { SlackChannel, ChatArgs, SlackCurrentUser } from "./interfaces";
+import {
+  SlackChannel,
+  ChatArgs,
+  SlackCurrentUser,
+  EventType,
+  EventSource
+} from "./interfaces";
 import { SelfCommands, SLACK_OAUTH } from "./constants";
 import { VSLS_EXTENSION_ID, CONFIG_ROOT, TRAVIS_SCHEME } from "./constants";
 import ChatTreeProviders from "./tree";
 import travis from "./providers/travis";
-import { SlackProtocolHandler } from "./uri";
+import { ExtensionUriHandler } from "./uri";
 import { openUrl } from "./utils";
 import ConfigHelper from "./config";
+import Reporter from "./telemetry";
 
 let store: Store | undefined = undefined;
 let controller: ViewController | undefined = undefined;
 let chatTreeProvider: ChatTreeProviders | undefined = undefined;
 let messenger: SlackMessenger | undefined = undefined;
+let reporter: Reporter | undefined = undefined;
 
 export function activate(context: vscode.ExtensionContext) {
   store = new Store(context);
-  console.log(store.installationId);
+  reporter = new Reporter(store);
 
   controller = new ViewController(
     context,
     () => store.loadChannelHistory(store.lastChannelId),
-    () => store.updateReadMarker()
+    () => store.updateReadMarker(),
+    text => sendMessage(text)
   );
   store.setUiCallback(uiMessage => controller.sendToUI(uiMessage));
 
@@ -39,7 +48,6 @@ export function activate(context: vscode.ExtensionContext) {
       messengerPromise = Promise.resolve(store.currentUserInfo);
     } else {
       messenger = new SlackMessenger(store);
-      controller.setMessenger(messenger);
       messengerPromise = messenger.start();
     }
 
@@ -54,6 +62,14 @@ export function activate(context: vscode.ExtensionContext) {
         return store.getChannelsPromise();
       })
       .catch(error => Logger.log(error));
+  };
+
+  const sendMessage = (text: string): Promise<void> => {
+    if (!!messenger) {
+      const { lastChannelId } = store;
+      reporter.record(EventType.messageSent, undefined, lastChannelId);
+      return messenger.sendMessage(text, lastChannelId);
+    }
   };
 
   const askForChannel = (): Promise<SlackChannel> => {
@@ -120,12 +136,24 @@ export function activate(context: vscode.ExtensionContext) {
       .then(() => {
         store.updateWebviewUI();
         const { lastChannelId } = store;
+        const hasArgs = !!args && !!args.source;
+        reporter.record(
+          EventType.viewOpened,
+          hasArgs ? args.source : EventSource.palette,
+          lastChannelId
+        );
         store.loadChannelHistory(lastChannelId);
       })
       .catch(error => console.error(error));
   };
 
-  const changeSlackChannel = () => {
+  const changeChannel = (args?: any) => {
+    const hasArgs = !!args && !!args.source;
+    reporter.record(
+      EventType.channelChanged,
+      hasArgs ? args.source : EventSource.palette,
+      undefined
+    );
     return askForChannel().then(() => openSlackPanel());
   };
 
@@ -139,10 +167,18 @@ export function activate(context: vscode.ExtensionContext) {
     }
 
     let channelId: string = await getChatChannelId(args);
-    messenger.sendMessageToChannel(vslsUri.toString(), channelId);
+    // TODO: we are not tracking `/live share` events
+    reporter.record(EventType.vslsShared, EventSource.activity, channelId);
+    messenger.sendMessage(vslsUri.toString(), channelId);
   };
 
-  const authenticate = () => {
+  const authenticate = (args?: any) => {
+    const hasArgs = !!args && !!args.source;
+    reporter.record(
+      EventType.authStarted,
+      hasArgs ? args.source : EventSource.palette,
+      undefined
+    );
     return openUrl(SLACK_OAUTH);
   };
 
@@ -168,6 +204,7 @@ export function activate(context: vscode.ExtensionContext) {
   };
 
   const configureToken = () => {
+    reporter.record(EventType.tokenConfigured, EventSource.palette, undefined);
     vscode.window
       .showInputBox({
         placeHolder: str.TOKEN_PLACEHOLDER,
@@ -190,27 +227,28 @@ export function activate(context: vscode.ExtensionContext) {
   // Setup context for conditional views
   setVslsContext();
 
-  const uriHandler = new SlackProtocolHandler();
+  const uriHandler = new ExtensionUriHandler();
   context.subscriptions.push(
     vscode.commands.registerCommand(SelfCommands.OPEN, openSlackPanel),
-    vscode.commands.registerCommand(SelfCommands.CHANGE, changeSlackChannel),
+    vscode.commands.registerCommand(SelfCommands.CHANGE_CHANNEL, changeChannel),
     vscode.commands.registerCommand(SelfCommands.SIGN_IN, authenticate),
     vscode.commands.registerCommand(
       SelfCommands.CONFIGURE_TOKEN,
       configureToken
     ),
     vscode.commands.registerCommand(SelfCommands.LIVE_SHARE, item =>
-      shareVslsLink({ channel: item.channel, user: item.user })
+      shareVslsLink({
+        channel: item.channel,
+        user: item.user,
+        source: EventSource.activity
+      })
     ),
     vscode.workspace.onDidChangeConfiguration(resetConfiguration),
     vscode.workspace.registerTextDocumentContentProvider(TRAVIS_SCHEME, travis),
     vscode.window.registerUriHandler(uriHandler),
-    ...treeDisposables
+    ...treeDisposables,
+    store
   );
 }
 
-export function deactivate() {
-  if (store) {
-    store.disposeStatusItem();
-  }
-}
+export function deactivate() {}

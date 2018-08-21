@@ -118,6 +118,7 @@ export interface UIMessageGroup {
 
 export interface IStore {
   slackToken: string;
+  installationId: string;
   lastChannelId: string;
   channels: SlackChannel[];
   currentUserInfo: SlackCurrentUser;
@@ -145,12 +146,35 @@ export interface IStore {
   ) => void;
 }
 
-export interface IMessenger {
-  start: () => Promise<SlackCurrentUser>;
-  sendMessage: (text: string) => Promise<any>;
-}
-
 export interface ChatArgs {
   channel: SlackChannel;
   user: SlackUser;
+  source: EventSource;
+}
+
+export enum EventSource {
+  status = "status_item",
+  palette = "command_palette",
+  activity = "activity_bar",
+  info = "info_message"
+}
+
+export enum EventType {
+  viewOpened = "webview_opened",
+  messageSent = "message_sent",
+  vslsShared = "vsls_shared",
+  tokenConfigured = "token_configured",
+  channelChanged = "channel_changed",
+  authStarted = "auth_started"
+}
+
+export interface EventProperties {
+  source: EventSource | undefined;
+  channel_type: ChannelType | undefined;
+}
+
+export interface TelemetryEvent {
+  type: EventType;
+  time: Date;
+  properties: EventProperties;
 }

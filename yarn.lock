@@ -63,6 +63,10 @@
   version "1.5.3"
   resolved "https://registry.yarnpkg.com/@types/loglevel/-/loglevel-1.5.3.tgz#adfce55383edc5998a2170ad581b3e23d6adb5b8"
 
+"@types/mixpanel@^2.14.0":
+  version "2.14.0"
+  resolved "https://registry.yarnpkg.com/@types/mixpanel/-/mixpanel-2.14.0.tgz#ecca57f7f9fa18eb4e8096bd92a6afffd1511acc"
+
 "@types/mocha@^2.2.42":
   version "2.2.48"
   resolved "https://registry.yarnpkg.com/@types/mocha/-/mocha-2.2.48.tgz#3523b126a0b049482e1c3c11877460f76622ffab"
@@ -906,7 +910,7 @@ http-signature@~1.2.0:
     jsprim "^1.2.2"
     sshpk "^1.7.0"
 
-https-proxy-agent@^2.2.1:
+https-proxy-agent@2.2.1, https-proxy-agent@^2.2.1:
   version "2.2.1"
   resolved "https://registry.yarnpkg.com/https-proxy-agent/-/https-proxy-agent-2.2.1.tgz#51552970fa04d723e04c56d04178c3f92592bbc0"
   dependencies:
@@ -1259,6 +1263,12 @@ mimic-response@^1.0.0:
 minimist@0.0.8:
   version "0.0.8"
   resolved "https://registry.yarnpkg.com/minimist/-/minimist-0.0.8.tgz#857fcabfc3397d2625b8228262e86aa7a011b05d"
+
+mixpanel@^0.9.2:
+  version "0.9.2"
+  resolved "https://registry.yarnpkg.com/mixpanel/-/mixpanel-0.9.2.tgz#b71c78e8914cb2c334e359673b1917740aa4d4ef"
+  dependencies:
+    https-proxy-agent "2.2.1"
 
 mkdirp@0.5.1, "mkdirp@>=0.5 0", mkdirp@^0.5.0, mkdirp@^0.5.1:
   version "0.5.1"

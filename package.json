@@ -145,6 +145,7 @@
     "vscode:prepublish": "npm run compile"
   },
   "devDependencies": {
+    "@types/mixpanel": "^2.14.0",
     "@types/mocha": "^2.2.42",
     "@types/node": "^8.0.0",
     "tsc-watch": "^1.0.22",
@@ -158,6 +159,7 @@
     "https-proxy-agent": "^2.2.1",
     "markdown-it": "^8.4.1",
     "markdown-it-slack": "^1.2.0",
+    "mixpanel": "^0.9.2",
     "request": "^2.88.0",
     "request-promise-native": "^1.0.5",
     "vsls": "^0.3.426"

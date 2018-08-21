@@ -64,6 +64,8 @@ To use this extension behind a proxy, specify the following configuration.
 }
 ```
 
+## Telemetry
+
 ## Contribute
 
 See [CONTRIBUTING](CONTRIBUTING.md). Our [issues](https://github.com/karigari/vscode-chat/issues) are the best place to look for contribution ideas.
