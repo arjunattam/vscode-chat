@@ -12,14 +12,7 @@ interface ChatTreeItem {
   user: SlackUser;
 }
 
-const GREEN_DOT = path.join(
-  __filename,
-  "..",
-  "..",
-  "public",
-  "icons",
-  "green.svg"
-);
+const GREEN_DOT_PATH = "public/icons/green.svg";
 
 export default class ChatTreeProviders {
   unreads: UnreadsTreeProvider;
@@ -28,12 +21,12 @@ export default class ChatTreeProviders {
   groups: GroupTreeProvider;
   users: OnlineUsersTreeProvider;
 
-  constructor(private store: Store) {
-    this.unreads = new UnreadsTreeProvider(store);
-    this.channels = new ChannelTreeProvider(store);
-    this.groups = new GroupTreeProvider(store);
-    this.ims = new IMsTreeProvider(store);
-    this.users = new OnlineUsersTreeProvider(store);
+  constructor(private store: Store, context: vscode.ExtensionContext) {
+    this.unreads = new UnreadsTreeProvider(store, context);
+    this.channels = new ChannelTreeProvider(store, context);
+    this.groups = new GroupTreeProvider(store, context);
+    this.ims = new IMsTreeProvider(store, context);
+    this.users = new OnlineUsersTreeProvider(store, context);
 
     this.setupCallbacks();
   }
@@ -74,7 +67,8 @@ class CustomTreeItem extends vscode.TreeItem {
     label: string,
     isOnline: boolean,
     channel: SlackChannel,
-    user: SlackUser
+    user: SlackUser,
+    greenDot: string
   ) {
     super(label);
 
@@ -82,8 +76,8 @@ class CustomTreeItem extends vscode.TreeItem {
 
     if (isOnline) {
       this.iconPath = {
-        light: GREEN_DOT,
-        dark: GREEN_DOT
+        light: greenDot,
+        dark: greenDot
       };
     }
 
@@ -98,8 +92,11 @@ class CustomTreeItem extends vscode.TreeItem {
 class BaseTreeProvider implements vscode.TreeDataProvider<ChatTreeItem> {
   private _onDidChangeTreeData = new vscode.EventEmitter<ChatTreeItem>();
   readonly onDidChangeTreeData? = this._onDidChangeTreeData.event;
+  private greenDot: string;
 
-  constructor(protected store: Store) {}
+  constructor(protected store: Store, context: vscode.ExtensionContext) {
+    this.greenDot = context.asAbsolutePath(GREEN_DOT_PATH);
+  }
 
   refresh(): void {
     // We can also refresh specific items, but since the ordering
@@ -115,7 +112,13 @@ class BaseTreeProvider implements vscode.TreeDataProvider<ChatTreeItem> {
     // TODO: when selected, the highlight on the tree item seems to stick. This might
     // be because we don't use URIs (~= each channel is a URI) to open/close. Need to investigate.
     const { label, isOnline, channel, user } = element;
-    const treeItem = new CustomTreeItem(label, isOnline, channel, user);
+    const treeItem = new CustomTreeItem(
+      label,
+      isOnline,
+      channel,
+      user,
+      this.greenDot
+    );
     return treeItem;
   }
 

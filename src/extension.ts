@@ -229,7 +229,7 @@ export function activate(context: vscode.ExtensionContext) {
   };
 
   // Setup tree providers
-  chatTreeProvider = new ChatTreeProviders(store);
+  chatTreeProvider = new ChatTreeProviders(store, context);
   const treeDisposables: vscode.Disposable[] = chatTreeProvider.register();
 
   // Setup real-time messenger and updated local state

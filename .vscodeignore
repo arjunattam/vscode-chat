@@ -9,5 +9,5 @@ tsconfig.json
 vsc-extension-quickstart.md
 tslint.json
 tokens
-node_modules/emoji-datasource/**
 oauth-service/**
+node_modules/**
