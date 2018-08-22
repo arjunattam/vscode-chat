@@ -2,7 +2,9 @@
 const path = require("path");
 const webpack = require("webpack");
 
-module.exports = {
+/** @type webpack.Configuration */
+
+const config = {
   mode: "production",
   entry: "./src/extension.ts",
   devtool: "source-map",
@@ -29,3 +31,5 @@ module.exports = {
   },
   plugins: [new webpack.IgnorePlugin(/^electron$/)]
 };
+
+module.exports = config;
