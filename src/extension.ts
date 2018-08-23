@@ -28,6 +28,7 @@ let messenger: SlackMessenger | undefined = undefined;
 let reporter: Reporter | undefined = undefined;
 
 export function activate(context: vscode.ExtensionContext) {
+  Logger.log("Activating Slack Chat");
   store = new Store(context);
   reporter = new Reporter(store);
 

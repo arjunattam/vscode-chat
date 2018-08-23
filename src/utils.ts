@@ -11,21 +11,25 @@ export const openSettings = () => {
   vscode.commands.executeCommand(VSCodeCommands.OPEN_SETTINGS);
 };
 
+export const getExtension = (extensionId): vscode.Extension<any> => {
+  return vscode.extensions.getExtension(extensionId);
+};
+
 export interface Versions {
   os: string;
   extension: string;
   editor: string;
 }
 
-export const getVersions = (): Versions => {
-  const extension = vscode.extensions.getExtension(EXTENSION_ID);
-  return {
-    os: `${os.type()} ${os.arch()} ${os.release()}`,
-    extension: extension.packageJSON.version,
-    editor: vscode.version
-  };
+export const getExtensionVersion = () => {
+  const extension = getExtension(EXTENSION_ID);
+  return extension.packageJSON.version;
 };
 
-export const getExtension = (extensionId): vscode.Extension<any> => {
-  return vscode.extensions.getExtension(extensionId);
+export const getVersions = (): Versions => {
+  return {
+    os: `${os.type()} ${os.arch()} ${os.release()}`,
+    extension: getExtensionVersion(),
+    editor: vscode.version
+  };
 };

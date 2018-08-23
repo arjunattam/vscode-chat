@@ -23,7 +23,7 @@ export default class Logger {
       this.setup();
     }
 
-    if (this.output) {
+    if (!!this.output) {
       this.output.appendLine(message);
     }
   }

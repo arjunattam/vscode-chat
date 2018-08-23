@@ -13,8 +13,11 @@ import {
 } from "./interfaces";
 import StatusItem from "./status";
 import ConfigHelper from "./config";
+import Logger from "./logger";
+import { getExtensionVersion } from "./utils";
 
 const stateKeys = {
+  EXTENSION_VERSION: "extensionVersion",
   INSTALLATION_ID: "installationId",
   LAST_CHANNEL_ID: "lastChannelId",
   CHANNELS: "channels",
@@ -81,6 +84,28 @@ export default class Store implements IStore, vscode.Disposable {
     }
 
     this.statusItem = new StatusItem();
+
+    // Extension version migrations
+    const existingVersion = globalState.get(stateKeys.EXTENSION_VERSION);
+    const currentVersion = getExtensionVersion();
+
+    if (existingVersion !== currentVersion) {
+      // There has been an upgrade. Apply data migrations if required.
+      Logger.log(`Extension updated to ${currentVersion}`);
+
+      if (!existingVersion && currentVersion === "0.5.6") {
+        // Migration for changed user names
+        Logger.log("Migrating for 0.5.6");
+        this.updateChannels([]);
+        this.updateUsers({});
+        this.usersFetchedAt = null;
+        this.channelsFetchedAt = null;
+      }
+
+      globalState.update(stateKeys.EXTENSION_VERSION, currentVersion);
+      const newstate = globalState.get(stateKeys.EXTENSION_VERSION);
+      Logger.log(`Updated state to new version: ${newstate}`);
+    }
   }
 
   generateInstallationId() {
@@ -191,13 +216,15 @@ export default class Store implements IStore, vscode.Disposable {
         ? this.messages[this.lastChannelId]
         : {};
 
-    this.uiCallback({
-      messages,
-      users: this.users,
-      currentUser: this.currentUserInfo,
-      channelName,
-      statusText: ""
-    });
+    if (!!this.uiCallback) {
+      this.uiCallback({
+        messages,
+        users: this.users,
+        currentUser: this.currentUserInfo,
+        channelName,
+        statusText: ""
+      });
+    }
   }
 
   getUnreadCount(channel: SlackChannel): number {
