@@ -64,6 +64,16 @@ To use this extension behind a proxy, specify the following configuration.
 }
 ```
 
+## Telemetry
+
+This extension collects anonymized telemetry data to improve the product. This respects your editor's telemetry settings, and you can opt-out by setting the `enableTelemetry` setting to `false`.
+
+```json
+{
+  "telemetry.enableTelemetry": false
+}
+```
+
 ## Contribute
 
 See [CONTRIBUTING](CONTRIBUTING.md). Our [issues](https://github.com/karigari/vscode-chat/issues) are the best place to look for contribution ideas.

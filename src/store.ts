@@ -12,14 +12,23 @@ import {
   ChannelType
 } from "./interfaces";
 import StatusItem from "./status";
-import ConfigHelper from "./configuration";
+import ConfigHelper from "./config";
 
 const stateKeys = {
+  INSTALLATION_ID: "installationId",
   LAST_CHANNEL_ID: "lastChannelId",
   CHANNELS: "channels",
   USER_INFO: "userInfo",
   USERS: "users"
 };
+
+function uuidv4() {
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function(c) {
+    var r = (Math.random() * 16) | 0,
+      v = c == "x" ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
+}
 
 function isSuperset(set, subset) {
   for (var elem of subset) {
@@ -38,8 +47,9 @@ function difference(setA, setB) {
   return _difference;
 }
 
-export default class Store implements IStore {
+export default class Store implements IStore, vscode.Disposable {
   slackToken: string;
+  installationId: string;
   lastChannelId: string;
   channels: SlackChannel[] = [];
   channelsFetchedAt: Date;
@@ -61,6 +71,7 @@ export default class Store implements IStore {
     this.currentUserInfo = globalState.get(stateKeys.USER_INFO);
     this.users = globalState.get(stateKeys.USERS);
     this.lastChannelId = globalState.get(stateKeys.LAST_CHANNEL_ID);
+    this.installationId = globalState.get(stateKeys.INSTALLATION_ID);
 
     if (this.currentUserInfo && this.slackToken) {
       if (this.currentUserInfo.token !== this.slackToken) {
@@ -70,6 +81,13 @@ export default class Store implements IStore {
     }
 
     this.statusItem = new StatusItem();
+  }
+
+  generateInstallationId() {
+    const uuidStr = uuidv4();
+    const { globalState } = this.context;
+    globalState.update(stateKeys.INSTALLATION_ID, uuidStr);
+    this.installationId = uuidStr;
   }
 
   clear() {
@@ -95,7 +113,7 @@ export default class Store implements IStore {
     this.updateAllUI();
   }
 
-  disposeStatusItem() {
+  dispose() {
     this.statusItem.dispose();
   }
 
@@ -263,7 +281,7 @@ export default class Store implements IStore {
 
   fetchUsers = (): Promise<SlackUsers> => {
     const client = new SlackAPIClient(this.slackToken);
-    return client.getAllUsers().then((users: SlackUsers) => {
+    return client.getUsers().then((users: SlackUsers) => {
       // Update users for their presence status, if already known
       let usersWithPresence: SlackUsers = {};
 

@@ -2,6 +2,18 @@
 
 All notable changes to the vscode-chat extension will be documented in this file. This follows the [Keep a Changelog](http://keepachangelog.com/) format.
 
+## [0.5.6] - xyz
+
+### Added
+
+- Slack webview font size now matches the font size of your editor.
+- Introductory support for message threads: historical messages show the number of thread replies. Future releases will build on this to add full thread replies support.
+- Added anonymized telemetry data collection; this respects the telemetry setting in your editor and you can opt-out by setting `enableTelemetry` to false.
+
+### Fixed
+
+- Updated user display names to be consistent with Slack clients.
+
 ## [0.5.5] - 2018-08-20
 
 ### Added

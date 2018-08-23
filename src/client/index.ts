@@ -1,6 +1,6 @@
 import { WebClient, WebClientOptions } from "@slack/client";
 import * as HttpsProxyAgent from "https-proxy-agent";
-import ConfigHelper from "../configuration";
+import ConfigHelper from "../config";
 import {
   SlackUsers,
   SlackChannel,
@@ -15,27 +15,28 @@ const getFile = rawFile => {
   return { name: rawFile.name, permalink: rawFile.permalink };
 };
 
-const getContent = rawAttachment => {
+const getContent = attachment => {
   return {
-    author: rawAttachment.author_name,
-    authorIcon: rawAttachment.author_icon,
-    pretext: rawAttachment.pretext,
-    title: rawAttachment.title,
-    titleLink: rawAttachment.title_link,
-    text: rawAttachment.text,
-    footer: rawAttachment.footer,
-    borderColor: rawAttachment.color
+    author: attachment.author_name,
+    authorIcon: attachment.author_icon,
+    pretext: attachment.pretext,
+    title: attachment.title,
+    titleLink: attachment.title_link,
+    text: attachment.text,
+    footer: attachment.footer,
+    borderColor: attachment.color
   };
 };
 
-const getReaction = rawReaction => ({
-  name: rawReaction.name,
-  count: rawReaction.count,
-  userIds: rawReaction.users
+const getReaction = reaction => ({
+  name: reaction.name,
+  count: reaction.count,
+  userIds: reaction.users
 });
 
 export const getMessage = (raw: any): SlackChannelMessages => {
-  const { files, ts, user, text, edited, bot_id, attachments, reactions } = raw;
+  const { files, ts, user, text, edited, bot_id } = raw;
+  const { attachments, reactions, reply_count, replies } = raw;
   let parsed: SlackChannelMessages = {};
 
   parsed[ts] = {
@@ -45,7 +46,10 @@ export const getMessage = (raw: any): SlackChannelMessages => {
     text: text,
     attachment: files ? getFile(files[0]) : null,
     reactions: reactions ? reactions.map(r => getReaction(r)) : [],
-    content: attachments ? getContent(attachments[0]) : null
+    content: attachments ? getContent(attachments[0]) : null,
+    replies: replies
+      ? replies.map(({ user, ts }) => ({ userId: user, timestamp: ts }))
+      : []
   };
 
   return parsed;
@@ -85,17 +89,22 @@ export default class SlackAPIClient {
       });
   };
 
-  getAllUsers(): Promise<SlackUsers> {
+  getUsers(): Promise<SlackUsers> {
     return this.client.apiCall("users.list", {}).then((response: any) => {
       const { members, ok } = response;
       let users = {};
 
       if (ok) {
         members.forEach(member => {
-          users[member.id] = {
-            id: member.id,
-            name: member.name,
-            imageUrl: member.profile.image_72
+          const { id, profile, real_name, name } = member;
+          const { display_name, image_72, image_24 } = profile;
+          users[id] = {
+            id,
+            // Conditional required for bots like @paperbot
+            name: display_name ? display_name : name,
+            fullName: real_name,
+            imageUrl: image_72,
+            smallImageUrl: image_24
           };
         });
 

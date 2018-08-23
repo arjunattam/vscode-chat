@@ -17,10 +17,12 @@ body,
 }
 
 .date-heading {
-  border-bottom: 2px solid var(--vscode-sideBar-background);
   color: var(--vscode-sideBar-foreground);
-  text-align: right;
   font-weight: normal;
+}
+
+.message-timestamp {
+  color: var(--vscode-sideBar-foreground);
 }
 
 .message-group {
@@ -184,4 +186,15 @@ div.msg-footer a:hover {
   margin: 5px 0;
   border-left: 3px solid white;
   padding-left: 7px;
+}
+
+.replies-container {
+  margin: 7px 0;
+  display: flex;
+  align-items: center;
+  min-height: 27px;
+}
+
+.reply-image {
+  margin: 0 5px;
 }

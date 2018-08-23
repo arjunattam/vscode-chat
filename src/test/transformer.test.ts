@@ -14,7 +14,8 @@ const getMessage = (text: string) => ({
     },
     reactions: [],
     timestamp: "",
-    userId: ""
+    userId: "",
+    replies: []
   }
 });
 

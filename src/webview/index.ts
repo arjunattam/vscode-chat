@@ -161,7 +161,7 @@ function getWebviewContent(staticPath) {
     <script src="${staticPath}/static.js"></script>
     <link rel="stylesheet" type="text/css" href="${staticPath}/static.css"></link>
   `;
-  const { fontFamily } = vscode.workspace.getConfiguration("editor");
+  const { fontFamily, fontSize } = vscode.workspace.getConfiguration("editor");
 
   return `<!DOCTYPE html>
   <html lang="en">
@@ -171,6 +171,7 @@ function getWebviewContent(staticPath) {
       <title>Slack</title>
       <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
       <style>code { font-family: ${fontFamily} }</style>
+      <style>body { font-size: ${fontSize}px; }</style>
       ${vueImports}
   </head>
   <body>
