@@ -85,17 +85,21 @@ export default class SlackAPIClient {
       });
   };
 
-  getAllUsers(): Promise<SlackUsers> {
+  getUsers(): Promise<SlackUsers> {
     return this.client.apiCall("users.list", {}).then((response: any) => {
       const { members, ok } = response;
       let users = {};
 
       if (ok) {
         members.forEach(member => {
-          users[member.id] = {
-            id: member.id,
-            name: member.name,
-            imageUrl: member.profile.image_72
+          const { id, profile, real_name, name } = member;
+          const { display_name, image_72 } = profile;
+          users[id] = {
+            id,
+            // Conditional required for bots like @paperbot
+            name: display_name ? display_name : name,
+            fullName: real_name,
+            imageUrl: image_72
           };
         });
 

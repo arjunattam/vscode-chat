@@ -154,7 +154,9 @@ export default class Store implements IStore {
   }
 
   getIMChannel(user: SlackUser): SlackChannel | undefined {
-    return this.channels.find(channel => channel.name === `@${user.name}`);
+    return this.channels.find(
+      channel => channel.name === `@${user.name}`
+    );
   }
 
   createIMChannel(user: SlackUser): Promise<SlackChannel> {
@@ -263,7 +265,7 @@ export default class Store implements IStore {
 
   fetchUsers = (): Promise<SlackUsers> => {
     const client = new SlackAPIClient(this.slackToken);
-    return client.getAllUsers().then((users: SlackUsers) => {
+    return client.getUsers().then((users: SlackUsers) => {
       // Update users for their presence status, if already known
       let usersWithPresence: SlackUsers = {};
 

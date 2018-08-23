@@ -1,6 +1,7 @@
 export interface SlackUser {
   id: string;
   name: string;
+  fullName: string;
   imageUrl: string;
   isOnline: boolean;
   isBot?: boolean;
