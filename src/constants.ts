@@ -5,6 +5,7 @@ export const OUTPUT_CHANNEL_NAME = "Slack Chat";
 // Is there a way to get this url from the vsls extension?
 export const LIVE_SHARE_BASE_URL = `insiders.liveshare.vsengsaas.visualstudio.com`;
 export const VSLS_EXTENSION_ID = `ms-vsliveshare.vsliveshare`;
+export const VSLS_EXTENSION_PACK_ID = `ms-vsliveshare.vsliveshare-pack`;
 
 export const LiveShareCommands = {
   START: "liveshare.start",

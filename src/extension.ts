@@ -17,7 +17,7 @@ import { VSLS_EXTENSION_ID, CONFIG_ROOT, TRAVIS_SCHEME } from "./constants";
 import ChatTreeProviders from "./tree";
 import travis from "./providers/travis";
 import { ExtensionUriHandler } from "./uri";
-import { openUrl } from "./utils";
+import { openUrl, getExtension } from "./utils";
 import ConfigHelper from "./config";
 import Reporter from "./telemetry";
 
@@ -43,6 +43,16 @@ export function activate(context: vscode.ExtensionContext) {
     let messengerPromise: Promise<SlackCurrentUser>;
     const isConnected = !!messenger && messenger.isConnected();
     const hasUser = !!store.currentUserInfo;
+
+    if (!store.installationId) {
+      store.generateInstallationId();
+      const { installationId } = store;
+      reporter.setUniqueId(installationId);
+
+      if (!hasUser) {
+        reporter.record(EventType.extensionInstalled, undefined, undefined);
+      }
+    }
 
     if (isConnected && hasUser) {
       messengerPromise = Promise.resolve(store.currentUserInfo);
@@ -193,7 +203,7 @@ export function activate(context: vscode.ExtensionContext) {
   };
 
   const setVslsContext = () => {
-    const vsls = vscode.extensions.getExtension(VSLS_EXTENSION_ID);
+    const vsls = getExtension(VSLS_EXTENSION_ID);
     const isEnabled = !!vsls;
 
     if (isEnabled) {
@@ -247,7 +257,8 @@ export function activate(context: vscode.ExtensionContext) {
     vscode.workspace.registerTextDocumentContentProvider(TRAVIS_SCHEME, travis),
     vscode.window.registerUriHandler(uriHandler),
     ...treeDisposables,
-    store
+    store,
+    reporter
   );
 }
 

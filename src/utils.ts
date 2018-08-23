@@ -25,3 +25,7 @@ export const getVersions = (): Versions => {
     editor: vscode.version
   };
 };
+
+export const getExtension = (extensionId): vscode.Extension<any> => {
+  return vscode.extensions.getExtension(extensionId);
+};

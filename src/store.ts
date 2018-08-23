@@ -73,13 +73,6 @@ export default class Store implements IStore, vscode.Disposable {
     this.lastChannelId = globalState.get(stateKeys.LAST_CHANNEL_ID);
     this.installationId = globalState.get(stateKeys.INSTALLATION_ID);
 
-    if (!this.installationId) {
-      // Generate one-time installation id and save it
-      const uuidStr = uuidv4();
-      globalState.update(stateKeys.INSTALLATION_ID, uuidStr);
-      this.installationId = uuidStr;
-    }
-
     if (this.currentUserInfo && this.slackToken) {
       if (this.currentUserInfo.token !== this.slackToken) {
         // Token has changed, all state is suspicious now
@@ -88,6 +81,13 @@ export default class Store implements IStore, vscode.Disposable {
     }
 
     this.statusItem = new StatusItem();
+  }
+
+  generateInstallationId() {
+    const uuidStr = uuidv4();
+    const { globalState } = this.context;
+    globalState.update(stateKeys.INSTALLATION_ID, uuidStr);
+    this.installationId = uuidStr;
   }
 
   clear() {
@@ -172,9 +172,7 @@ export default class Store implements IStore, vscode.Disposable {
   }
 
   getIMChannel(user: SlackUser): SlackChannel | undefined {
-    return this.channels.find(
-      channel => channel.name === `@${user.name}`
-    );
+    return this.channels.find(channel => channel.name === `@${user.name}`);
   }
 
   createIMChannel(user: SlackUser): Promise<SlackChannel> {

@@ -29,7 +29,7 @@ class ViewController {
     private context: ExtensionContext,
     private onUIVisible: () => void,
     private onUIFocus: () => void,
-    private msgSender: (string) => Promise<void>
+    private messageSender: (string) => Promise<void>
   ) {}
 
   isUILoaded = () => !!this.ui;
@@ -114,7 +114,7 @@ class ViewController {
   };
 
   sendToSlack = (text: string) => {
-    return this.msgSender(text);
+    return this.messageSender(text);
   };
 
   sendToExtension = (message: ExtensionMessage) => {

@@ -160,6 +160,7 @@ export enum EventSource {
 }
 
 export enum EventType {
+  extensionInstalled = "extension_installed",
   viewOpened = "webview_opened",
   messageSent = "message_sent",
   vslsShared = "vsls_shared",
