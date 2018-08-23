@@ -3,6 +3,7 @@ export interface SlackUser {
   name: string;
   fullName: string;
   imageUrl: string;
+  smallImageUrl: string;
   isOnline: boolean;
   isBot?: boolean;
 }
@@ -43,6 +44,11 @@ interface MessageReaction {
   userIds: string[];
 }
 
+interface MessageReply {
+  userId: string;
+  timestamp: string;
+}
+
 interface SlackMessage {
   timestamp: string;
   userId: string;
@@ -52,6 +58,7 @@ interface SlackMessage {
   attachment?: SlackAttachment;
   content: MessageContent;
   reactions: MessageReaction[];
+  replies: MessageReply[];
 }
 
 export interface SlackChannelMessages {

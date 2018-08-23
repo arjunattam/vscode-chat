@@ -70,6 +70,7 @@ Vue.component("messages-date-group", {
         v-for="group in groups"
         v-bind:key="group.key"
         v-bind:messages="group.messages"
+        v-bind:allUsers="users"
         v-bind:userId="group.userId"
         v-bind:user="group.user"
         v-bind:timestamp="group.minTimestamp">
@@ -92,7 +93,7 @@ Vue.component("date-separator", {
 });
 
 Vue.component("message-group", {
-  props: ["messages", "userId", "user", "timestamp"],
+  props: ["messages", "allUsers", "userId", "user", "timestamp"],
   computed: {
     readableTimestamp: function() {
       const d = new Date(+this.timestamp * 1000);
@@ -117,7 +118,8 @@ Vue.component("message-group", {
           <message-item
             v-for="message in messages"
             v-bind:key="message.timestamp"
-            v-bind:message="message">
+            v-bind:message="message"
+            v-bind:allUsers="allUsers">
           </message-item>
         </ul>
       </div>
@@ -126,18 +128,56 @@ Vue.component("message-group", {
 });
 
 Vue.component("message-item", {
-  props: ["message"],
+  props: ["message", "allUsers"],
+  computed: {
+    hasReplies: function() {
+      return this.message.replies.length > 0;
+    }
+  },
   template: /* html */ `
     <li>
       <div v-if="message.textHTML" v-html="message.textHTML"></div>
       <span v-if="message.isEdited" class="edited">(edited)</span>
-      <message-reactions
-        v-bind:reactions="message.reactions">
-      </message-reactions>
-      <message-content
-        v-bind:content="message.content">
-      </message-content>
+      <message-reactions v-bind:reactions="message.reactions"></message-reactions>
+      <message-content v-bind:content="message.content"></message-content>
+      <message-replies
+        v-if="hasReplies" v-bind:message="message" v-bind:allUsers="allUsers">
+      </message-replies>
     </li>
+  `
+});
+
+Vue.component("message-replies", {
+  props: ["message", "allUsers"],
+  computed: {
+    imageUrls: function() {
+      const userIds = this.message.replies.map(reply => reply.userId);
+      const uniques = userIds.filter(
+        (item, pos) => userIds.indexOf(item) == pos
+      );
+      return uniques
+        .filter(userId => userId in this.allUsers)
+        .filter(userId => !!this.allUsers[userId].smallImageUrl)
+        .map(userId => this.allUsers[userId].smallImageUrl);
+    },
+    count: function() {
+      return this.message.replies.length;
+    }
+  },
+  template: /* html */ `
+    <div class="replies-container">
+      <message-replies-images v-bind:images="imageUrls"></message-replies-images>
+      <span class="replies-count">{{count}} replies</span>
+    </div>
+  `
+});
+
+Vue.component("message-replies-images", {
+  props: ["images"],
+  template: /* html */ `
+    <div class="reply-images-container">
+      <img v-for="url in images" v-bind:src="url" class="reply-image"></img>
+    </div>
   `
 });
 

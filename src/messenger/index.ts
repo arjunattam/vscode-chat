@@ -212,7 +212,8 @@ class SlackMessenger implements IMessenger {
           timestamp: result.ts,
           text,
           content: null,
-          reactions: []
+          reactions: [],
+          replies: []
         };
         this.store.updateMessages(channelId, newMessages);
       })
