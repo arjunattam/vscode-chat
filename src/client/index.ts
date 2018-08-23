@@ -1,6 +1,6 @@
 import { WebClient, WebClientOptions } from "@slack/client";
 import * as HttpsProxyAgent from "https-proxy-agent";
-import ConfigHelper from "../configuration";
+import ConfigHelper from "../config";
 import {
   SlackUsers,
   SlackChannel,

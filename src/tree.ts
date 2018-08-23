@@ -2,7 +2,7 @@ import * as vscode from "vscode";
 import * as path from "path";
 import Store from "./store";
 import { SelfCommands } from "./constants";
-import { SlackChannel, SlackUser } from "./interfaces";
+import { SlackChannel, SlackUser, EventSource } from "./interfaces";
 
 interface ChatTreeItem {
   isOnline: boolean;
@@ -90,7 +90,7 @@ class CustomTreeItem extends vscode.TreeItem {
     this.command = {
       command: SelfCommands.OPEN,
       title: "",
-      arguments: [{ channel, user }]
+      arguments: [{ channel, user, source: EventSource.activity }]
     };
   }
 }

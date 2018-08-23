@@ -111,7 +111,7 @@ Vue.component("message-group", {
       <div>
         <div>
           <strong>{{ userName }}</strong>
-          <span>{{ readableTimestamp }}</span>
+          <span class="message-timestamp">{{ readableTimestamp }}</span>
         </div>
 
         <ul class="message-list">

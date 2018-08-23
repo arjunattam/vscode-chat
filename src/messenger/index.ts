@@ -2,14 +2,9 @@ import * as vscode from "vscode";
 import * as str from "../strings";
 import { RTMClient, RTMClientOptions } from "@slack/client";
 import * as HttpsProxyAgent from "https-proxy-agent";
-import ConfigHelper from "../configuration";
+import ConfigHelper from "../config";
 import SlackAPIClient, { getMessage } from "../client";
-import {
-  SlackChannelMessages,
-  SlackCurrentUser,
-  IStore,
-  IMessenger
-} from "../interfaces";
+import { SlackChannelMessages, SlackCurrentUser, IStore } from "../interfaces";
 import { LIVE_SHARE_BASE_URL, LiveShareCommands } from "../constants";
 
 const RTMEvents = {
@@ -26,7 +21,7 @@ const EventSubTypes = {
   DELETED: "message_deleted"
 };
 
-class SlackMessenger implements IMessenger {
+class SlackMessenger {
   rtmClient: RTMClient;
 
   constructor(private store: IStore) {
@@ -187,12 +182,7 @@ class SlackMessenger implements IMessenger {
     this.rtmClient.subscribePresence(Object.keys(users));
   };
 
-  sendMessage(text: string) {
-    const { lastChannelId: channelId } = this.store;
-    return this.sendMessageToChannel(text, channelId);
-  }
-
-  sendMessageToChannel(text: string, channelId: string) {
+  sendMessage(text: string, channelId: string) {
     // The rtm gives an error while sending messages. Might be related to
     // https://github.com/slackapi/node-slack-sdk/issues/527
     // https://github.com/slackapi/node-slack-sdk/issues/550
