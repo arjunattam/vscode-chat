@@ -1,4 +1,5 @@
 import * as vscode from "vscode";
+import * as semver from "semver";
 import SlackAPIClient from "./client";
 import {
   SlackChannel,
@@ -93,7 +94,7 @@ export default class Store implements IStore, vscode.Disposable {
       // There has been an upgrade. Apply data migrations if required.
       Logger.log(`Extension updated to ${currentVersion}`);
 
-      if (!existingVersion && currentVersion === "0.5.6") {
+      if (!existingVersion && semver.gte(currentVersion, "0.5.6")) {
         // Migration for changed user names
         Logger.log("Migrating for 0.5.6");
         this.updateChannels([]);
