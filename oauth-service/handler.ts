@@ -1,12 +1,21 @@
 import { APIGatewayEvent, Callback, Context, Handler } from "aws-lambda";
 import * as request from "request-promise-native";
-import errorHtml from "./error.template.html";
-import successHtml from "./success.template.html";
+import errorHtml from "./html/error.template.html";
+import successHtml from "./html/success.template.html";
+import homeHtml from "./html/home.template.html";
 
 interface APIResponse {
   token: string;
   error: string;
 }
+
+/**
+ * TODO: improvements for access denied
+ * -  can we load the authorize page in the background to see if user is going
+ *    to get access denied + which one (slack app directory, admin approval)
+ * -  can you still approve the app if the slack app directory condition is required?
+ * -  on access_denied error page, have separate links for app directory/admin approval
+ */
 
 const getSlackToken = async (code: string): Promise<APIResponse> => {
   const uri = "https://slack.com/api/oauth.access";
@@ -81,7 +90,14 @@ export const redirect: Handler = (
   cb: Callback
 ) => {
   const { queryStringParameters } = event;
-  const { code, error } = queryStringParameters;
+  let error, code;
+
+  if (!!queryStringParameters) {
+    code = queryStringParameters.code;
+    error = queryStringParameters.error;
+  } else {
+    error = "no_code_param";
+  }
 
   if (!!code) {
     handleSuccess(code, cb);
@@ -90,4 +106,19 @@ export const redirect: Handler = (
   if (!!error) {
     handleError(error, cb);
   }
+};
+
+export const home: Handler = (
+  event: APIGatewayEvent,
+  context: Context,
+  cb: Callback
+) => {
+  const response = {
+    statusCode: 200,
+    headers: {
+      "Content-Type": "text/html"
+    },
+    body: homeHtml
+  };
+  cb(null, response);
 };
