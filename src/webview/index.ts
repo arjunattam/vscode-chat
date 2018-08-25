@@ -66,7 +66,7 @@ export default class WebviewContainer {
 
   getLocaleDateString(date: Date) {
     // Returns ISO-format date string for a given date
-    let month = date.getMonth().toString();
+    let month = (date.getMonth() + 1).toString();
     let day = date.getDate().toString();
 
     if (month.length === 1) {
