@@ -96,7 +96,6 @@ export default class Store implements IStore, vscode.Disposable {
 
       if (!existingVersion && semver.gte(currentVersion, "0.5.6")) {
         // Migration for changed user names
-        // TODO: change this to semver for >= 0.5.6
         Logger.log("Migrating for 0.5.6");
         this.updateChannels([]);
         this.updateUsers({});

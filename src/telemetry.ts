@@ -6,6 +6,7 @@ import { TelemetryEvent, IStore, EventType, EventSource } from "./interfaces";
 import { getVersions, Versions, getExtension } from "./utils";
 
 const BATCH_SIZE = 10;
+const INTERVAL_TIMEOUT = 30 * 60 * 1000; // 30 mins in ms
 
 export default class Reporter implements vscode.Disposable {
   private hasUserOptIn: boolean = false;
@@ -14,7 +15,7 @@ export default class Reporter implements vscode.Disposable {
   private versions: Versions;
   private hasExtensionPack: boolean;
   private pendingEvents: TelemetryEvent[] = [];
-  // TODO: Add an interval timer here?
+  private interval: NodeJS.Timer;
 
   constructor(private store: IStore) {
     this.uniqueId = this.store.installationId;
@@ -26,6 +27,12 @@ export default class Reporter implements vscode.Disposable {
 
     if (this.hasUserOptIn) {
       this.mixpanel = Mixpanel.init(MIXPANEL_TOKEN);
+
+      this.interval = setInterval(() => {
+        if (this.pendingEvents.length > 0) {
+          return this.flushBatch();
+        }
+      }, INTERVAL_TIMEOUT);
     }
 
     this.hasExtensionPack = !!getExtension(VSLS_EXTENSION_PACK_ID);
@@ -36,6 +43,8 @@ export default class Reporter implements vscode.Disposable {
   }
 
   dispose(): Promise<any> {
+    clearInterval(this.interval);
+
     if (this.pendingEvents.length > 0) {
       return this.flushBatch();
     }

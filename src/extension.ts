@@ -200,9 +200,6 @@ export function activate(context: vscode.ExtensionContext) {
       store.reset();
       setup();
       store.updateAllUI();
-      // TODO: we can't just create a new reporter
-      // since the older might have pending events to flush
-      reporter = new Reporter(store);
     }
   };
 
