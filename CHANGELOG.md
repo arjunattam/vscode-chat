@@ -2,6 +2,18 @@
 
 All notable changes to the vscode-chat extension will be documented in this file. This follows the [Keep a Changelog](http://keepachangelog.com/) format.
 
+## [0.5.7] - 2018-08-29
+
+### Added
+
+- Added support to "Sign in with Slack" from the activity bar.
+
+### Fixed
+
+- New line characters in messages are rendered correctly.
+- Date separators show the correct month string.
+- Fixed event source property for webview telemetry.
+
 ## [0.5.6] - 2018-08-23
 
 ### Added
