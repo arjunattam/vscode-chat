@@ -24,9 +24,8 @@ export class ExtensionUriHandler implements vscode.UriHandler {
       .then(selected => {
         switch (selected) {
           case str.REPORT_ISSUE:
-            const body = `Sign in with Slack failed: ${errorMsg}`;
-            const title = `[vscode] ${body}`;
-            IssueReporter.openNewIssue(title, body);
+            const issue = `Sign in with Slack failed: ${errorMsg}`;
+            IssueReporter.openNewIssue(issue, issue);
         }
       });
   }

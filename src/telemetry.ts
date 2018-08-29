@@ -14,6 +14,7 @@ export default class Reporter implements vscode.Disposable {
   private versions: Versions;
   private hasExtensionPack: boolean;
   private pendingEvents: TelemetryEvent[] = [];
+  // TODO: Add an interval timer here?
 
   constructor(private store: IStore) {
     this.uniqueId = this.store.installationId;
@@ -82,6 +83,7 @@ export default class Reporter implements vscode.Disposable {
         os_version: os,
         editor_version: editor,
         has_extension_pack: this.hasExtensionPack,
+        is_authenticated: this.store.isAuthenticated(),
         ...properties,
         time
       }

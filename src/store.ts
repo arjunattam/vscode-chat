@@ -95,6 +95,7 @@ export default class Store implements IStore, vscode.Disposable {
 
       if (!existingVersion && currentVersion === "0.5.6") {
         // Migration for changed user names
+        // TODO: change this to semver for >= 0.5.6
         Logger.log("Migrating for 0.5.6");
         this.updateChannels([]);
         this.updateUsers({});
@@ -140,6 +141,10 @@ export default class Store implements IStore, vscode.Disposable {
 
   dispose() {
     this.statusItem.dispose();
+  }
+
+  isAuthenticated() {
+    return this.currentUserInfo && !!this.currentUserInfo.id;
   }
 
   setUiCallback(uiCallback) {

@@ -165,7 +165,7 @@ export function activate(context: vscode.ExtensionContext) {
       hasArgs ? args.source : EventSource.palette,
       undefined
     );
-    return askForChannel().then(() => openSlackPanel());
+    return askForChannel().then(() => openSlackPanel(args));
   };
 
   const shareVslsLink = async (args?: ChatArgs) => {
@@ -200,6 +200,9 @@ export function activate(context: vscode.ExtensionContext) {
       store.reset();
       setup();
       store.updateAllUI();
+      // TODO: we can't just create a new reporter
+      // since the older might have pending events to flush
+      reporter = new Reporter(store);
     }
   };
 

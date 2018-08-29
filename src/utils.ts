@@ -1,6 +1,10 @@
 import * as vscode from "vscode";
 import * as os from "os";
-import { VSCodeCommands, EXTENSION_ID } from "./constants";
+import {
+  VSCodeCommands,
+  EXTENSION_ID,
+  VSLS_EXTENSION_PACK_ID
+} from "./constants";
 
 export const openUrl = (url: string) => {
   const parsed = vscode.Uri.parse(url);
@@ -32,4 +36,8 @@ export const getVersions = (): Versions => {
     extension: getExtensionVersion(),
     editor: vscode.version
   };
+};
+
+export const hasExtensionPack = (): boolean => {
+  return !!getExtension(VSLS_EXTENSION_PACK_ID);
 };

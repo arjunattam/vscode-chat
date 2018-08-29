@@ -2,6 +2,8 @@ import * as vscode from "vscode";
 import * as str from "./strings";
 import { CONFIG_ROOT, SelfCommands } from "./constants";
 import { EventSource } from "./interfaces";
+import { hasExtensionPack } from "./utils";
+import IssueReporter from "./issues";
 
 const TOKEN_CONFIG_KEY = "slack.legacyToken";
 const TELEMETRY_CONFIG_ROOT = "telemetry";
@@ -21,6 +23,13 @@ class ConfigHelper {
       return token;
     } else {
       const actionItems = [str.SIGN_IN_SLACK];
+
+      if (hasExtensionPack()) {
+        // If the extension was download via extension pack, it is
+        // possible that the user does not use Slack
+        actionItems.push(str.DONT_HAVE_SLACK);
+      }
+
       vscode.window
         .showInformationMessage(str.TOKEN_NOT_FOUND, ...actionItems)
         .then(selected => {
@@ -29,6 +38,11 @@ class ConfigHelper {
               vscode.commands.executeCommand(SelfCommands.SIGN_IN, {
                 source: EventSource.info
               });
+              break;
+            case str.DONT_HAVE_SLACK:
+              const title = `Add new chat provider`;
+              const body = `My chat provider is: `;
+              IssueReporter.openNewIssue(title, body);
               break;
           }
         });

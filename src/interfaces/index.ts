@@ -116,6 +116,8 @@ export interface UIMessageGroup {
   key: string;
 }
 
+interface TreeCallback {}
+
 export interface IStore {
   slackToken: string;
   installationId: string;
@@ -124,7 +126,11 @@ export interface IStore {
   currentUserInfo: SlackCurrentUser;
   users: SlackUsers;
   messages: SlackMessages;
+  isAuthenticated: () => boolean;
+  setTreeCallback: (TreeCallback) => void;
   getChannel: (string) => SlackChannel | undefined;
+  getIMChannel: (SlackUser) => SlackChannel | undefined;
+  getChannelLabels: () => any;
   updateMessages: (
     channelId: string,
     newMessages: SlackChannelMessages
