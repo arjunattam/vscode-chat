@@ -135,7 +135,7 @@ Vue.component("message-item", {
     }
   },
   template: /* html */ `
-    <li>
+    <li v-bind:class="{ unread: message.isUnread }">
       <div v-if="message.textHTML" v-html="message.textHTML"></div>
       <span v-if="message.isEdited" class="edited">(edited)</span>
       <message-reactions v-bind:reactions="message.reactions"></message-reactions>
@@ -263,7 +263,7 @@ Vue.component("form-section", {
   props: ["channel", "status"],
   computed: {
     placeholder: function() {
-      return `Message ${this.channel}`;
+      return `Message ${this.channel.name}`;
     }
   },
   watch: {

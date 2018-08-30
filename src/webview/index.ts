@@ -6,7 +6,8 @@ import {
   UIMessageGroup,
   UIMessageDateGroup,
   SlackChannelMessages,
-  SlackUsers
+  SlackUsers,
+  SlackChannel
 } from "../interfaces";
 
 const SAME_GROUP_TIME = 5 * 60; // seconds
@@ -54,10 +55,12 @@ export default class WebviewContainer {
   }
 
   update(uiMessage: UIMessage) {
-    const { messages, users } = uiMessage;
-    const groups = this.getMessageGroups(messages, users);
+    const { messages, users, channel } = uiMessage;
+    const annotated = this.getAnnotatedMessages(messages, channel);
+    const groups = this.getMessageGroups(annotated, users);
+    console.log(groups);
     this.panel.webview.postMessage({ ...uiMessage, messages: groups });
-    this.panel.title = uiMessage.channelName;
+    this.panel.title = channel.name;
   }
 
   reveal() {
@@ -78,6 +81,21 @@ export default class WebviewContainer {
     }
 
     return `${date.getFullYear()}-${month}-${day}`;
+  }
+
+  getAnnotatedMessages(
+    messages: SlackChannelMessages,
+    channel: SlackChannel
+  ): SlackChannelMessages {
+    // Annotate every message with isUnread (boolean)
+    const { readTimestamp } = channel;
+    let result = {};
+    Object.keys(messages).forEach(ts => {
+      const message = messages[ts];
+      const isUnread = +ts > +readTimestamp;
+      result[ts] = { ...message, isUnread };
+    });
+    return result;
   }
 
   getMessageGroups(
@@ -179,7 +197,7 @@ function getWebviewContent(staticPath) {
           <app-container
             v-bind:messages="messages"
             v-bind:users="users"
-            v-bind:channel="channelName"
+            v-bind:channel="channel"
             v-bind:status="statusText">
           </app-container>
       </div>
@@ -190,7 +208,7 @@ function getWebviewContent(staticPath) {
             data: {
               messages: [],
               users: {},
-              channelName: "",
+              channel: {},
               statusText: ""
             }
           });
@@ -198,7 +216,7 @@ function getWebviewContent(staticPath) {
           window.addEventListener('message', event => {
             app.messages = event.data.messages;
             app.users = event.data.users;
-            app.channelName = event.data.channelName
+            app.channel = event.data.channel
             app.statusText = event.data.statusText
           });
       </script>

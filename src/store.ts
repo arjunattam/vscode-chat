@@ -12,6 +12,7 @@ import {
   SlackUser,
   ChannelType,
   ChannelLabel
+  UserPreferences
 } from "./interfaces";
 import StatusItem from "./status";
 import ConfigHelper from "./config";
@@ -66,6 +67,7 @@ export default class Store implements IStore, vscode.Disposable {
   channels: SlackChannel[] = [];
   channelsFetchedAt: Date;
   currentUserInfo: SlackCurrentUser;
+  currentUserPrefs: UserPreferences;
   users: SlackUsers = {};
   usersFetchedAt: Date;
   messages: SlackMessages = {};
@@ -228,7 +230,6 @@ export default class Store implements IStore, vscode.Disposable {
 
   updateWebviewUI() {
     const channel = this.getChannel(this.lastChannelId);
-    const channelName = !!channel ? channel.name : "";
     const messages =
       this.lastChannelId in this.messages
         ? this.messages[this.lastChannelId]
@@ -239,7 +240,7 @@ export default class Store implements IStore, vscode.Disposable {
         messages,
         users: this.users,
         currentUser: this.currentUserInfo,
-        channelName,
+        channel,
         statusText: ""
       });
     }
@@ -280,7 +281,13 @@ export default class Store implements IStore, vscode.Disposable {
   }
 
   updateUnreadCount() {
-    const unreads = this.channels.map(channel => this.getUnreadCount(channel));
+    const unreads = this.channels
+      .filter(channel => {
+        const { mutedChannels } = this.currentUserPrefs;
+        const { id } = channel;
+        return mutedChannels.indexOf(id) < 0;
+      })
+      .map(channel => this.getUnreadCount(channel));
     const totalUnreads = unreads.reduce((a, b) => a + b, 0);
     this.statusItem.updateCount(totalUnreads);
     this.updateTreeViews();
@@ -485,6 +492,15 @@ export default class Store implements IStore, vscode.Disposable {
       .getConversationHistory(channelId)
       .then(messages => this.updateMessages(channelId, messages))
       .catch(error => console.error(error));
+  }
+
+  updateUserPrefs() {
+    const client = new SlackAPIClient(this.slackToken);
+    return client.getUserPrefs().then(response => {
+      // TODO: muted channels should be saved to storage?
+      this.currentUserPrefs = response;
+      this.updateUnreadCount();
+    });
   }
 
   getLastTimestamp(): string {

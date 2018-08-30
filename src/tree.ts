@@ -133,6 +133,7 @@ class BaseTreeProvider
 
 export class UnreadsTreeProvider extends BaseTreeProvider {
   protected filterFn = c => c.unread > 0;
+  // TODO: should we filter out channels that should be muted?
   protected sortingFn = (a, b) => b.unread - a.unread;
   protected treeLabel = "unreads-tree-view";
 

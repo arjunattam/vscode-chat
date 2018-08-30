@@ -6,10 +6,12 @@ import {
   SlackChannel,
   SlackChannelMessages,
   ChannelType,
-  SlackUser
+  SlackUser,
+  SlackMessage,
+  UserPreferences
 } from "../interfaces";
 
-const HISTORY_LIMIT = 50;
+const HISTORY_LIMIT = 5;
 
 const getFile = rawFile => {
   return { name: rawFile.name, permalink: rawFile.permalink };
@@ -36,7 +38,7 @@ const getReaction = reaction => ({
 
 export const getMessage = (raw: any): SlackChannelMessages => {
   const { files, ts, user, text, edited, bot_id } = raw;
-  const { attachments, reactions, reply_count, replies } = raw;
+  const { attachments, reactions, replies } = raw;
   let parsed: SlackChannelMessages = {};
 
   parsed[ts] = {
@@ -75,6 +77,7 @@ export default class SlackAPIClient {
       .then((response: any) => {
         const { messages, ok } = response;
         let result = {};
+        console.log("history", messages);
 
         if (ok) {
           messages.forEach(message => {
@@ -200,10 +203,10 @@ export default class SlackAPIClient {
   getChannelInfo = (originalChannel: SlackChannel): Promise<SlackChannel> => {
     const { id, type } = originalChannel;
     const getChannel = response => {
-      const { unread_count, last_read } = response;
+      const { unread_count_display, last_read } = response;
       return {
         ...originalChannel,
-        unreadCount: unread_count,
+        unreadCount: unread_count_display,
         readTimestamp: last_read
       };
     };
@@ -269,6 +272,32 @@ export default class SlackAPIClient {
             readTimestamp: null
           };
         }
+      });
+  };
+
+  getUserPrefs = (): Promise<UserPreferences> => {
+    // Undocumented API: //https://github.com/ErikKalkoken/slackApiDoc/blob/master/users.prefs.get.md
+    return this.client.apiCall("users.prefs.get").then((response: any) => {
+      const { ok, prefs } = response;
+      console.log("prefs", prefs);
+
+      if (ok) {
+        const { muted_channels } = prefs;
+        return {
+          mutedChannels: muted_channels.split(",")
+        };
+      }
+    });
+  };
+
+  getReplies = (channel: SlackChannel, message: SlackMessage) => {
+    // https://api.slack.com/methods/conversations.replies
+    const { timestamp: ts } = message;
+    const { id } = channel;
+    return this.client.conversations
+      .replies({ channel: id, ts })
+      .then((response: any) => {
+        console.log("replies", response);
       });
   };
 }

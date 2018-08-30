@@ -8,6 +8,10 @@ export interface SlackUser {
   isBot?: boolean;
 }
 
+export interface UserPreferences {
+  mutedChannels: string[];
+}
+
 export interface SlackCurrentUser {
   id: string;
   name: string;
@@ -49,7 +53,7 @@ interface MessageReply {
   timestamp: string;
 }
 
-interface SlackMessage {
+export interface SlackMessage {
   timestamp: string;
   userId: string;
   text: string;
@@ -59,6 +63,9 @@ interface SlackMessage {
   content: MessageContent;
   reactions: MessageReaction[];
   replies: MessageReply[];
+
+  // TODO - add
+  // subscribed (for threads)
 }
 
 export interface SlackChannelMessages {
@@ -106,7 +113,7 @@ export interface ExtensionMessage {
 export interface UIMessage {
   messages: SlackChannelMessages;
   users: SlackUsers;
-  channelName: string;
+  channel: SlackChannel;
   currentUser: SlackCurrentUser;
   statusText: string;
 }

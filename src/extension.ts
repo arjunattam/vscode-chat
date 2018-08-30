@@ -76,6 +76,7 @@ export function activate(context: vscode.ExtensionContext) {
     return messengerPromise
       .then(currentUser => {
         store.updateCurrentUser(currentUser);
+        store.updateUserPrefs();
         return store.getUsersPromise();
       })
       .then(() => {

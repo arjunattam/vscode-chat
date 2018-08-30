@@ -197,3 +197,8 @@ div.msg-footer a:hover {
 .reply-image {
   margin: 0 5px;
 }
+
+/* TODO */
+.unread {
+  background: red;
+}

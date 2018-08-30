@@ -18,7 +18,8 @@ const RTMEvents = {
 
 const EventSubTypes = {
   EDITED: "message_changed",
-  DELETED: "message_deleted"
+  DELETED: "message_deleted",
+  REPLIED: "message_replied"
 };
 
 class SlackMessenger {
@@ -49,6 +50,11 @@ class SlackMessenger {
         case EventSubTypes.EDITED:
           const { message } = event;
           newMessages = { ...getMessage(message) };
+          break;
+
+        case EventSubTypes.REPLIED:
+          console.log("--- replied", event);
+          // You may also notice thread_subscribed, thread_unsubscribed, thread_marked update_thread_state event types
           break;
 
         default:
