@@ -623,4 +623,17 @@ export default class Store implements IStore, vscode.Disposable {
       }
     }
   }
+
+  fetchThreadReplies(parentTimestamp: string) {
+    // Assume this is the current channel
+    const currentChannelId = this.lastChannelId;
+    const client = new SlackAPIClient(this.slackToken);
+    return client
+      .getReplies(currentChannelId, parentTimestamp)
+      .then(message => {
+        let messages = {};
+        messages[parentTimestamp] = message;
+        this.updateMessages(currentChannelId, messages);
+      });
+  }
 }

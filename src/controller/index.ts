@@ -29,6 +29,7 @@ class ViewController {
     private context: ExtensionContext,
     private onUIVisible: () => void,
     private onUIFocus: () => void,
+    private onFetchReplies: (timestamp: string) => void,
     private messageSender: (string) => Promise<void>
   ) {}
 
@@ -102,7 +103,9 @@ class ViewController {
     return this.sendToSlack(text);
   };
 
-  handleInternal = (text: string) => {
+  handleInternal = (message: any) => {
+    const { text } = message;
+
     if (text === "is_ready") {
       this.isUIReady = true;
       return this.pendingMessage ? this.sendToUI(this.pendingMessage) : null;
@@ -110,6 +113,11 @@ class ViewController {
 
     if (text === "is_focused") {
       this.onUIFocus();
+    }
+
+    if (text === "fetch_replies") {
+      const { parentTimestamp } = message;
+      this.onFetchReplies(parentTimestamp);
     }
   };
 
@@ -123,7 +131,7 @@ class ViewController {
 
     switch (type) {
       case "internal":
-        return this.handleInternal(text);
+        return this.handleInternal(message);
       case "link":
         return this.dispatchCommand({ namespace: "open", subcommand: text });
       case "command":

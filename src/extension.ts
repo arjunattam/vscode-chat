@@ -34,6 +34,7 @@ export function activate(context: vscode.ExtensionContext) {
     context,
     () => store.loadChannelHistory(store.lastChannelId),
     () => store.updateReadMarker(),
+    ts => store.fetchThreadReplies(ts),
     text => sendMessage(text)
   );
   store.setUiCallback(uiMessage => controller.sendToUI(uiMessage));

@@ -149,6 +149,29 @@ Vue.component("message-item", {
 
 Vue.component("message-replies", {
   props: ["message", "allUsers"],
+  data: function() {
+    return {
+      isExpanded: false
+    };
+  },
+  methods: {
+    expandHandler: function(event) {
+      this.isExpanded = !this.isExpanded;
+
+      if (this.isExpanded) {
+        const hasPendingText =
+          this.message.replies.filter(reply => !reply.text).length > 0;
+
+        if (hasPendingText) {
+          vscode.postMessage({
+            type: "internal",
+            text: "fetch_replies",
+            parentTimestamp: this.message.timestamp
+          });
+        }
+      }
+    }
+  },
   computed: {
     imageUrls: function() {
       const userIds = this.message.replies.map(reply => reply.userId);
@@ -162,13 +185,44 @@ Vue.component("message-replies", {
     },
     count: function() {
       return this.message.replies.length;
+    },
+    expandText: function() {
+      return this.isExpanded ? "Show less" : "Show all";
     }
   },
   template: /* html */ `
     <div class="replies-container">
       <message-replies-images v-bind:images="imageUrls"></message-replies-images>
-      <span class="replies-count">{{count}} replies</span>
+      <span>{{count}} replies</span>
+      <a class="pointer" v-on:click="expandHandler">
+        {{expandText}}
+      </a>
+      <ul v-if="isExpanded">
+        <message-reply-item
+          v-for="reply in message.replies"
+          v-bind:key="reply.timestamp"
+          v-bind:allUsers="allUsers"
+          v-bind:userId="reply.userId"
+          v-bind:timestamp="reply.timestamp"
+          v-bind:text="reply.text">
+        </message-reply-item>
+      </ul>
     </div>
+  `
+});
+
+Vue.component("message-reply-item", {
+  props: ["userId", "timestamp", "text", "allUsers"],
+  computed: {
+    username: function() {
+      const user = this.allUsers[this.userId];
+      return !!user ? user.name : this.userId;
+    }
+  },
+  template: /* html */ `
+    <li>
+      <strong>{{username}}</strong>: {{text}}
+    </li>
   `
 });
 

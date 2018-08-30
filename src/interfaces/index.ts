@@ -48,9 +48,10 @@ interface MessageReaction {
   userIds: string[];
 }
 
-interface MessageReply {
+export interface MessageReply {
   userId: string;
   timestamp: string;
+  text?: string;
 }
 
 export interface SlackMessage {

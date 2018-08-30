@@ -11,7 +11,7 @@ import {
   UserPreferences
 } from "../interfaces";
 
-const HISTORY_LIMIT = 5;
+const HISTORY_LIMIT = 50;
 
 const getFile = rawFile => {
   return { name: rawFile.name, permalink: rawFile.permalink };
@@ -290,14 +290,30 @@ export default class SlackAPIClient {
     });
   };
 
-  getReplies = (channel: SlackChannel, message: SlackMessage) => {
+  getReplies = (
+    channelId: string,
+    messageTimestamp: string
+  ): Promise<SlackMessage> => {
     // https://api.slack.com/methods/conversations.replies
-    const { timestamp: ts } = message;
-    const { id } = channel;
     return this.client.conversations
-      .replies({ channel: id, ts })
+      .replies({ channel: channelId, ts: messageTimestamp })
       .then((response: any) => {
-        console.log("replies", response);
+        // Does not handle has_more in the response
+        const { ok, messages } = response;
+
+        if (ok) {
+          const parent = messages.filter(msg => msg.thread_ts === msg.ts)[0];
+          const replies = messages.filter(msg => msg.thread_ts !== msg.ts);
+          const parentMessage = getMessage(parent);
+          return {
+            ...parentMessage[messageTimestamp],
+            replies: replies.map(reply => ({
+              userId: reply.user,
+              timestamp: reply.ts,
+              text: reply.text
+            }))
+          };
+        }
       });
   };
 }
