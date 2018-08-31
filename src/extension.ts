@@ -40,7 +40,11 @@ export function activate(context: vscode.ExtensionContext) {
   );
   store.setUiCallback(uiMessage => controller.sendToUI(uiMessage));
 
-  const setup = (): Promise<any> => {
+  const setup = async (): Promise<any> => {
+    if (!store.slackToken) {
+      await store.initializeToken();
+    }
+
     let messengerPromise: Promise<SlackCurrentUser>;
     const isConnected = !!messenger && messenger.isConnected();
     const hasUser = !!store.currentUserInfo;

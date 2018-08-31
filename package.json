@@ -145,6 +145,7 @@
     "vscode:prepublish": "npm run compile"
   },
   "devDependencies": {
+    "@types/keytar": "^4.0.1",
     "@types/mixpanel": "^2.14.0",
     "@types/mocha": "^2.2.42",
     "@types/node": "^8.0.0",

@@ -68,8 +68,6 @@ export default class Store implements IStore, vscode.Disposable {
   statusItem: StatusItem;
 
   constructor(private context: vscode.ExtensionContext) {
-    this.slackToken = ConfigHelper.getToken();
-
     const { globalState } = context;
     this.channels = globalState.get(stateKeys.CHANNELS);
     this.currentUserInfo = globalState.get(stateKeys.USER_INFO);
@@ -109,6 +107,11 @@ export default class Store implements IStore, vscode.Disposable {
     }
   }
 
+  initializeToken = async () => {
+    const token = await ConfigHelper.getToken();
+    this.slackToken = token;
+  };
+
   generateInstallationId() {
     const uuidStr = uuidv4();
     const { globalState } = this.context;
@@ -135,8 +138,10 @@ export default class Store implements IStore, vscode.Disposable {
 
   reset() {
     this.clear();
-    this.slackToken = ConfigHelper.getToken();
-    this.updateAllUI();
+    ConfigHelper.getToken().then(token => {
+      this.slackToken = token;
+      this.updateAllUI();
+    });
   }
 
   dispose() {

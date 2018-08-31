@@ -4,7 +4,7 @@ import {
   VSCodeCommands,
   EXTENSION_ID,
   VSLS_EXTENSION_PACK_ID
-} from "./constants";
+} from "../constants";
 
 export const openUrl = (url: string) => {
   const parsed = vscode.Uri.parse(url);
