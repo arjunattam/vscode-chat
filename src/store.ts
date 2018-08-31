@@ -75,13 +75,6 @@ export default class Store implements IStore, vscode.Disposable {
     this.lastChannelId = globalState.get(stateKeys.LAST_CHANNEL_ID);
     this.installationId = globalState.get(stateKeys.INSTALLATION_ID);
 
-    if (this.currentUserInfo && this.slackToken) {
-      if (this.currentUserInfo.token !== this.slackToken) {
-        // Token has changed, all state is suspicious now
-        this.clear();
-      }
-    }
-
     this.statusItem = new StatusItem();
 
     // Extension version migrations
@@ -110,6 +103,17 @@ export default class Store implements IStore, vscode.Disposable {
   initializeToken = async () => {
     const token = await ConfigHelper.getToken();
     this.slackToken = token;
+
+    if (!this.slackToken) {
+      ConfigHelper.askForAuth();
+    }
+
+    if (this.isAuthenticated() && this.slackToken) {
+      if (this.currentUserInfo.token !== this.slackToken) {
+        // Token has changed, all state is suspicious now
+        this.clear();
+      }
+    }
   };
 
   generateInstallationId() {
@@ -120,13 +124,13 @@ export default class Store implements IStore, vscode.Disposable {
   }
 
   clear() {
-    this.updateLastChannelId(null);
+    this.updateLastChannelId(undefined);
     this.updateChannels([]);
-    this.updateCurrentUser(null);
+    this.updateCurrentUser(undefined);
     this.updateUsers({});
 
-    this.usersFetchedAt = null;
-    this.channelsFetchedAt = null;
+    this.usersFetchedAt = undefined;
+    this.channelsFetchedAt = undefined;
     this.messages = {};
   }
 
@@ -241,9 +245,9 @@ export default class Store implements IStore, vscode.Disposable {
     const { id, readTimestamp, unreadCount } = channel;
     const messages = id in this.messages ? this.messages[id] : {};
     const unreadMessages = Object.keys(messages).filter(ts => {
-      const isSomeotherUser = messages[ts].userId !== this.currentUserInfo.id;
+      const isDifferentUser = messages[ts].userId !== this.currentUserInfo.id;
       const isNewTimestamp = !!readTimestamp ? +ts > +readTimestamp : false;
-      return isSomeotherUser && isNewTimestamp;
+      return isDifferentUser && isNewTimestamp;
     });
     return unreadCount ? unreadCount : unreadMessages.length;
   }

@@ -51,18 +51,21 @@ class ConfigHelper {
 
   static setToken(token: string): Promise<void> {
     // TODO: There is no token validation. We need to add one.
-    return keychain.setPassword(
-      CREDENTIAL_SERVICE_NAME,
-      CREDENTIAL_ACCOUNT_NAME,
-      token
-    );
+    return keychain
+      .setPassword(CREDENTIAL_SERVICE_NAME, CREDENTIAL_ACCOUNT_NAME, token)
+      .then(() => {
+        // When token is set, we need to call reset
+        vscode.commands.executeCommand(SelfCommands.RESET_STORE);
+      });
   }
 
-  static clearToken(): Promise<boolean> {
-    return keychain.deletePassword(
-      CREDENTIAL_SERVICE_NAME,
-      CREDENTIAL_ACCOUNT_NAME
-    );
+  static clearToken(): Promise<void> {
+    return keychain
+      .deletePassword(CREDENTIAL_SERVICE_NAME, CREDENTIAL_ACCOUNT_NAME)
+      .then(() => {
+        // When token is cleared, we need to call reset
+        vscode.commands.executeCommand(SelfCommands.RESET_STORE);
+      });
   }
 
   static askForAuth() {

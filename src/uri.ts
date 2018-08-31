@@ -2,7 +2,6 @@ import * as vscode from "vscode";
 import * as str from "./strings";
 import IssueReporter from "./issues";
 import ConfigHelper from "./config";
-import { SelfCommands } from "./constants";
 
 export class ExtensionUriHandler implements vscode.UriHandler {
   handleUri(uri: vscode.Uri): vscode.ProviderResult<void> {
@@ -12,9 +11,7 @@ export class ExtensionUriHandler implements vscode.UriHandler {
 
     switch (path) {
       case "/redirect":
-        return ConfigHelper.setToken(parsed.token).then(() => {
-          vscode.commands.executeCommand(SelfCommands.RESET_STORE);
-        });
+        return ConfigHelper.setToken(parsed.token);
       case "/error":
         return this.showIssuePrompt(parsed.msg);
     }
