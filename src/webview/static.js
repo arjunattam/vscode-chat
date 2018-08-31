@@ -279,7 +279,8 @@ Vue.component("form-section", {
   },
   data: function() {
     return {
-      text: ""
+      text: "",
+      inComposition: false
     };
   },
   template: /* html */ `
@@ -318,7 +319,7 @@ Vue.component("form-section", {
       // Usability fixes
       // 1. Multiline support: only when shift + enter are pressed
       // 2. Submit on enter (without shift)
-      if (event.code === "Enter" && !event.shiftKey) {
+      if (event.code === "Enter" && !event.shiftKey && !this.inComposition) {
         event.preventDefault();
 
         if (this.text) {
@@ -337,6 +338,14 @@ Vue.component("form-section", {
     }
   },
   mounted() {
+    this.$refs.messageInput.addEventListener("compositionstart",  event => {
+      this.inComposition = true;
+    })
+
+    this.$refs.messageInput.addEventListener("compositionend",  event => {
+      this.inComposition = false;
+    })
+
     return sendMessage("is_ready", "internal");
   }
 });
