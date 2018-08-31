@@ -22,8 +22,10 @@ export const SelfCommands = {
   OPEN: "extension.chat.openSlackPanel",
   CHANGE_CHANNEL: "extension.chat.changeChannel",
   SIGN_IN: "extension.chat.authenticate",
+  SIGN_OUT: "extension.chat.signout",
   CONFIGURE_TOKEN: "extension.chat.configureToken",
-  LIVE_SHARE: "extension.chat.startLiveShare"
+  LIVE_SHARE: "extension.chat.startLiveShare",
+  RESET_STORE: "extension.chat.reset"
 };
 
 export const SLASH_COMMANDS = {

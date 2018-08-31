@@ -68,21 +68,12 @@ export default class Store implements IStore, vscode.Disposable {
   statusItem: StatusItem;
 
   constructor(private context: vscode.ExtensionContext) {
-    this.slackToken = ConfigHelper.getToken();
-
     const { globalState } = context;
     this.channels = globalState.get(stateKeys.CHANNELS);
     this.currentUserInfo = globalState.get(stateKeys.USER_INFO);
     this.users = globalState.get(stateKeys.USERS);
     this.lastChannelId = globalState.get(stateKeys.LAST_CHANNEL_ID);
     this.installationId = globalState.get(stateKeys.INSTALLATION_ID);
-
-    if (this.currentUserInfo && this.slackToken) {
-      if (this.currentUserInfo.token !== this.slackToken) {
-        // Token has changed, all state is suspicious now
-        this.clear();
-      }
-    }
 
     this.statusItem = new StatusItem();
 
@@ -109,6 +100,22 @@ export default class Store implements IStore, vscode.Disposable {
     }
   }
 
+  initializeToken = async () => {
+    const token = await ConfigHelper.getToken();
+    this.slackToken = token;
+
+    if (!this.slackToken) {
+      ConfigHelper.askForAuth();
+    }
+
+    if (this.isAuthenticated() && this.slackToken) {
+      if (this.currentUserInfo.token !== this.slackToken) {
+        // Token has changed, all state is suspicious now
+        this.clear();
+      }
+    }
+  };
+
   generateInstallationId() {
     const uuidStr = uuidv4();
     const { globalState } = this.context;
@@ -117,13 +124,13 @@ export default class Store implements IStore, vscode.Disposable {
   }
 
   clear() {
-    this.updateLastChannelId(null);
+    this.updateLastChannelId(undefined);
     this.updateChannels([]);
-    this.updateCurrentUser(null);
+    this.updateCurrentUser(undefined);
     this.updateUsers({});
 
-    this.usersFetchedAt = null;
-    this.channelsFetchedAt = null;
+    this.usersFetchedAt = undefined;
+    this.channelsFetchedAt = undefined;
     this.messages = {};
   }
 
@@ -135,8 +142,10 @@ export default class Store implements IStore, vscode.Disposable {
 
   reset() {
     this.clear();
-    this.slackToken = ConfigHelper.getToken();
-    this.updateAllUI();
+    ConfigHelper.getToken().then(token => {
+      this.slackToken = token;
+      this.updateAllUI();
+    });
   }
 
   dispose() {
@@ -236,9 +245,9 @@ export default class Store implements IStore, vscode.Disposable {
     const { id, readTimestamp, unreadCount } = channel;
     const messages = id in this.messages ? this.messages[id] : {};
     const unreadMessages = Object.keys(messages).filter(ts => {
-      const isSomeotherUser = messages[ts].userId !== this.currentUserInfo.id;
+      const isDifferentUser = messages[ts].userId !== this.currentUserInfo.id;
       const isNewTimestamp = !!readTimestamp ? +ts > +readTimestamp : false;
-      return isSomeotherUser && isNewTimestamp;
+      return isDifferentUser && isNewTimestamp;
     });
     return unreadCount ? unreadCount : unreadMessages.length;
   }

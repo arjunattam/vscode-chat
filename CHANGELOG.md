@@ -2,11 +2,23 @@
 
 All notable changes to the vscode-chat extension will be documented in this file. This follows the [Keep a Changelog](http://keepachangelog.com/) format.
 
+## [0.5.8] - 2018-08-31
+
+### Added
+
+- Added support for the system keychain to store authentication tokens.
+- Added a new command to sign out from Slack.
+
+### Fixed
+
+- Fix handling of composition start/end events while composing messages (thanks to [Yukai Huang](https://github.com/Yukaii)).
+- Opening Slack or changing channel without authentication now prompts users to authenticate.
+
 ## [0.5.7] - 2018-08-29
 
 ### Added
 
-- Added support to "Sign in with Slack" from the activity bar.
+- Added support for "Sign in with Slack" from the activity bar.
 
 ### Fixed
 
@@ -20,7 +32,7 @@ All notable changes to the vscode-chat extension will be documented in this file
 
 - Slack webview font size now matches the font size of your editor.
 - Introductory support for message threads: historical messages show the number of thread replies. Future releases will build on this to add full thread replies support.
-- Added anonymized telemetry data collection; this respects the telemetry setting in your editor and you can opt-out by setting `enableTelemetry` to false.
+- Added anonymized telemetry data collection; this respects the telemetry setting in your editor and you can opt-out by setting `telemetry.enableTelemetry` to false.
 
 ### Fixed
 

@@ -40,10 +40,10 @@ export function activate(context: vscode.ExtensionContext) {
   );
   store.setUiCallback(uiMessage => controller.sendToUI(uiMessage));
 
-  const setup = (): Promise<any> => {
+  const setup = async (): Promise<any> => {
     let messengerPromise: Promise<SlackCurrentUser>;
     const isConnected = !!messenger && messenger.isConnected();
-    const hasUser = !!store.currentUserInfo;
+    const hasUser = store.isAuthenticated();
 
     if (!store.installationId) {
       store.generateInstallationId();
@@ -52,6 +52,15 @@ export function activate(context: vscode.ExtensionContext) {
 
       if (!hasUser) {
         reporter.record(EventType.extensionInstalled, undefined, undefined);
+      }
+    }
+
+    if (!store.slackToken) {
+      await store.initializeToken();
+
+      if (!store.slackToken) {
+        // We weren't able to get a token
+        throw new Error("Slack token not found.");
       }
     }
 
@@ -140,7 +149,9 @@ export function activate(context: vscode.ExtensionContext) {
   };
 
   const openSlackPanel = (args?: ChatArgs) => {
-    controller.loadUi();
+    if (!!store.slackToken) {
+      controller.loadUi();
+    }
 
     setup()
       .then(() => getChatChannelId(args))
@@ -165,7 +176,10 @@ export function activate(context: vscode.ExtensionContext) {
       hasArgs ? args.source : EventSource.palette,
       undefined
     );
-    return askForChannel().then(() => openSlackPanel(args));
+
+    return askForChannel().then(
+      result => (!!result ? openSlackPanel(args) : null)
+    );
   };
 
   const shareVslsLink = async (args?: ChatArgs) => {
@@ -193,25 +207,28 @@ export function activate(context: vscode.ExtensionContext) {
     return openUrl(SLACK_OAUTH);
   };
 
+  const reset = () => {
+    store.reset();
+    setup();
+    store.updateAllUI();
+  };
+
+  const signout = async () => {
+    await ConfigHelper.clearToken();
+  };
+
   const resetConfiguration = (event: vscode.ConfigurationChangeEvent) => {
     const affectsExtension = event.affectsConfiguration(CONFIG_ROOT);
 
     if (affectsExtension) {
-      store.reset();
-      setup();
-      store.updateAllUI();
+      reset();
     }
   };
 
   const setVslsContext = () => {
     const vsls = getExtension(VSLS_EXTENSION_ID);
     const isEnabled = !!vsls;
-
-    if (isEnabled) {
-      vscode.commands.executeCommand("setContext", "chat:vslsEnabled", true);
-    } else {
-      vscode.commands.executeCommand("setContext", "chat:vslsEnabled", false);
-    }
+    vscode.commands.executeCommand("setContext", "chat:vslsEnabled", isEnabled);
   };
 
   const configureToken = () => {
@@ -243,6 +260,8 @@ export function activate(context: vscode.ExtensionContext) {
     vscode.commands.registerCommand(SelfCommands.OPEN, openSlackPanel),
     vscode.commands.registerCommand(SelfCommands.CHANGE_CHANNEL, changeChannel),
     vscode.commands.registerCommand(SelfCommands.SIGN_IN, authenticate),
+    vscode.commands.registerCommand(SelfCommands.SIGN_OUT, signout),
+    vscode.commands.registerCommand(SelfCommands.RESET_STORE, reset),
     vscode.commands.registerCommand(
       SelfCommands.CONFIGURE_TOKEN,
       configureToken
