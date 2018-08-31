@@ -13,33 +13,6 @@ const TELEMETRY_CONFIG_KEY = "enableTelemetry";
 const CREDENTIAL_SERVICE_NAME = "vscode-chat";
 const CREDENTIAL_ACCOUNT_NAME = "slack";
 
-const askForAuthentication = () => {
-  const actionItems = [str.SIGN_IN_SLACK];
-
-  if (hasExtensionPack()) {
-    // If the extension was download via extension pack, it is
-    // possible that the user does not use Slack
-    actionItems.push(str.DONT_HAVE_SLACK);
-  }
-
-  vscode.window
-    .showInformationMessage(str.TOKEN_NOT_FOUND, ...actionItems)
-    .then(selected => {
-      switch (selected) {
-        case str.SIGN_IN_SLACK:
-          vscode.commands.executeCommand(SelfCommands.SIGN_IN, {
-            source: EventSource.info
-          });
-          break;
-        case str.DONT_HAVE_SLACK:
-          const title = `Add new chat provider`;
-          const body = `My chat provider is: `;
-          IssueReporter.openNewIssue(title, body);
-          break;
-      }
-    });
-};
-
 class ConfigHelper {
   static getRootConfig() {
     return vscode.workspace.getConfiguration(CONFIG_ROOT);
@@ -65,9 +38,6 @@ class ConfigHelper {
       this.clearTokenFromSettings();
       return Promise.resolve(token);
     }
-
-    // TODO: move this ask to store constructor
-    //   askForAuthentication();
   }
 
   static clearTokenFromSettings() {
@@ -86,6 +56,40 @@ class ConfigHelper {
       CREDENTIAL_ACCOUNT_NAME,
       token
     );
+  }
+
+  static clearToken(): Promise<boolean> {
+    return keychain.deletePassword(
+      CREDENTIAL_SERVICE_NAME,
+      CREDENTIAL_ACCOUNT_NAME
+    );
+  }
+
+  static askForAuth() {
+    const actionItems = [str.SIGN_IN_SLACK];
+
+    if (hasExtensionPack()) {
+      // If the extension was download via extension pack, it is
+      // possible that the user does not use Slack
+      actionItems.push(str.DONT_HAVE_SLACK);
+    }
+
+    vscode.window
+      .showInformationMessage(str.TOKEN_NOT_FOUND, ...actionItems)
+      .then(selected => {
+        switch (selected) {
+          case str.SIGN_IN_SLACK:
+            vscode.commands.executeCommand(SelfCommands.SIGN_IN, {
+              source: EventSource.info
+            });
+            break;
+          case str.DONT_HAVE_SLACK:
+            const title = `Add new chat provider`;
+            const body = `My chat provider is: `;
+            IssueReporter.openNewIssue(title, body);
+            break;
+        }
+      });
   }
 
   static getProxyUrl() {

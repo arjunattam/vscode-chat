@@ -77,6 +77,10 @@
         "title": "Slack: Sign In with Slack"
       },
       {
+        "command": "extension.chat.signout",
+        "title": "Slack: Sign Out"
+      },
+      {
         "command": "extension.chat.configureToken",
         "title": "Slack: Configure Slack Access Token"
       },

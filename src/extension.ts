@@ -27,6 +27,14 @@ let chatTreeProvider: ChatTreeProviders | undefined = undefined;
 let messenger: SlackMessenger | undefined = undefined;
 let reporter: Reporter | undefined = undefined;
 
+//
+// TODO:
+// - in signed out case, the tree views are not showing anything
+// - tree views should show "sign in with slack"
+// - open/change channel commands should trigger info message
+// - open info message on window loading
+//
+
 export function activate(context: vscode.ExtensionContext) {
   Logger.log("Activating Slack Chat");
   store = new Store(context);
@@ -197,25 +205,29 @@ export function activate(context: vscode.ExtensionContext) {
     return openUrl(SLACK_OAUTH);
   };
 
+  const reset = () => {
+    store.reset();
+    setup();
+    store.updateAllUI();
+  };
+
+  const signout = async () => {
+    await ConfigHelper.clearToken();
+    reset();
+  };
+
   const resetConfiguration = (event: vscode.ConfigurationChangeEvent) => {
     const affectsExtension = event.affectsConfiguration(CONFIG_ROOT);
 
     if (affectsExtension) {
-      store.reset();
-      setup();
-      store.updateAllUI();
+      reset();
     }
   };
 
   const setVslsContext = () => {
     const vsls = getExtension(VSLS_EXTENSION_ID);
     const isEnabled = !!vsls;
-
-    if (isEnabled) {
-      vscode.commands.executeCommand("setContext", "chat:vslsEnabled", true);
-    } else {
-      vscode.commands.executeCommand("setContext", "chat:vslsEnabled", false);
-    }
+    vscode.commands.executeCommand("setContext", "chat:vslsEnabled", isEnabled);
   };
 
   const configureToken = () => {
@@ -247,6 +259,8 @@ export function activate(context: vscode.ExtensionContext) {
     vscode.commands.registerCommand(SelfCommands.OPEN, openSlackPanel),
     vscode.commands.registerCommand(SelfCommands.CHANGE_CHANNEL, changeChannel),
     vscode.commands.registerCommand(SelfCommands.SIGN_IN, authenticate),
+    vscode.commands.registerCommand(SelfCommands.SIGN_OUT, signout),
+    vscode.commands.registerCommand(SelfCommands.RESET_STORE, reset),
     vscode.commands.registerCommand(
       SelfCommands.CONFIGURE_TOKEN,
       configureToken
