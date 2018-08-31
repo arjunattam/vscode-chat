@@ -31,12 +31,12 @@ class ConfigHelper {
     // Let's try for the settings file (pre v0.5.8) and migrate them
     // to the keychain.
     const rootConfig = this.getRootConfig();
-    const token = rootConfig.get<string>(TOKEN_CONFIG_KEY);
+    const settingsToken = rootConfig.get<string>(TOKEN_CONFIG_KEY);
 
-    if (!!token) {
-      ConfigHelper.setToken(token);
+    if (!!settingsToken) {
+      ConfigHelper.setToken(settingsToken);
       this.clearTokenFromSettings();
-      return Promise.resolve(token);
+      return Promise.resolve(settingsToken);
     }
   }
 

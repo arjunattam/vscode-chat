@@ -14,7 +14,6 @@ import {
 } from "./interfaces";
 import { SelfCommands, SLACK_OAUTH } from "./constants";
 import { VSLS_EXTENSION_ID, CONFIG_ROOT, TRAVIS_SCHEME } from "./constants";
-import ChatTreeProviders from "./tree";
 import travis from "./providers/travis";
 import { ExtensionUriHandler } from "./uri";
 import { openUrl, getExtension } from "./utils";
@@ -23,7 +22,6 @@ import Reporter from "./telemetry";
 
 let store: Store | undefined = undefined;
 let controller: ViewController | undefined = undefined;
-let chatTreeProvider: ChatTreeProviders | undefined = undefined;
 let messenger: SlackMessenger | undefined = undefined;
 let reporter: Reporter | undefined = undefined;
 
@@ -40,7 +38,7 @@ export function activate(context: vscode.ExtensionContext) {
   );
   store.setUiCallback(uiMessage => controller.sendToUI(uiMessage));
 
-  const setup = async (): Promise<any> => {
+  const setup = async (canPromptForAuth?: boolean): Promise<any> => {
     let messengerPromise: Promise<SlackCurrentUser>;
     const isConnected = !!messenger && messenger.isConnected();
     const hasUser = store.isAuthenticated();
@@ -60,6 +58,10 @@ export function activate(context: vscode.ExtensionContext) {
 
       if (!store.slackToken) {
         // We weren't able to get a token
+        if (canPromptForAuth) {
+          ConfigHelper.askForAuth();
+        }
+
         throw new Error("Slack token not found.");
       }
     }
@@ -93,10 +95,11 @@ export function activate(context: vscode.ExtensionContext) {
   };
 
   const askForChannel = (): Promise<SlackChannel> => {
-    return setup().then(() => {
+    return setup(true).then(() => {
       let channelList = store
         .getChannelLabels()
         .sort((a, b) => b.unread - a.unread);
+
       const placeHolder = str.CHANGE_CHANNEL_TITLE;
       const labels = channelList.map(c => `${c.label}`);
 
@@ -111,8 +114,9 @@ export function activate(context: vscode.ExtensionContext) {
                 .then(() => askForChannel());
             }
             const selectedChannel = channelList.find(x => x.label === selected);
-            store.updateLastChannelId(selectedChannel.id);
-            return selectedChannel;
+            const { channel } = selectedChannel;
+            store.updateLastChannelId(channel.id);
+            return channel;
           }
         });
     });
@@ -153,7 +157,7 @@ export function activate(context: vscode.ExtensionContext) {
       controller.loadUi();
     }
 
-    setup()
+    setup(true)
       .then(() => getChatChannelId(args))
       .then(() => {
         store.updateWebviewUI();
@@ -207,9 +211,10 @@ export function activate(context: vscode.ExtensionContext) {
     return openUrl(SLACK_OAUTH);
   };
 
-  const reset = () => {
-    store.reset();
-    setup();
+  const reset = async () => {
+    store.clear();
+    store.updateAllUI();
+    await setup();
     store.updateAllUI();
   };
 
@@ -245,12 +250,8 @@ export function activate(context: vscode.ExtensionContext) {
       });
   };
 
-  // Setup tree providers
-  chatTreeProvider = new ChatTreeProviders(store);
-  const treeDisposables: vscode.Disposable[] = chatTreeProvider.register();
-
   // Setup real-time messenger and updated local state
-  setup();
+  setup(true);
 
   // Setup context for conditional views
   setVslsContext();
@@ -276,7 +277,6 @@ export function activate(context: vscode.ExtensionContext) {
     vscode.workspace.onDidChangeConfiguration(resetConfiguration),
     vscode.workspace.registerTextDocumentContentProvider(TRAVIS_SCHEME, travis),
     vscode.window.registerUriHandler(uriHandler),
-    ...treeDisposables,
     store,
     reporter
   );

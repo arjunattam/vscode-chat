@@ -10,12 +10,20 @@ import {
   IStore,
   UIMessage,
   SlackUser,
-  ChannelType
+  ChannelType,
+  ChannelLabel
 } from "./interfaces";
 import StatusItem from "./status";
 import ConfigHelper from "./config";
 import Logger from "./logger";
 import { getExtensionVersion } from "./utils";
+import {
+  UnreadsTreeProvider,
+  ChannelTreeProvider,
+  GroupTreeProvider,
+  IMsTreeProvider,
+  OnlineUsersTreeProvider
+} from "./tree";
 
 const stateKeys = {
   EXTENSION_VERSION: "extensionVersion",
@@ -64,8 +72,14 @@ export default class Store implements IStore, vscode.Disposable {
 
   // We could merge these 3 store subscribers with one protocol
   uiCallback: (message: UIMessage) => void;
-  treeCallbacks: (() => void)[] = [];
   statusItem: StatusItem;
+
+  // Tree providers
+  unreadsTreeProvider: UnreadsTreeProvider;
+  channelsTreeProvider: ChannelTreeProvider;
+  imsTreeProvider: IMsTreeProvider;
+  groupsTreeProvider: GroupTreeProvider;
+  usersTreeProvider: OnlineUsersTreeProvider;
 
   constructor(private context: vscode.ExtensionContext) {
     const { globalState } = context;
@@ -76,6 +90,13 @@ export default class Store implements IStore, vscode.Disposable {
     this.installationId = globalState.get(stateKeys.INSTALLATION_ID);
 
     this.statusItem = new StatusItem();
+
+    // Setup tree providers
+    this.unreadsTreeProvider = new UnreadsTreeProvider();
+    this.channelsTreeProvider = new ChannelTreeProvider();
+    this.groupsTreeProvider = new GroupTreeProvider();
+    this.imsTreeProvider = new IMsTreeProvider();
+    this.usersTreeProvider = new OnlineUsersTreeProvider();
 
     // Extension version migrations
     const existingVersion = globalState.get(stateKeys.EXTENSION_VERSION);
@@ -103,17 +124,6 @@ export default class Store implements IStore, vscode.Disposable {
   initializeToken = async () => {
     const token = await ConfigHelper.getToken();
     this.slackToken = token;
-
-    if (!this.slackToken) {
-      ConfigHelper.askForAuth();
-    }
-
-    if (this.isAuthenticated() && this.slackToken) {
-      if (this.currentUserInfo.token !== this.slackToken) {
-        // Token has changed, all state is suspicious now
-        this.clear();
-      }
-    }
   };
 
   generateInstallationId() {
@@ -132,6 +142,7 @@ export default class Store implements IStore, vscode.Disposable {
     this.usersFetchedAt = undefined;
     this.channelsFetchedAt = undefined;
     this.messages = {};
+    this.slackToken = undefined;
   }
 
   updateAllUI() {
@@ -140,35 +151,28 @@ export default class Store implements IStore, vscode.Disposable {
     this.updateWebviewUI();
   }
 
-  reset() {
-    this.clear();
-    ConfigHelper.getToken().then(token => {
-      this.slackToken = token;
-      this.updateAllUI();
-    });
-  }
-
   dispose() {
     this.statusItem.dispose();
+    this.unreadsTreeProvider.dispose();
+    this.channelsTreeProvider.dispose();
+    this.groupsTreeProvider.dispose();
+    this.imsTreeProvider.dispose();
+    this.usersTreeProvider.dispose();
   }
 
   isAuthenticated() {
-    return this.currentUserInfo && !!this.currentUserInfo.id;
+    return !!this.slackToken;
   }
 
   setUiCallback(uiCallback) {
     this.uiCallback = uiCallback;
   }
 
-  setTreeCallback(treeCallback) {
-    this.treeCallbacks.push(treeCallback);
-  }
-
   getChannel(channelId: string): SlackChannel {
     return this.channels.find(channel => channel.id === channelId);
   }
 
-  getChannelLabels() {
+  getChannelLabels(): ChannelLabel[] {
     return this.channels.map(channel => {
       const unread = this.getUnreadCount(channel);
       const { name, type } = channel;
@@ -201,7 +205,7 @@ export default class Store implements IStore, vscode.Disposable {
       }
 
       return {
-        ...channel,
+        channel,
         unread,
         icon,
         label: `${name} ${unread > 0 ? `(${unread} new)` : ""}`,
@@ -253,9 +257,26 @@ export default class Store implements IStore, vscode.Disposable {
   }
 
   updateTreeViews() {
-    if (!!this.treeCallbacks) {
-      this.treeCallbacks.forEach(callable => callable());
-    }
+    const isAuthenticated = this.isAuthenticated();
+    const channelLabels = this.getChannelLabels();
+    this.unreadsTreeProvider.showData(isAuthenticated, channelLabels);
+    this.channelsTreeProvider.showData(isAuthenticated, channelLabels);
+    this.groupsTreeProvider.showData(isAuthenticated, channelLabels);
+    this.imsTreeProvider.showData(isAuthenticated, channelLabels);
+
+    // We could possibly split this function for channel-updates and user-updates
+    // to avoid extra UI refresh calls.
+    const imChannels = {};
+    Object.keys(this.users).forEach(userId => {
+      imChannels[userId] = this.getIMChannel(this.users[userId]);
+    });
+
+    this.usersTreeProvider.updateData(
+      isAuthenticated,
+      this.currentUserInfo,
+      this.users,
+      imChannels
+    );
   }
 
   updateUnreadCount() {

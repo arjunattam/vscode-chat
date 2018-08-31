@@ -83,6 +83,14 @@ export interface SlackChannel {
   unreadCount: number;
 }
 
+export interface ChannelLabel {
+  channel: SlackChannel;
+  unread: number;
+  icon: string;
+  label: string;
+  isOnline: boolean;
+}
+
 enum MessageType {
   text = "text",
   command = "command",
@@ -116,8 +124,6 @@ export interface UIMessageGroup {
   key: string;
 }
 
-interface TreeCallback {}
-
 export interface IStore {
   slackToken: string;
   installationId: string;
@@ -127,7 +133,6 @@ export interface IStore {
   users: SlackUsers;
   messages: SlackMessages;
   isAuthenticated: () => boolean;
-  setTreeCallback: (TreeCallback) => void;
   getChannel: (string) => SlackChannel | undefined;
   getIMChannel: (SlackUser) => SlackChannel | undefined;
   getChannelLabels: () => any;
