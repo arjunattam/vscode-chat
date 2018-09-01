@@ -175,7 +175,8 @@ export enum EventSource {
   status = "status_item",
   palette = "command_palette",
   activity = "activity_bar",
-  info = "info_message"
+  info = "info_message",
+  slash = "slash_command"
 }
 
 export enum EventType {

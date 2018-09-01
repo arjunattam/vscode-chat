@@ -34,7 +34,6 @@ export function activate(context: vscode.ExtensionContext) {
     context,
     () => store.loadChannelHistory(store.lastChannelId),
     () => store.updateReadMarker(),
-    ts => store.fetchThreadReplies(ts),
     text => sendMessage(text)
   );
   store.setUiCallback(uiMessage => controller.sendToUI(uiMessage));
@@ -198,7 +197,6 @@ export function activate(context: vscode.ExtensionContext) {
     }
 
     let channelId: string = await getChatChannelId(args);
-    // TODO: we are not tracking `/live share` events
     reporter.record(EventType.vslsShared, EventSource.activity, channelId);
     messenger.sendMessage(vslsUri.toString(), channelId);
   };
@@ -222,6 +220,10 @@ export function activate(context: vscode.ExtensionContext) {
 
   const signout = async () => {
     await ConfigHelper.clearToken();
+  };
+
+  const fetchReplies = parentTimestamp => {
+    store.fetchThreadReplies(parentTimestamp);
   };
 
   const resetConfiguration = (event: vscode.ConfigurationChangeEvent) => {
@@ -269,13 +271,21 @@ export function activate(context: vscode.ExtensionContext) {
       SelfCommands.CONFIGURE_TOKEN,
       configureToken
     ),
-    vscode.commands.registerCommand(SelfCommands.LIVE_SHARE, item =>
+    vscode.commands.registerCommand(SelfCommands.LIVE_SHARE_FROM_MENU, item =>
       shareVslsLink({
         channel: item.channel,
         user: item.user,
         source: EventSource.activity
       })
     ),
+    vscode.commands.registerCommand(SelfCommands.LIVE_SHARE_SLASH, () => {
+      shareVslsLink({
+        channel: store.getChannel(store.lastChannelId),
+        user: undefined,
+        source: EventSource.slash
+      });
+    }),
+    vscode.commands.registerCommand(SelfCommands.FETCH_REPLIES, fetchReplies),
     vscode.workspace.onDidChangeConfiguration(resetConfiguration),
     vscode.workspace.registerTextDocumentContentProvider(TRAVIS_SCHEME, travis),
     vscode.window.registerUriHandler(uriHandler),

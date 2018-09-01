@@ -1,7 +1,12 @@
+import * as vscode from "vscode";
 import { ExtensionContext } from "vscode";
 import WebviewContainer from "../webview";
 import { ExtensionMessage, UIMessage } from "../interfaces";
-import { SLASH_COMMANDS, REVERSE_SLASH_COMMANDS } from "../constants";
+import {
+  SLASH_COMMANDS,
+  REVERSE_SLASH_COMMANDS,
+  SelfCommands
+} from "../constants";
 import * as str from "../strings";
 import Logger from "../logger";
 import CommandDispatch, { MessageCommand } from "./commands";
@@ -29,7 +34,6 @@ class ViewController {
     private context: ExtensionContext,
     private onUIVisible: () => void,
     private onUIFocus: () => void,
-    private onFetchReplies: (timestamp: string) => void,
     private messageSender: (string) => Promise<void>
   ) {}
 
@@ -54,6 +58,7 @@ class ViewController {
 
   dispatchCommand(command: MessageCommand) {
     const handler = new CommandDispatch();
+
     handler.handle(command).then(result => {
       if (!!result) {
         const { sendToSlack, response } = result;
@@ -64,11 +69,7 @@ class ViewController {
     });
   }
 
-  isValidCommand = (text: string, commandList?: Object) => {
-    if (!commandList) {
-      commandList = SLASH_COMMANDS;
-    }
-
+  isValidCommand = (text: string, commandList: Object) => {
     const parsed = getCommand(text);
 
     if (parsed) {
@@ -88,9 +89,17 @@ class ViewController {
   };
 
   handleCommand = (text: string) => {
-    if (this.isValidCommand(text)) {
+    if (this.isValidCommand(text, SLASH_COMMANDS)) {
       const parsed = getCommand(text);
-      return this.dispatchCommand(parsed);
+      const { namespace, subcommand } = parsed;
+
+      if (namespace === "live" && subcommand === "share") {
+        // Temporary bypass for "/live share" till we move
+        // all of this to the common command handlers
+        return vscode.commands.executeCommand(SelfCommands.LIVE_SHARE_SLASH);
+      } else {
+        return this.dispatchCommand(parsed);
+      }
     }
 
     if (this.isValidReverseCommand(text)) {
@@ -117,7 +126,10 @@ class ViewController {
 
     if (text === "fetch_replies") {
       const { parentTimestamp } = message;
-      this.onFetchReplies(parentTimestamp);
+      vscode.commands.executeCommand(
+        SelfCommands.FETCH_REPLIES,
+        parentTimestamp
+      );
     }
   };
 

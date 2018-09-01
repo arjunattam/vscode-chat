@@ -11,7 +11,7 @@ import {
   UIMessage,
   SlackUser,
   ChannelType,
-  ChannelLabel
+  ChannelLabel,
   UserPreferences
 } from "./interfaces";
 import StatusItem from "./status";

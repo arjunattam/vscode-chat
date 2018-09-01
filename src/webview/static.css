@@ -190,18 +190,34 @@ div.msg-footer a:hover {
 /* Thread replies */
 .replies-container {
   margin: 7px 0;
+  padding: 4px;
   min-height: 27px;
+  background-color: var(--vscode-editor-selectionHighlightBackground);
 }
 
-.reply-images-container {
-  display: inline-block;
+.replies-summary {
+  display: flex;
+  align-items: center;
+}
+
+.replies-summary div {
+  margin-right: 5px;
 }
 
 .reply-image {
-  margin: 0 5px;
+  margin: 0 3px;
 }
 
-/* TODO */
+ul.replies {
+  margin: 5px 0;
+}
+
+ul.replies li {
+  list-style: none;
+  margin: 7px 0;
+}
+
+/* TODO: iono what to do with this */
 .unread {
   background: red;
 }

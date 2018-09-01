@@ -57,6 +57,8 @@ Vue.component("messages-section", {
     </div>
   `,
   updated() {
+    // TODO: this should also trigger when the threads
+    // are expanded with Show all
     this.$el.scrollTop = this.$el.scrollHeight;
   }
 });
@@ -192,12 +194,12 @@ Vue.component("message-replies", {
   },
   template: /* html */ `
     <div class="replies-container">
-      <message-replies-images v-bind:images="imageUrls"></message-replies-images>
-      <span>{{count}} replies</span>
-      <a class="pointer" v-on:click="expandHandler">
-        {{expandText}}
-      </a>
-      <ul v-if="isExpanded">
+      <div class="replies-summary">
+        <message-replies-images v-bind:images="imageUrls"></message-replies-images>
+        <div>{{count}} replies</div>
+        <div><a class="pointer" v-on:click="expandHandler">{{expandText}}</a></div>
+      </div>
+      <ul v-if="isExpanded" class="replies">
         <message-reply-item
           v-for="reply in message.replies"
           v-bind:key="reply.timestamp"
@@ -219,6 +221,7 @@ Vue.component("message-reply-item", {
       return !!user ? user.name : this.userId;
     }
   },
+  // TODO: also need to show the timestamp
   template: /* html */ `
     <li>
       <strong>{{username}}</strong>: {{text}}
@@ -392,13 +395,13 @@ Vue.component("form-section", {
     }
   },
   mounted() {
-    this.$refs.messageInput.addEventListener("compositionstart",  event => {
+    this.$refs.messageInput.addEventListener("compositionstart", event => {
       this.inComposition = true;
-    })
+    });
 
-    this.$refs.messageInput.addEventListener("compositionend",  event => {
+    this.$refs.messageInput.addEventListener("compositionend", event => {
       this.inComposition = false;
-    })
+    });
 
     return sendMessage("is_ready", "internal");
   }

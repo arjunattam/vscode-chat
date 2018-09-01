@@ -7,7 +7,8 @@ import {
   UIMessageDateGroup,
   SlackChannelMessages,
   SlackUsers,
-  SlackChannel
+  SlackChannel,
+  SlackCurrentUser
 } from "../interfaces";
 
 const SAME_GROUP_TIME = 5 * 60; // seconds
@@ -55,8 +56,8 @@ export default class WebviewContainer {
   }
 
   update(uiMessage: UIMessage) {
-    const { messages, users, channel } = uiMessage;
-    const annotated = this.getAnnotatedMessages(messages, channel);
+    const { messages, users, channel, currentUser } = uiMessage;
+    const annotated = this.getAnnotatedMessages(messages, channel, currentUser);
     const groups = this.getMessageGroups(annotated, users);
     console.log(groups);
     this.panel.webview.postMessage({ ...uiMessage, messages: groups });
@@ -85,14 +86,16 @@ export default class WebviewContainer {
 
   getAnnotatedMessages(
     messages: SlackChannelMessages,
-    channel: SlackChannel
+    channel: SlackChannel,
+    currentUser: SlackCurrentUser
   ): SlackChannelMessages {
     // Annotate every message with isUnread (boolean)
     const { readTimestamp } = channel;
     let result = {};
     Object.keys(messages).forEach(ts => {
       const message = messages[ts];
-      const isUnread = +ts > +readTimestamp;
+      const isDifferentUser = message.userId !== currentUser.id;
+      const isUnread = isDifferentUser && +ts > +readTimestamp;
       result[ts] = { ...message, isUnread };
     });
     return result;
