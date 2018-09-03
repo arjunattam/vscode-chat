@@ -2,6 +2,20 @@
 
 All notable changes to the vscode-chat extension will be documented in this file. This follows the [Keep a Changelog](http://keepachangelog.com/) format.
 
+## [0.5.9] - 2018-09-04
+
+### Added
+
+- Support for muted channels: new messages in muted channels do not update the unread count.
+- Added support to expand thread messages to render replies.
+- Consistency between Slack clients for unread counts: marking messages as read from other Slack clients will update the unread count.
+- Unread messages are now highlighted in the webview.
+- Added documentation for [product roadmap](VISION.md) and [adding chat providers](PROVIDERS.md).
+
+### Fixed
+
+- The unread count does not include alerts for users joining/leaving channels anymore.
+
 ## [0.5.8] - 2018-08-31
 
 ### Added
