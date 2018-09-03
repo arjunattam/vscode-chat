@@ -2,11 +2,13 @@ import { WebClient, WebClientOptions } from "@slack/client";
 import * as HttpsProxyAgent from "https-proxy-agent";
 import ConfigHelper from "../config";
 import {
-  SlackUsers,
-  SlackChannel,
-  SlackChannelMessages,
+  Users,
+  Channel,
+  ChannelMessages,
   ChannelType,
-  SlackUser
+  User,
+  Message,
+  UserPreferences
 } from "../interfaces";
 
 const HISTORY_LIMIT = 50;
@@ -34,10 +36,10 @@ const getReaction = reaction => ({
   userIds: reaction.users
 });
 
-export const getMessage = (raw: any): SlackChannelMessages => {
+export const getMessage = (raw: any): ChannelMessages => {
   const { files, ts, user, text, edited, bot_id } = raw;
-  const { attachments, reactions, reply_count, replies } = raw;
-  let parsed: SlackChannelMessages = {};
+  const { attachments, reactions, replies } = raw;
+  let parsed: ChannelMessages = {};
 
   parsed[ts] = {
     userId: user ? user : bot_id,
@@ -69,7 +71,7 @@ export default class SlackAPIClient {
     this.client = new WebClient(token, options);
   }
 
-  getConversationHistory = (channel: string): Promise<SlackChannelMessages> => {
+  getConversationHistory = (channel: string): Promise<ChannelMessages> => {
     return this.client
       .apiCall("conversations.history", { channel, limit: HISTORY_LIMIT })
       .then((response: any) => {
@@ -89,7 +91,7 @@ export default class SlackAPIClient {
       });
   };
 
-  getUsers(): Promise<SlackUsers> {
+  getUsers(): Promise<Users> {
     return this.client.apiCall("users.list", {}).then((response: any) => {
       const { members, ok } = response;
       let users = {};
@@ -113,7 +115,7 @@ export default class SlackAPIClient {
     });
   }
 
-  getBotInfo(botId: string): Promise<SlackUsers> {
+  getBotInfo(botId: string): Promise<Users> {
     return this.client
       .apiCall("bots.info", { bot: botId })
       .then((response: any) => {
@@ -134,7 +136,7 @@ export default class SlackAPIClient {
       });
   }
 
-  getChannels(users: SlackUsers): Promise<SlackChannel[]> {
+  getChannels(users: Users): Promise<Channel[]> {
     const channels = this.client
       .apiCall("channels.list", { exclude_archived: true })
       .then((response: any) => {
@@ -191,19 +193,19 @@ export default class SlackAPIClient {
       }
     });
     return Promise.all([channels, groups, directs]).then(
-      (values: SlackChannel[][]) => {
+      (values: Channel[][]) => {
         return [].concat(...values);
       }
     );
   }
 
-  getChannelInfo = (originalChannel: SlackChannel): Promise<SlackChannel> => {
+  getChannelInfo = (originalChannel: Channel): Promise<Channel> => {
     const { id, type } = originalChannel;
     const getChannel = response => {
-      const { unread_count, last_read } = response;
+      const { unread_count_display, last_read } = response;
       return {
         ...originalChannel,
-        unreadCount: unread_count,
+        unreadCount: unread_count_display,
         readTimestamp: last_read
       };
     };
@@ -253,7 +255,7 @@ export default class SlackAPIClient {
     }
   };
 
-  openIMChannel = (user: SlackUser): Promise<SlackChannel> => {
+  openIMChannel = (user: User): Promise<Channel> => {
     const { id, name } = user;
     return this.client.im
       .open({ user: id, return_im: true })
@@ -267,6 +269,48 @@ export default class SlackAPIClient {
             type: ChannelType.im,
             unreadCount: 0,
             readTimestamp: null
+          };
+        }
+      });
+  };
+
+  getUserPrefs = (): Promise<UserPreferences> => {
+    // Undocumented API: https://github.com/ErikKalkoken/slackApiDoc/blob/master/users.prefs.get.md
+    return this.client.apiCall("users.prefs.get").then((response: any) => {
+      const { ok, prefs } = response;
+
+      if (ok) {
+        const { muted_channels } = prefs;
+        return {
+          mutedChannels: muted_channels.split(",")
+        };
+      }
+    });
+  };
+
+  getReplies = (
+    channelId: string,
+    messageTimestamp: string
+  ): Promise<Message> => {
+    // https://api.slack.com/methods/conversations.replies
+    return this.client.conversations
+      .replies({ channel: channelId, ts: messageTimestamp })
+      .then((response: any) => {
+        // Does not handle has_more in the response yet, could break
+        // for large threads
+        const { ok, messages } = response;
+
+        if (ok) {
+          const parent = messages.find(msg => msg.thread_ts === msg.ts);
+          const replies = messages.filter(msg => msg.thread_ts !== msg.ts);
+          const parentMessage = getMessage(parent);
+          return {
+            ...parentMessage[messageTimestamp],
+            replies: replies.map(reply => ({
+              userId: reply.user,
+              timestamp: reply.ts,
+              text: reply.text
+            }))
           };
         }
       });

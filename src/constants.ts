@@ -24,8 +24,18 @@ export const SelfCommands = {
   SIGN_IN: "extension.chat.authenticate",
   SIGN_OUT: "extension.chat.signout",
   CONFIGURE_TOKEN: "extension.chat.configureToken",
-  LIVE_SHARE: "extension.chat.startLiveShare",
-  RESET_STORE: "extension.chat.reset"
+  LIVE_SHARE_FROM_MENU: "extension.chat.startLiveShare",
+  LIVE_SHARE_SLASH: "extension.chat.slashLiveShare",
+  LIVE_SHARE_JOIN_PROMPT: "extension.chat.promptLiveShare",
+  RESET_STORE: "extension.chat.reset",
+  FETCH_REPLIES: "extension.chat.fetchReplies",
+  UPDATE_MESSAGES: "extension.chat.updateMessages",
+  UPDATE_MESSAGE_REPLIES: "extension.chat.updateReplies",
+  UPDATE_USER_PRESENCE: "extension.chat.updateUserPresence",
+  ADD_MESSAGE_REACTION: "extension.chat.addMessageReaction",
+  REMOVE_MESSAGE_REACTION: "extension.chat.removeMessageReaction",
+  SEND_MESSAGE: "extension.chat.sendMessage",
+  CHANNEL_MARKED: "extension.chat.updateChannelMark"
 };
 
 export const SLASH_COMMANDS = {

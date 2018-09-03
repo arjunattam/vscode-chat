@@ -12,13 +12,15 @@ function openLink(href) {
   return sendMessage(href, "link");
 }
 
+function formattedTime(ts) {
+  const d = new Date(+ts * 1000);
+  return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+}
+
 Vue.component("app-container", {
   props: ["messages", "users", "channel", "status"],
   template: /* html */ `
-    <div
-      class="vue-container"
-      v-on:click="clickHandler">
-
+    <div class="vue-container">
       <messages-section
         v-bind:messages="messages"
         v-bind:users="users">
@@ -29,22 +31,17 @@ Vue.component("app-container", {
         v-bind:channel="channel"
         v-bind:status="status">
       </form-section>
-
     </div>
-  `,
-  methods: {
-    clickHandler: function(event) {
-      // When the panel is clicked, we want to focus the input
-      // UPDATE, this is disabled: this does not let you select text
-      //
-      // const { formSection } = this.$refs;
-      // return formSection ? formSection.focusInput() : null;
-    }
-  }
+  `
 });
 
 Vue.component("messages-section", {
   props: ["messages", "users"],
+  data: function() {
+    return {
+      messagesLength: 0
+    };
+  },
   template: /* html */ `
     <div class="messages-section">
       <messages-date-group
@@ -57,7 +54,16 @@ Vue.component("messages-section", {
     </div>
   `,
   updated() {
-    this.$el.scrollTop = this.$el.scrollHeight;
+    const groups = this.messages.map(dateGroup => dateGroup.groups);
+    const flattened = [].concat.apply([], groups);
+    const newLength = flattened.reduce((acc, currentGroup) => {
+      return acc + currentGroup.messages.length;
+    }, 0);
+
+    if (newLength !== this.messagesLength) {
+      this.messagesLength = newLength;
+      this.$el.scrollTop = this.$el.scrollHeight;
+    }
   }
 });
 
@@ -96,8 +102,7 @@ Vue.component("message-group", {
   props: ["messages", "allUsers", "userId", "user", "timestamp"],
   computed: {
     readableTimestamp: function() {
-      const d = new Date(+this.timestamp * 1000);
-      return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+      return formattedTime(this.timestamp);
     },
     userName: function() {
       return this.user ? this.user.name : this.userId;
@@ -108,10 +113,10 @@ Vue.component("message-group", {
       <div class="message-group-image">
         <img v-bind:src="user ? user.imageUrl : null"></img>
       </div>
-      <div>
+      <div class="message-group-content">
         <div>
           <strong>{{ userName }}</strong>
-          <span class="message-timestamp">{{ readableTimestamp }}</span>
+          <span class="timestamp">{{ readableTimestamp }}</span>
         </div>
 
         <ul class="message-list">
@@ -135,7 +140,7 @@ Vue.component("message-item", {
     }
   },
   template: /* html */ `
-    <li>
+    <li v-bind:class="{ unread: message.isUnread }">
       <div v-if="message.textHTML" v-html="message.textHTML"></div>
       <span v-if="message.isEdited" class="edited">(edited)</span>
       <message-reactions v-bind:reactions="message.reactions"></message-reactions>
@@ -149,6 +154,29 @@ Vue.component("message-item", {
 
 Vue.component("message-replies", {
   props: ["message", "allUsers"],
+  data: function() {
+    return {
+      isExpanded: false
+    };
+  },
+  methods: {
+    expandHandler: function(event) {
+      this.isExpanded = !this.isExpanded;
+
+      if (this.isExpanded) {
+        const hasPendingText =
+          this.message.replies.filter(reply => !reply.text).length > 0;
+
+        if (hasPendingText) {
+          vscode.postMessage({
+            type: "internal",
+            text: "fetch_replies",
+            parentTimestamp: this.message.timestamp
+          });
+        }
+      }
+    }
+  },
   computed: {
     imageUrls: function() {
       const userIds = this.message.replies.map(reply => reply.userId);
@@ -162,13 +190,50 @@ Vue.component("message-replies", {
     },
     count: function() {
       return this.message.replies.length;
+    },
+    expandText: function() {
+      return this.isExpanded ? "Show less" : "Show all";
     }
   },
   template: /* html */ `
     <div class="replies-container">
-      <message-replies-images v-bind:images="imageUrls"></message-replies-images>
-      <span class="replies-count">{{count}} replies</span>
+      <div class="replies-summary">
+        <message-replies-images v-bind:images="imageUrls"></message-replies-images>
+        <div>{{count}} replies</div>
+        <div><a class="pointer" v-on:click="expandHandler">{{expandText}}</a></div>
+      </div>
+      <ul v-if="isExpanded" class="replies">
+        <message-reply-item
+          v-for="reply in message.replies"
+          v-bind:key="reply.timestamp"
+          v-bind:allUsers="allUsers"
+          v-bind:userId="reply.userId"
+          v-bind:timestamp="reply.timestamp"
+          v-bind:text="reply.text">
+        </message-reply-item>
+      </ul>
     </div>
+  `
+});
+
+Vue.component("message-reply-item", {
+  props: ["userId", "timestamp", "text", "allUsers"],
+  computed: {
+    username: function() {
+      const user = this.allUsers[this.userId];
+      return !!user ? user.name : this.userId;
+    },
+    readableTimestamp: function() {
+      return formattedTime(this.timestamp);
+    }
+  },
+  template: /* html */ `
+    <li>
+      <span>
+        <strong>{{username}}</strong>
+        <span class="timestamp">{{ readableTimestamp }}:</span>
+      </span> {{text}}
+    </li>
   `
 });
 
@@ -263,7 +328,7 @@ Vue.component("form-section", {
   props: ["channel", "status"],
   computed: {
     placeholder: function() {
-      return `Message ${this.channel}`;
+      return `Message ${this.channel.name}`;
     }
   },
   watch: {
@@ -338,13 +403,13 @@ Vue.component("form-section", {
     }
   },
   mounted() {
-    this.$refs.messageInput.addEventListener("compositionstart",  event => {
+    this.$refs.messageInput.addEventListener("compositionstart", event => {
       this.inComposition = true;
-    })
+    });
 
-    this.$refs.messageInput.addEventListener("compositionend",  event => {
+    this.$refs.messageInput.addEventListener("compositionend", event => {
       this.inComposition = false;
-    })
+    });
 
     return sendMessage("is_ready", "internal");
   }

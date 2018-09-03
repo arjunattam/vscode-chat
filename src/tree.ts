@@ -3,20 +3,20 @@ import * as path from "path";
 import * as str from "./strings";
 import { SelfCommands } from "./constants";
 import {
-  SlackChannel,
-  SlackUser,
+  Channel,
+  User,
   EventSource,
   ChannelLabel,
-  SlackUsers,
-  SlackCurrentUser
+  Users,
+  CurrentUser
 } from "./interfaces";
 
 interface ChatTreeItem {
   isOnline: boolean;
   value: string;
   label: string;
-  channel: SlackChannel;
-  user: SlackUser;
+  channel: Channel;
+  user: User;
 }
 
 const GREEN_DOT = path.join(
@@ -29,12 +29,7 @@ const GREEN_DOT = path.join(
 );
 
 class CustomTreeItem extends vscode.TreeItem {
-  constructor(
-    label: string,
-    isOnline: boolean,
-    channel: SlackChannel,
-    user: SlackUser
-  ) {
+  constructor(label: string, isOnline: boolean, channel: Channel, user: User) {
     super(label);
 
     if (!!channel) {
@@ -182,8 +177,8 @@ export class IMsTreeProvider extends BaseTreeProvider {
 
 export class OnlineUsersTreeProvider extends BaseTreeProvider {
   protected treeLabel = "online-users-tree-view";
-  private currentUser: SlackCurrentUser;
-  private users: SlackUsers;
+  private currentUser: CurrentUser;
+  private users: Users;
   private imChannels: any;
 
   constructor() {
@@ -195,8 +190,8 @@ export class OnlineUsersTreeProvider extends BaseTreeProvider {
 
   updateData(
     isAuthenticated,
-    currentUser: SlackCurrentUser,
-    users: SlackUsers,
+    currentUser: CurrentUser,
+    users: Users,
     imChannels
   ) {
     this.isAuthenticated = isAuthenticated;
@@ -208,7 +203,7 @@ export class OnlineUsersTreeProvider extends BaseTreeProvider {
 
   getChildrenForType(): vscode.ProviderResult<ChatTreeItem[]> {
     const { id: currentId } = this.currentUser;
-    const users: SlackUser[] = Object.keys(this.users)
+    const users: User[] = Object.keys(this.users)
       .map(userId => this.users[userId])
       .filter(user => user.isOnline && user.id !== currentId);
 

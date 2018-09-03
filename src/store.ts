@@ -1,20 +1,21 @@
 import * as vscode from "vscode";
 import * as semver from "semver";
-import SlackAPIClient from "./client";
 import {
-  SlackChannel,
-  SlackCurrentUser,
-  SlackChannelMessages,
-  SlackMessages,
-  SlackUsers,
+  Channel,
+  CurrentUser,
+  ChannelMessages,
+  Messages,
+  Users,
   IStore,
   UIMessage,
-  SlackUser,
+  User,
   ChannelType,
-  ChannelLabel
+  ChannelLabel,
+  UserPreferences,
+  IChatProvider,
+  MessageReply
 } from "./interfaces";
 import StatusItem from "./status";
-import ConfigHelper from "./config";
 import Logger from "./logger";
 import { getExtensionVersion } from "./utils";
 import {
@@ -60,15 +61,16 @@ function difference(setA, setB) {
 }
 
 export default class Store implements IStore, vscode.Disposable {
-  slackToken: string;
+  token: string;
   installationId: string;
   lastChannelId: string;
-  channels: SlackChannel[] = [];
+  channels: Channel[] = [];
   channelsFetchedAt: Date;
-  currentUserInfo: SlackCurrentUser;
-  users: SlackUsers = {};
+  currentUserInfo: CurrentUser;
+  currentUserPrefs: UserPreferences;
+  users: Users = {};
   usersFetchedAt: Date;
-  messages: SlackMessages = {};
+  messages: Messages = {};
 
   // We could merge these 3 store subscribers with one protocol
   uiCallback: (message: UIMessage) => void;
@@ -81,7 +83,10 @@ export default class Store implements IStore, vscode.Disposable {
   groupsTreeProvider: GroupTreeProvider;
   usersTreeProvider: OnlineUsersTreeProvider;
 
-  constructor(private context: vscode.ExtensionContext) {
+  constructor(
+    private context: vscode.ExtensionContext,
+    private chatProvider: IChatProvider
+  ) {
     const { globalState } = context;
     this.channels = globalState.get(stateKeys.CHANNELS);
     this.currentUserInfo = globalState.get(stateKeys.USER_INFO);
@@ -122,8 +127,8 @@ export default class Store implements IStore, vscode.Disposable {
   }
 
   initializeToken = async () => {
-    const token = await ConfigHelper.getToken();
-    this.slackToken = token;
+    const token = await this.chatProvider.getToken();
+    this.token = token;
   };
 
   generateInstallationId() {
@@ -142,7 +147,7 @@ export default class Store implements IStore, vscode.Disposable {
     this.usersFetchedAt = undefined;
     this.channelsFetchedAt = undefined;
     this.messages = {};
-    this.slackToken = undefined;
+    this.token = undefined;
   }
 
   updateAllUI() {
@@ -161,21 +166,24 @@ export default class Store implements IStore, vscode.Disposable {
   }
 
   isAuthenticated() {
-    return !!this.slackToken;
+    return !!this.token;
   }
 
   setUiCallback(uiCallback) {
     this.uiCallback = uiCallback;
   }
 
-  getChannel(channelId: string): SlackChannel {
+  getChannel(channelId: string): Channel {
     return this.channels.find(channel => channel.id === channelId);
   }
 
   getChannelLabels(): ChannelLabel[] {
+    const { mutedChannels } = this.currentUserPrefs;
+
     return this.channels.map(channel => {
       const unread = this.getUnreadCount(channel);
-      const { name, type } = channel;
+      const { name, type, id } = channel;
+      const isMuted = mutedChannels.indexOf(id) >= 0;
       let isOnline = false;
 
       if (type === ChannelType.im) {
@@ -191,7 +199,7 @@ export default class Store implements IStore, vscode.Disposable {
         }
       }
 
-      let icon;
+      let icon, label;
       switch (type) {
         case ChannelType.channel:
           icon = "comment";
@@ -204,23 +212,30 @@ export default class Store implements IStore, vscode.Disposable {
           break;
       }
 
+      if (unread > 0) {
+        label = `${name} ${unread > 0 ? `(${unread} new)` : ""}`;
+      } else if (isMuted) {
+        label = `${name} (muted)`;
+      } else {
+        label = `${name}`;
+      }
+
       return {
         channel,
         unread,
         icon,
-        label: `${name} ${unread > 0 ? `(${unread} new)` : ""}`,
+        label,
         isOnline
       };
     });
   }
 
-  getIMChannel(user: SlackUser): SlackChannel | undefined {
+  getIMChannel(user: User): Channel | undefined {
     return this.channels.find(channel => channel.name === `@${user.name}`);
   }
 
-  createIMChannel(user: SlackUser): Promise<SlackChannel> {
-    const client = new SlackAPIClient(this.slackToken);
-    return client.openIMChannel(user).then(channel => {
+  createIMChannel(user: User): Promise<Channel> {
+    return this.chatProvider.createIMChannel(user).then(channel => {
       this.updateChannel(channel);
       return channel;
     });
@@ -228,7 +243,6 @@ export default class Store implements IStore, vscode.Disposable {
 
   updateWebviewUI() {
     const channel = this.getChannel(this.lastChannelId);
-    const channelName = !!channel ? channel.name : "";
     const messages =
       this.lastChannelId in this.messages
         ? this.messages[this.lastChannelId]
@@ -239,14 +253,23 @@ export default class Store implements IStore, vscode.Disposable {
         messages,
         users: this.users,
         currentUser: this.currentUserInfo,
-        channelName,
+        channel,
         statusText: ""
       });
     }
   }
 
-  getUnreadCount(channel: SlackChannel): number {
+  getUnreadCount(channel: Channel): number {
     const { id, readTimestamp, unreadCount } = channel;
+    const { mutedChannels } = this.currentUserPrefs;
+
+    if (mutedChannels.length > 0) {
+      if (mutedChannels.indexOf(id) >= 0) {
+        // This channel is muted, so return 0
+        return 0;
+      }
+    }
+
     const messages = id in this.messages ? this.messages[id] : {};
     const unreadMessages = Object.keys(messages).filter(ts => {
       const isDifferentUser = messages[ts].userId !== this.currentUserInfo.id;
@@ -283,10 +306,9 @@ export default class Store implements IStore, vscode.Disposable {
     const unreads = this.channels.map(channel => this.getUnreadCount(channel));
     const totalUnreads = unreads.reduce((a, b) => a + b, 0);
     this.statusItem.updateCount(totalUnreads);
-    this.updateTreeViews();
   }
 
-  updateUserPresence = (userId, isOnline) => {
+  updateUserPresence = (userId: string, isOnline: boolean) => {
     if (userId in this.users) {
       this.users[userId] = {
         ...this.users[userId],
@@ -303,13 +325,11 @@ export default class Store implements IStore, vscode.Disposable {
   };
 
   updateUsersFetchedAt = () => {
-    const now = new Date();
-    this.usersFetchedAt = now;
+    this.usersFetchedAt = new Date();
   };
 
   updateChannelsFetchedAt = () => {
-    const now = new Date();
-    this.channelsFetchedAt = now;
+    this.channelsFetchedAt = new Date();
   };
 
   updateChannels = channels => {
@@ -317,11 +337,12 @@ export default class Store implements IStore, vscode.Disposable {
     this.context.globalState.update(stateKeys.CHANNELS, channels);
   };
 
-  updateChannel = (newChannel: SlackChannel) => {
+  updateChannel = (newChannel: Channel) => {
     // Adds/updates channel in this.channels
     let found = false;
     let updatedChannels = this.channels.map(channel => {
       const { id } = channel;
+
       if (id === newChannel.id) {
         found = true;
         return {
@@ -341,11 +362,10 @@ export default class Store implements IStore, vscode.Disposable {
     this.updateTreeViews();
   };
 
-  fetchUsers = (): Promise<SlackUsers> => {
-    const client = new SlackAPIClient(this.slackToken);
-    return client.getUsers().then((users: SlackUsers) => {
+  fetchUsers = (): Promise<Users> => {
+    return this.chatProvider.fetchUsers().then((users: Users) => {
       // Update users for their presence status, if already known
-      let usersWithPresence: SlackUsers = {};
+      let usersWithPresence: Users = {};
 
       Object.keys(users).forEach(userId => {
         const existingUser = userId in this.users ? this.users[userId] : null;
@@ -361,17 +381,19 @@ export default class Store implements IStore, vscode.Disposable {
     });
   };
 
-  fetchChannels = (): Promise<SlackChannel[]> => {
-    const client = new SlackAPIClient(this.slackToken);
-    return client.getChannels(this.users).then(channels => {
+  fetchChannels = (): Promise<Channel[]> => {
+    return this.chatProvider.fetchChannels(this.users).then(channels => {
       this.updateChannels(channels);
       this.updateChannelsFetchedAt();
       this.updateTreeViews();
 
+      // TODO: why are we fetching twice?
       const promises = channels.map(channel =>
-        client.getChannelInfo(channel).then((newChannel: SlackChannel) => {
-          return this.updateChannel(newChannel);
-        })
+        this.chatProvider
+          .fetchChannelInfo(channel)
+          .then((newChannel: Channel) => {
+            return this.updateChannel(newChannel);
+          })
       );
 
       Promise.all(promises).then(() => this.updateUnreadCount());
@@ -390,7 +412,7 @@ export default class Store implements IStore, vscode.Disposable {
     return difference > FETCH_THRESHOLD;
   };
 
-  getUsersPromise(): Promise<SlackUsers> {
+  getUsersPromise(): Promise<Users> {
     function isNotEmpty(obj) {
       return Object.keys(obj).length !== 0;
     }
@@ -405,7 +427,7 @@ export default class Store implements IStore, vscode.Disposable {
       : this.fetchUsers();
   }
 
-  getChannelsPromise(): Promise<SlackChannel[]> {
+  getChannelsPromise(): Promise<Channel[]> {
     // This assumes that users are available
     return !!this.channels
       ? new Promise(resolve => {
@@ -425,12 +447,12 @@ export default class Store implements IStore, vscode.Disposable {
     );
   };
 
-  updateCurrentUser = (userInfo: SlackCurrentUser): Thenable<void> => {
+  updateCurrentUser = (userInfo: CurrentUser): Thenable<void> => {
     this.currentUserInfo = userInfo;
     return this.context.globalState.update(stateKeys.USER_INFO, userInfo);
   };
 
-  updateMessages = (channelId: string, newMessages: SlackChannelMessages) => {
+  updateMessages = (channelId: string, newMessages: ChannelMessages) => {
     const channelMessages = { ...this.messages[channelId], ...newMessages };
     this.messages[channelId] = channelMessages;
 
@@ -453,38 +475,41 @@ export default class Store implements IStore, vscode.Disposable {
       this.fillUpBots(difference(userIds, allIds));
     }
 
-    this.updateWebviewUI();
-    this.updateUnreadCount();
+    this.updateAllUI();
   };
 
   fillUpBots(missingIds: Set<any>): Promise<any> {
     // missingIds are bot ids that we don't have in the store. We will
     // fetch their details, and then update the UI.
-    // We could remove this once we use rtm.start instead of rtm.connect
-    const client = new SlackAPIClient(this.slackToken);
     const ids = [...missingIds].filter(id => id.startsWith("B"));
+    // This filter for bots is specific to Slack
     return Promise.all(
       ids.map(botId => {
-        return client.getBotInfo(botId).then(users => {
+        return this.chatProvider.getBotInfo(botId).then(users => {
           this.users = {
             ...this.users,
             ...users
           };
         });
       })
-    )
-      .then(() => {
-        return this.updateWebviewUI();
-      })
-      .catch(error => console.error(error));
+    ).then(() => {
+      return this.updateWebviewUI();
+    });
   }
 
   loadChannelHistory(channelId: string): Promise<void> {
-    const client = new SlackAPIClient(this.slackToken);
-    return client
-      .getConversationHistory(channelId)
+    return this.chatProvider
+      .loadChannelHistory(channelId)
       .then(messages => this.updateMessages(channelId, messages))
       .catch(error => console.error(error));
+  }
+
+  updateUserPrefs() {
+    return this.chatProvider.getUserPrefs().then(response => {
+      // We could also save the muted channels to local storage
+      this.currentUserPrefs = response;
+      this.updateUnreadCount();
+    });
   }
 
   getLastTimestamp(): string {
@@ -507,21 +532,11 @@ export default class Store implements IStore, vscode.Disposable {
       const hasNewerMsgs = +readTimestamp < +lastTs;
 
       if (!readTimestamp || hasNewerMsgs) {
-        const client = new SlackAPIClient(this.slackToken);
         const channel = this.getChannel(channelId);
         const incremented = (+lastTs + 1).toString(); // Slack API workaround
-        client.markChannel({ channel, ts: incremented }).then(response => {
-          const { ok } = response;
-
-          if (ok) {
-            this.updateChannel({
-              ...channel,
-              readTimestamp: incremented,
-              unreadCount: 0
-            });
-          }
-
-          this.updateUnreadCount();
+        this.chatProvider.markChannel(channel, incremented).then(channel => {
+          this.updateChannel(channel);
+          this.updateAllUI();
         });
       }
     }
@@ -605,6 +620,39 @@ export default class Store implements IStore, vscode.Disposable {
         newMessages[msgTimestamp] = newMessage;
         this.updateMessages(channelId, newMessages);
       }
+    }
+  }
+
+  fetchThreadReplies(parentTimestamp: string) {
+    // Assume this is the current channel
+    const currentChannelId = this.lastChannelId;
+    return this.chatProvider
+      .fetchThreadReplies(currentChannelId, parentTimestamp)
+      .then(message => {
+        let messages = {};
+        messages[parentTimestamp] = message;
+        this.updateMessages(currentChannelId, messages);
+      });
+  }
+
+  updateMessageReply(
+    parentTimestamp: string,
+    channelId: string,
+    reply: MessageReply
+  ) {
+    // We need to have the message in our store, else we
+    // ignore this reply
+    const messages = channelId in this.messages ? this.messages[channelId] : {};
+    const message =
+      parentTimestamp in messages ? messages[parentTimestamp] : undefined;
+
+    if (!!message) {
+      let newMessages = {};
+      newMessages[parentTimestamp] = {
+        ...message,
+        replies: [...message.replies, reply]
+      };
+      this.updateMessages(channelId, newMessages);
     }
   }
 }

@@ -21,7 +21,7 @@ body,
   font-weight: normal;
 }
 
-.message-timestamp {
+.timestamp {
   color: var(--vscode-sideBar-foreground);
 }
 
@@ -41,6 +41,10 @@ body,
   min-width: 100%;
   min-height: 100%;
   border-radius: 2px;
+}
+
+.message-group-content {
+  width: 100%;
 }
 
 .message-list {
@@ -187,13 +191,41 @@ div.msg-footer a:hover {
   padding-left: 7px;
 }
 
+/* Thread replies */
 .replies-container {
   margin: 7px 0;
+  padding: 4px;
+  min-height: 27px;
+  background-color: var(--vscode-editor-selectionHighlightBackground);
+}
+
+.replies-summary {
   display: flex;
   align-items: center;
-  min-height: 27px;
+}
+
+.replies-summary div {
+  margin-right: 5px;
 }
 
 .reply-image {
-  margin: 0 5px;
+  margin: 0 3px;
+}
+
+ul.replies {
+  margin: 5px 0;
+}
+
+ul.replies li {
+  list-style: none;
+  margin: 7px 0;
+}
+
+.unread {
+  border-right: 3px solid var(--vscode-gitDecoration-modifiedResourceForeground);
+  padding-right: 5px;
+}
+
+.pointer {
+  cursor: pointer;
 }
