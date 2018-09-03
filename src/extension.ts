@@ -1,18 +1,18 @@
 import * as vscode from "vscode";
 import * as vsls from "vsls/vscode";
-import SlackMessenger from "./messenger";
+import { SlackChatProvider } from "./slack";
 import ViewController from "./controller";
 import Store from "./store";
 import Logger from "./logger";
 import * as str from "./strings";
 import {
-  SlackChannel,
+  Channel,
   ChatArgs,
-  SlackCurrentUser,
+  CurrentUser,
   EventType,
   EventSource
 } from "./interfaces";
-import { SelfCommands, SLACK_OAUTH } from "./constants";
+import { SelfCommands, LiveShareCommands, SLACK_OAUTH } from "./constants";
 import { VSLS_EXTENSION_ID, CONFIG_ROOT, TRAVIS_SCHEME } from "./constants";
 import travis from "./providers/travis";
 import { ExtensionUriHandler } from "./uri";
@@ -22,25 +22,25 @@ import Reporter from "./telemetry";
 
 let store: Store | undefined = undefined;
 let controller: ViewController | undefined = undefined;
-let messenger: SlackMessenger | undefined = undefined;
+let chatProvider: SlackChatProvider | undefined = undefined;
 let reporter: Reporter | undefined = undefined;
 
 export function activate(context: vscode.ExtensionContext) {
   Logger.log("Activating Slack Chat");
-  store = new Store(context);
+  chatProvider = new SlackChatProvider();
+  store = new Store(context, chatProvider);
   reporter = new Reporter(store);
 
   controller = new ViewController(
     context,
     () => store.loadChannelHistory(store.lastChannelId),
-    () => store.updateReadMarker(),
-    text => sendMessage(text)
+    () => store.updateReadMarker()
   );
   store.setUiCallback(uiMessage => controller.sendToUI(uiMessage));
 
   const setup = async (canPromptForAuth?: boolean): Promise<any> => {
-    let messengerPromise: Promise<SlackCurrentUser>;
-    const isConnected = !!messenger && messenger.isConnected();
+    let messengerPromise: Promise<CurrentUser>;
+    const isConnected = chatProvider.isConnected();
     const hasUser = store.isAuthenticated();
 
     if (!store.installationId) {
@@ -53,10 +53,10 @@ export function activate(context: vscode.ExtensionContext) {
       }
     }
 
-    if (!store.slackToken) {
+    if (!store.token) {
       await store.initializeToken();
 
-      if (!store.slackToken) {
+      if (!store.token) {
         // We weren't able to get a token
         if (canPromptForAuth) {
           ConfigHelper.askForAuth();
@@ -69,8 +69,7 @@ export function activate(context: vscode.ExtensionContext) {
     if (isConnected && hasUser) {
       messengerPromise = Promise.resolve(store.currentUserInfo);
     } else {
-      messenger = new SlackMessenger(store);
-      messengerPromise = messenger.start();
+      messengerPromise = chatProvider.connect();
     }
 
     return messengerPromise
@@ -80,22 +79,20 @@ export function activate(context: vscode.ExtensionContext) {
         return store.getUsersPromise();
       })
       .then(() => {
-        // Presence subscription assumes we have store.users
-        messenger.subscribePresence();
+        const { users } = store;
+        chatProvider.subscribePresence(users);
         return store.getChannelsPromise();
       })
       .catch(error => Logger.log(error));
   };
 
   const sendMessage = (text: string): Promise<void> => {
-    if (!!messenger) {
-      const { lastChannelId } = store;
-      reporter.record(EventType.messageSent, undefined, lastChannelId);
-      return messenger.sendMessage(text, lastChannelId);
-    }
+    const { lastChannelId, currentUserInfo } = store;
+    reporter.record(EventType.messageSent, undefined, lastChannelId);
+    return chatProvider.sendMessage(text, currentUserInfo.id, lastChannelId);
   };
 
-  const askForChannel = (): Promise<SlackChannel> => {
+  const askForChannel = (): Promise<Channel> => {
     return setup(true).then(() => {
       let channelList = store
         .getChannelLabels()
@@ -154,7 +151,7 @@ export function activate(context: vscode.ExtensionContext) {
   };
 
   const openSlackPanel = (args?: ChatArgs) => {
-    if (!!store.slackToken) {
+    if (!!store.token) {
       controller.loadUi();
     }
 
@@ -191,14 +188,37 @@ export function activate(context: vscode.ExtensionContext) {
     const liveshare = await vsls.getApiAsync();
     // liveshare.share() creates a new session if required
     const vslsUri = await liveshare.share({ suppressNotification: true });
-
-    if (!messenger) {
-      await setup();
-    }
-
     let channelId: string = await getChatChannelId(args);
     reporter.record(EventType.vslsShared, EventSource.activity, channelId);
-    messenger.sendMessage(vslsUri.toString(), channelId);
+    const { currentUserInfo } = store;
+    chatProvider.sendMessage(vslsUri.toString(), currentUserInfo.id, channelId);
+  };
+
+  const promptVslsJoin = (senderId: string, messageUri: vscode.Uri) => {
+    if (senderId === store.currentUserInfo.id) {
+      // This is our own message, ignore it
+      return;
+    }
+
+    const user = store.users[senderId];
+
+    if (!!user) {
+      // We should prompt for auto-joining here
+      const infoMessage = str.LIVE_SHARE_INVITE(user.name);
+      const actionItems = ["Join", "Ignore"];
+      vscode.window
+        .showInformationMessage(infoMessage, ...actionItems)
+        .then(selected => {
+          if (selected === "Join") {
+            const opts = { newWindow: false };
+            vscode.commands.executeCommand(
+              LiveShareCommands.JOIN,
+              messageUri.toString(),
+              opts
+            );
+          }
+        });
+    }
   };
 
   const authenticate = (args?: any) => {
@@ -271,6 +291,9 @@ export function activate(context: vscode.ExtensionContext) {
       SelfCommands.CONFIGURE_TOKEN,
       configureToken
     ),
+    vscode.commands.registerCommand(SelfCommands.SEND_MESSAGE, ({ text }) =>
+      sendMessage(text)
+    ),
     vscode.commands.registerCommand(SelfCommands.LIVE_SHARE_FROM_MENU, item =>
       shareVslsLink({
         channel: item.channel,
@@ -285,7 +308,35 @@ export function activate(context: vscode.ExtensionContext) {
         source: EventSource.slash
       });
     }),
+    vscode.commands.registerCommand(
+      SelfCommands.LIVE_SHARE_JOIN_PROMPT,
+      ({ senderId, messageUri }) => promptVslsJoin(senderId, messageUri)
+    ),
     vscode.commands.registerCommand(SelfCommands.FETCH_REPLIES, fetchReplies),
+    vscode.commands.registerCommand(
+      SelfCommands.UPDATE_MESSAGES,
+      ({ channelId, messages }) => {
+        store.updateMessages(channelId, messages);
+      }
+    ),
+    vscode.commands.registerCommand(
+      SelfCommands.ADD_MESSAGE_REACTION,
+      ({ userId, msgTimestamp, channelId, reactionName }) => {
+        store.addReaction(channelId, msgTimestamp, userId, reactionName);
+      }
+    ),
+    vscode.commands.registerCommand(
+      SelfCommands.REMOVE_MESSAGE_REACTION,
+      ({ userId, msgTimestamp, channelId, reactionName }) => {
+        store.removeReaction(channelId, msgTimestamp, userId, reactionName);
+      }
+    ),
+    vscode.commands.registerCommand(
+      SelfCommands.UPDATE_USER_PRESENCE,
+      ({ userId, isOnline }) => {
+        store.updateUserPresence(userId, isOnline);
+      }
+    ),
     vscode.workspace.onDidChangeConfiguration(resetConfiguration),
     vscode.workspace.registerTextDocumentContentProvider(TRAVIS_SCHEME, travis),
     vscode.window.registerUriHandler(uriHandler),

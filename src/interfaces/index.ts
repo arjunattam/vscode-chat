@@ -1,4 +1,34 @@
-export interface SlackUser {
+export interface IChatProvider {
+  /**
+   * getToken fetches token from the local keychain. This
+   * is a critical initialization step for any provider.
+   */
+  getToken: () => Promise<string>;
+  fetchUsers: () => Promise<Users>;
+  fetchChannels: (users: Users) => Promise<Channel[]>;
+  fetchChannelInfo: (channel: Channel) => Promise<Channel>;
+  getBotInfo: (botId: string) => Promise<Users>;
+  loadChannelHistory: (channelId: string) => Promise<ChannelMessages>;
+  getUserPrefs: () => Promise<UserPreferences>;
+  markChannel: (channel: Channel, ts: string) => Promise<any>;
+  fetchThreadReplies: (channelId: string, ts: string) => Promise<Message>;
+  sendMessage: (
+    text: string,
+    currentUserId: string,
+    channelId: string
+  ) => Promise<void>;
+  connect: () => Promise<CurrentUser>;
+  isConnected: () => boolean;
+  subscribePresence: (users: Users) => void;
+
+  /**
+   * createIMChannel is used when we want to invite an online
+   * user to VSLS, but we don't have an IM channel for that user
+   */
+  createIMChannel: (user: User) => Promise<Channel>;
+}
+
+export interface User {
   id: string;
   name: string;
   fullName: string;
@@ -12,7 +42,7 @@ export interface UserPreferences {
   mutedChannels: string[];
 }
 
-export interface SlackCurrentUser {
+export interface CurrentUser {
   id: string;
   name: string;
   token: string;
@@ -20,11 +50,11 @@ export interface SlackCurrentUser {
   teamName: string;
 }
 
-export interface SlackUsers {
-  [id: string]: SlackUser;
+export interface Users {
+  [id: string]: User;
 }
 
-interface SlackAttachment {
+interface MessageAttachment {
   name: string;
   permalink: string;
 }
@@ -54,13 +84,13 @@ export interface MessageReply {
   text?: string;
 }
 
-export interface SlackMessage {
+export interface Message {
   timestamp: string;
   userId: string;
   text: string;
   textHTML?: string;
   isEdited?: Boolean;
-  attachment?: SlackAttachment;
+  attachment?: MessageAttachment;
   content: MessageContent;
   reactions: MessageReaction[];
   replies: MessageReply[];
@@ -69,12 +99,12 @@ export interface SlackMessage {
   // subscribed (for threads)
 }
 
-export interface SlackChannelMessages {
-  [timestamp: string]: SlackMessage;
+export interface ChannelMessages {
+  [timestamp: string]: Message;
 }
 
-export interface SlackMessages {
-  [channelId: string]: SlackChannelMessages;
+export interface Messages {
+  [channelId: string]: ChannelMessages;
 }
 
 export enum ChannelType {
@@ -83,7 +113,7 @@ export enum ChannelType {
   im = "im"
 }
 
-export interface SlackChannel {
+export interface Channel {
   id: string;
   name: string;
   type: ChannelType;
@@ -92,7 +122,7 @@ export interface SlackChannel {
 }
 
 export interface ChannelLabel {
-  channel: SlackChannel;
+  channel: Channel;
   unread: number;
   icon: string;
   label: string;
@@ -112,10 +142,10 @@ export interface ExtensionMessage {
 }
 
 export interface UIMessage {
-  messages: SlackChannelMessages;
-  users: SlackUsers;
-  channel: SlackChannel;
-  currentUser: SlackCurrentUser;
+  messages: ChannelMessages;
+  users: Users;
+  channel: Channel;
+  currentUser: CurrentUser;
   statusText: string;
 }
 
@@ -125,29 +155,26 @@ export interface UIMessageDateGroup {
 }
 
 export interface UIMessageGroup {
-  messages: SlackMessage[];
+  messages: Message[];
   userId: string;
-  user: SlackUser;
+  user: User;
   minTimestamp: string;
   key: string;
 }
 
 export interface IStore {
-  slackToken: string;
+  token: string;
   installationId: string;
   lastChannelId: string;
-  channels: SlackChannel[];
-  currentUserInfo: SlackCurrentUser;
-  users: SlackUsers;
-  messages: SlackMessages;
+  channels: Channel[];
+  currentUserInfo: CurrentUser;
+  users: Users;
+  messages: Messages;
   isAuthenticated: () => boolean;
-  getChannel: (string) => SlackChannel | undefined;
-  getIMChannel: (SlackUser) => SlackChannel | undefined;
+  getChannel: (string) => Channel | undefined;
+  getIMChannel: (User) => Channel | undefined;
   getChannelLabels: () => any;
-  updateMessages: (
-    channelId: string,
-    newMessages: SlackChannelMessages
-  ) => void;
+  updateMessages: (channelId: string, newMessages: ChannelMessages) => void;
   loadChannelHistory: (string) => Promise<void>;
   updateReadMarker: (string) => void;
   updateUserPresence: (string, Boolean) => void;
@@ -166,8 +193,8 @@ export interface IStore {
 }
 
 export interface ChatArgs {
-  channel: SlackChannel;
-  user: SlackUser;
+  channel: Channel;
+  user: User;
   source: EventSource;
 }
 
