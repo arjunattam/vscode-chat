@@ -178,9 +178,12 @@ export default class Store implements IStore, vscode.Disposable {
   }
 
   getChannelLabels(): ChannelLabel[] {
+    const { mutedChannels } = this.currentUserPrefs;
+
     return this.channels.map(channel => {
       const unread = this.getUnreadCount(channel);
-      const { name, type } = channel;
+      const { name, type, id } = channel;
+      const isMuted = mutedChannels.indexOf(id) >= 0;
       let isOnline = false;
 
       if (type === ChannelType.im) {
@@ -196,7 +199,7 @@ export default class Store implements IStore, vscode.Disposable {
         }
       }
 
-      let icon;
+      let icon, label;
       switch (type) {
         case ChannelType.channel:
           icon = "comment";
@@ -209,11 +212,19 @@ export default class Store implements IStore, vscode.Disposable {
           break;
       }
 
+      if (unread > 0) {
+        label = `${name} ${unread > 0 ? `(${unread} new)` : ""}`;
+      } else if (isMuted) {
+        label = `${name} (muted)`;
+      } else {
+        label = `${name}`;
+      }
+
       return {
         channel,
         unread,
         icon,
-        label: `${name} ${unread > 0 ? `(${unread} new)` : ""}`,
+        label,
         isOnline
       };
     });
@@ -250,6 +261,15 @@ export default class Store implements IStore, vscode.Disposable {
 
   getUnreadCount(channel: Channel): number {
     const { id, readTimestamp, unreadCount } = channel;
+    const { mutedChannels } = this.currentUserPrefs;
+
+    if (mutedChannels.length > 0) {
+      if (mutedChannels.indexOf(id) >= 0) {
+        // This channel is muted, so return 0
+        return 0;
+      }
+    }
+
     const messages = id in this.messages ? this.messages[id] : {};
     const unreadMessages = Object.keys(messages).filter(ts => {
       const isDifferentUser = messages[ts].userId !== this.currentUserInfo.id;
@@ -283,13 +303,7 @@ export default class Store implements IStore, vscode.Disposable {
   }
 
   updateUnreadCount() {
-    const unreads = this.channels
-      .filter(channel => {
-        const { mutedChannels } = this.currentUserPrefs;
-        const { id } = channel;
-        return mutedChannels.indexOf(id) < 0;
-      })
-      .map(channel => this.getUnreadCount(channel));
+    const unreads = this.channels.map(channel => this.getUnreadCount(channel));
     const totalUnreads = unreads.reduce((a, b) => a + b, 0);
     this.statusItem.updateCount(totalUnreads);
   }
@@ -492,7 +506,7 @@ export default class Store implements IStore, vscode.Disposable {
 
   updateUserPrefs() {
     return this.chatProvider.getUserPrefs().then(response => {
-      // TODO: muted channels should be saved to storage?
+      // We could also save the muted channels to local storage
       this.currentUserPrefs = response;
       this.updateUnreadCount();
     });
