@@ -30,10 +30,12 @@ export const SelfCommands = {
   RESET_STORE: "extension.chat.reset",
   FETCH_REPLIES: "extension.chat.fetchReplies",
   UPDATE_MESSAGES: "extension.chat.updateMessages",
+  UPDATE_MESSAGE_REPLIES: "extension.chat.updateReplies",
   UPDATE_USER_PRESENCE: "extension.chat.updateUserPresence",
   ADD_MESSAGE_REACTION: "extension.chat.addMessageReaction",
   REMOVE_MESSAGE_REACTION: "extension.chat.removeMessageReaction",
-  SEND_MESSAGE: "extension.chat.sendMessage"
+  SEND_MESSAGE: "extension.chat.sendMessage",
+  CHANNEL_MARKED: "extension.chat.updateChannelMark"
 };
 
 export const SLASH_COMMANDS = {

@@ -3,7 +3,12 @@ import { RTMClient, RTMClientOptions } from "@slack/client";
 import * as HttpsProxyAgent from "https-proxy-agent";
 import ConfigHelper from "../config";
 import { getMessage } from "./client";
-import { ChannelMessages, CurrentUser, Users } from "../interfaces";
+import {
+  ChannelMessages,
+  CurrentUser,
+  Users,
+  MessageReply
+} from "../interfaces";
 import { LIVE_SHARE_BASE_URL, SelfCommands } from "../constants";
 
 const RTMEvents = {
@@ -12,7 +17,10 @@ const RTMEvents = {
   ERROR: "unable_to_rtm_start",
   REACTION_ADDED: "reaction_added",
   REACTION_REMOVED: "reaction_removed",
-  PRESENCE_CHANGE: "presence_change"
+  PRESENCE_CHANGE: "presence_change",
+  CHANNEL_MARKED: "channel_marked",
+  GROUP_MARKED: "group_marked",
+  IM_MARKED: "im_marked"
 };
 
 const EventSubTypes = {
@@ -51,21 +59,42 @@ class SlackMessenger {
           break;
 
         case EventSubTypes.REPLIED:
-          console.log("--- replied", event);
-          // You may also notice thread_subscribed, thread_unsubscribed, thread_marked update_thread_state event types
+          // We ignore this type, since these events also show up as normal messages
+          // TODO: We might want to use some of these types (copied over from Slack docs):
+          // "You may also notice thread_subscribed, thread_unsubscribed, thread_marked update_thread_state event types"
           break;
 
         default:
-          const { text, attachments, files } = event;
-          const hasAttachment = attachments && attachments.length > 0;
-          const hasFiles = files && files.length > 0;
-          if (!!text || hasAttachment || hasFiles) {
-            const message = getMessage(event);
-            newMessages = {
-              ...newMessages,
-              ...message
+          const { text, attachments, files, thread_ts, ts } = event;
+
+          if (!!thread_ts && !!ts && thread_ts !== ts) {
+            // This is a thread reply
+            const { user, text, channel } = event;
+            const reply: MessageReply = {
+              userId: user,
+              timestamp: ts,
+              text
             };
-            this.handleMessageCommands(message);
+            vscode.commands.executeCommand(
+              SelfCommands.UPDATE_MESSAGE_REPLIES,
+              {
+                parentTimestamp: thread_ts,
+                channelId: channel,
+                reply
+              }
+            );
+          } else {
+            const hasAttachment = attachments && attachments.length > 0;
+            const hasFiles = files && files.length > 0;
+
+            if (!!text || hasAttachment || hasFiles) {
+              const message = getMessage(event);
+              newMessages = {
+                ...newMessages,
+                ...message
+              };
+              this.handleMessageCommands(message);
+            }
           }
       }
 
@@ -80,7 +109,6 @@ class SlackMessenger {
     this.rtmClient.on(RTMEvents.REACTION_ADDED, event => {
       const { user: userId, reaction: reactionName, item } = event;
       const { channel: channelId, ts: msgTimestamp } = item;
-      // this.store.addReaction(channelId, msgTs, userId, name);
       vscode.commands.executeCommand(SelfCommands.ADD_MESSAGE_REACTION, {
         userId,
         channelId,
@@ -92,7 +120,6 @@ class SlackMessenger {
     this.rtmClient.on(RTMEvents.REACTION_REMOVED, event => {
       const { user: userId, reaction: reactionName, item } = event;
       const { channel: channelId, ts: msgTimestamp } = item;
-      // this.store.removeReaction(channelId, msgTs, userId, name);
       vscode.commands.executeCommand(SelfCommands.REMOVE_MESSAGE_REACTION, {
         userId,
         channelId,
@@ -104,10 +131,36 @@ class SlackMessenger {
     this.rtmClient.on(RTMEvents.PRESENCE_CHANGE, event => {
       const { user: userId, presence } = event;
       const isOnline = presence === "active";
-      // this.store.updateUserPresence(user, isOnline);
       vscode.commands.executeCommand(SelfCommands.UPDATE_USER_PRESENCE, {
         userId,
         isOnline
+      });
+    });
+
+    this.rtmClient.on(RTMEvents.CHANNEL_MARKED, event => {
+      const { channel, ts, unread_count_display } = event;
+      vscode.commands.executeCommand(SelfCommands.CHANNEL_MARKED, {
+        channelId: channel,
+        readTimestamp: ts,
+        unreadCount: unread_count_display
+      });
+    });
+
+    this.rtmClient.on(RTMEvents.GROUP_MARKED, event => {
+      const { channel, ts, unread_count_display } = event;
+      vscode.commands.executeCommand(SelfCommands.CHANNEL_MARKED, {
+        channelId: channel,
+        readTimestamp: ts,
+        unreadCount: unread_count_display
+      });
+    });
+
+    this.rtmClient.on(RTMEvents.IM_MARKED, event => {
+      const { channel, ts, unread_count_display } = event;
+      vscode.commands.executeCommand(SelfCommands.CHANNEL_MARKED, {
+        channelId: channel,
+        readTimestamp: ts,
+        unreadCount: unread_count_display
       });
     });
   }

@@ -12,13 +12,15 @@ function openLink(href) {
   return sendMessage(href, "link");
 }
 
+function formattedTime(ts) {
+  const d = new Date(+ts * 1000);
+  return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+}
+
 Vue.component("app-container", {
   props: ["messages", "users", "channel", "status"],
   template: /* html */ `
-    <div
-      class="vue-container"
-      v-on:click="clickHandler">
-
+    <div class="vue-container">
       <messages-section
         v-bind:messages="messages"
         v-bind:users="users">
@@ -29,22 +31,17 @@ Vue.component("app-container", {
         v-bind:channel="channel"
         v-bind:status="status">
       </form-section>
-
     </div>
-  `,
-  methods: {
-    clickHandler: function(event) {
-      // When the panel is clicked, we want to focus the input
-      // UPDATE, this is disabled: this does not let you select text
-      //
-      // const { formSection } = this.$refs;
-      // return formSection ? formSection.focusInput() : null;
-    }
-  }
+  `
 });
 
 Vue.component("messages-section", {
   props: ["messages", "users"],
+  data: function() {
+    return {
+      messagesLength: 0
+    };
+  },
   template: /* html */ `
     <div class="messages-section">
       <messages-date-group
@@ -57,9 +54,16 @@ Vue.component("messages-section", {
     </div>
   `,
   updated() {
-    // TODO: this should also trigger when the threads
-    // are expanded with Show all
-    this.$el.scrollTop = this.$el.scrollHeight;
+    const groups = this.messages.map(dateGroup => dateGroup.groups);
+    const flattened = [].concat.apply([], groups);
+    const newLength = flattened.reduce((acc, currentGroup) => {
+      return acc + currentGroup.messages.length;
+    }, 0);
+
+    if (newLength !== this.messagesLength) {
+      this.messagesLength = newLength;
+      this.$el.scrollTop = this.$el.scrollHeight;
+    }
   }
 });
 
@@ -98,8 +102,7 @@ Vue.component("message-group", {
   props: ["messages", "allUsers", "userId", "user", "timestamp"],
   computed: {
     readableTimestamp: function() {
-      const d = new Date(+this.timestamp * 1000);
-      return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+      return formattedTime(this.timestamp);
     },
     userName: function() {
       return this.user ? this.user.name : this.userId;
@@ -110,10 +113,10 @@ Vue.component("message-group", {
       <div class="message-group-image">
         <img v-bind:src="user ? user.imageUrl : null"></img>
       </div>
-      <div>
+      <div class="message-group-content">
         <div>
           <strong>{{ userName }}</strong>
-          <span class="message-timestamp">{{ readableTimestamp }}</span>
+          <span class="timestamp">{{ readableTimestamp }}</span>
         </div>
 
         <ul class="message-list">
@@ -219,12 +222,17 @@ Vue.component("message-reply-item", {
     username: function() {
       const user = this.allUsers[this.userId];
       return !!user ? user.name : this.userId;
+    },
+    readableTimestamp: function() {
+      return formattedTime(this.timestamp);
     }
   },
-  // TODO: also need to show the timestamp
   template: /* html */ `
     <li>
-      <strong>{{username}}</strong>: {{text}}
+      <span>
+        <strong>{{username}}</strong>
+        <span class="timestamp">{{ readableTimestamp }}:</span>
+      </span> {{text}}
     </li>
   `
 });

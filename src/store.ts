@@ -12,7 +12,8 @@ import {
   ChannelType,
   ChannelLabel,
   UserPreferences,
-  IChatProvider
+  IChatProvider,
+  MessageReply
 } from "./interfaces";
 import StatusItem from "./status";
 import Logger from "./logger";
@@ -291,7 +292,6 @@ export default class Store implements IStore, vscode.Disposable {
       .map(channel => this.getUnreadCount(channel));
     const totalUnreads = unreads.reduce((a, b) => a + b, 0);
     this.statusItem.updateCount(totalUnreads);
-    this.updateTreeViews();
   }
 
   updateUserPresence = (userId: string, isOnline: boolean) => {
@@ -328,6 +328,7 @@ export default class Store implements IStore, vscode.Disposable {
     let found = false;
     let updatedChannels = this.channels.map(channel => {
       const { id } = channel;
+
       if (id === newChannel.id) {
         found = true;
         return {
@@ -460,8 +461,7 @@ export default class Store implements IStore, vscode.Disposable {
       this.fillUpBots(difference(userIds, allIds));
     }
 
-    this.updateWebviewUI();
-    this.updateUnreadCount();
+    this.updateAllUI();
   };
 
   fillUpBots(missingIds: Set<any>): Promise<any> {
@@ -522,7 +522,7 @@ export default class Store implements IStore, vscode.Disposable {
         const incremented = (+lastTs + 1).toString(); // Slack API workaround
         this.chatProvider.markChannel(channel, incremented).then(channel => {
           this.updateChannel(channel);
-          this.updateUnreadCount();
+          this.updateAllUI();
         });
       }
     }
@@ -619,5 +619,26 @@ export default class Store implements IStore, vscode.Disposable {
         messages[parentTimestamp] = message;
         this.updateMessages(currentChannelId, messages);
       });
+  }
+
+  updateMessageReply(
+    parentTimestamp: string,
+    channelId: string,
+    reply: MessageReply
+  ) {
+    // We need to have the message in our store, else we
+    // ignore this reply
+    const messages = channelId in this.messages ? this.messages[channelId] : {};
+    const message =
+      parentTimestamp in messages ? messages[parentTimestamp] : undefined;
+
+    if (!!message) {
+      let newMessages = {};
+      newMessages[parentTimestamp] = {
+        ...message,
+        replies: [...message.replies, reply]
+      };
+      this.updateMessages(channelId, newMessages);
+    }
   }
 }

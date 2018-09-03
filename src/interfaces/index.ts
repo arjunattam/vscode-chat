@@ -94,7 +94,6 @@ export interface Message {
   content: MessageContent;
   reactions: MessageReaction[];
   replies: MessageReply[];
-
   // TODO - add
   // subscribed (for threads)
 }
@@ -171,13 +170,13 @@ export interface IStore {
   users: Users;
   messages: Messages;
   isAuthenticated: () => boolean;
-  getChannel: (string) => Channel | undefined;
-  getIMChannel: (User) => Channel | undefined;
+  getChannel: (channelId: string) => Channel | undefined;
+  getIMChannel: (user: User) => Channel | undefined;
   getChannelLabels: () => any;
   updateMessages: (channelId: string, newMessages: ChannelMessages) => void;
-  loadChannelHistory: (string) => Promise<void>;
-  updateReadMarker: (string) => void;
-  updateUserPresence: (string, Boolean) => void;
+  loadChannelHistory: (channelId: string) => Promise<void>;
+  updateReadMarker: () => void;
+  updateUserPresence: (userId: string, isOnline: boolean) => void;
   addReaction: (
     channelId: string,
     msgTimestamp: string,

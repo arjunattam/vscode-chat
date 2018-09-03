@@ -21,7 +21,7 @@ body,
   font-weight: normal;
 }
 
-.message-timestamp {
+.timestamp {
   color: var(--vscode-sideBar-foreground);
 }
 
@@ -41,6 +41,10 @@ body,
   min-width: 100%;
   min-height: 100%;
   border-radius: 2px;
+}
+
+.message-group-content {
+  width: 100%;
 }
 
 .message-list {
@@ -217,9 +221,9 @@ ul.replies li {
   margin: 7px 0;
 }
 
-/* TODO: iono what to do with this */
 .unread {
-  background: red;
+  border-right: 3px solid var(--vscode-gitDecoration-modifiedResourceForeground);
+  padding-right: 5px;
 }
 
 .pointer {

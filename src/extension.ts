@@ -337,6 +337,23 @@ export function activate(context: vscode.ExtensionContext) {
         store.updateUserPresence(userId, isOnline);
       }
     ),
+    vscode.commands.registerCommand(
+      SelfCommands.CHANNEL_MARKED,
+      ({ channelId, readTimestamp, unreadCount }) => {
+        const channel = store.getChannel(channelId);
+
+        if (!!channel) {
+          store.updateChannel({ ...channel, readTimestamp, unreadCount });
+          store.updateAllUI();
+        }
+      }
+    ),
+    vscode.commands.registerCommand(
+      SelfCommands.UPDATE_MESSAGE_REPLIES,
+      ({ channelId, parentTimestamp, reply }) => {
+        store.updateMessageReply(parentTimestamp, channelId, reply);
+      }
+    ),
     vscode.workspace.onDidChangeConfiguration(resetConfiguration),
     vscode.workspace.registerTextDocumentContentProvider(TRAVIS_SCHEME, travis),
     vscode.window.registerUriHandler(uriHandler),
