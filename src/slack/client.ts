@@ -309,7 +309,8 @@ export default class SlackAPIClient {
             replies: replies.map(reply => ({
               userId: reply.user,
               timestamp: reply.ts,
-              text: reply.text
+              text: reply.text,
+              attachment: !!reply.files ? getFile(reply.files[0]) : null
             }))
           };
         }

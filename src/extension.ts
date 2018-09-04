@@ -89,6 +89,7 @@ export function activate(context: vscode.ExtensionContext) {
   const sendMessage = (text: string): Promise<void> => {
     const { lastChannelId, currentUserInfo } = store;
     reporter.record(EventType.messageSent, undefined, lastChannelId);
+    store.updateReadMarker();
     return chatProvider.sendMessage(text, currentUserInfo.id, lastChannelId);
   };
 

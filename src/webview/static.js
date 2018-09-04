@@ -165,7 +165,7 @@ Vue.component("message-replies", {
 
       if (this.isExpanded) {
         const hasPendingText =
-          this.message.replies.filter(reply => !reply.text).length > 0;
+          this.message.replies.filter(reply => !reply.textHTML).length > 0;
 
         if (hasPendingText) {
           vscode.postMessage({
@@ -209,7 +209,7 @@ Vue.component("message-replies", {
           v-bind:allUsers="allUsers"
           v-bind:userId="reply.userId"
           v-bind:timestamp="reply.timestamp"
-          v-bind:text="reply.text">
+          v-bind:textHTML="reply.textHTML">
         </message-reply-item>
       </ul>
     </div>
@@ -217,7 +217,7 @@ Vue.component("message-replies", {
 });
 
 Vue.component("message-reply-item", {
-  props: ["userId", "timestamp", "text", "allUsers"],
+  props: ["userId", "timestamp", "textHTML", "allUsers"],
   computed: {
     username: function() {
       const user = this.allUsers[this.userId];
@@ -232,7 +232,8 @@ Vue.component("message-reply-item", {
       <span>
         <strong>{{username}}</strong>
         <span class="timestamp">{{ readableTimestamp }}:</span>
-      </span> {{text}}
+      </span>
+      <span v-if="textHTML" v-html="textHTML"></span>
     </li>
   `
 });

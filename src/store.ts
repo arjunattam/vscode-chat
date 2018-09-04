@@ -67,7 +67,7 @@ export default class Store implements IStore, vscode.Disposable {
   channels: Channel[] = [];
   channelsFetchedAt: Date;
   currentUserInfo: CurrentUser;
-  currentUserPrefs: UserPreferences;
+  currentUserPrefs: UserPreferences = {};
   users: Users = {};
   usersFetchedAt: Date;
   messages: Messages = {};
@@ -177,13 +177,16 @@ export default class Store implements IStore, vscode.Disposable {
     return this.channels.find(channel => channel.id === channelId);
   }
 
-  getChannelLabels(): ChannelLabel[] {
+  isChannelMuted(channelId: string): boolean {
     const { mutedChannels } = this.currentUserPrefs;
+    return !!mutedChannels && mutedChannels.indexOf(channelId) >= 0;
+  }
 
+  getChannelLabels(): ChannelLabel[] {
     return this.channels.map(channel => {
       const unread = this.getUnreadCount(channel);
       const { name, type, id } = channel;
-      const isMuted = mutedChannels.indexOf(id) >= 0;
+      const isMuted = this.isChannelMuted(id);
       let isOnline = false;
 
       if (type === ChannelType.im) {
@@ -261,13 +264,10 @@ export default class Store implements IStore, vscode.Disposable {
 
   getUnreadCount(channel: Channel): number {
     const { id, readTimestamp, unreadCount } = channel;
-    const { mutedChannels } = this.currentUserPrefs;
 
-    if (mutedChannels.length > 0) {
-      if (mutedChannels.indexOf(id) >= 0) {
-        // This channel is muted, so return 0
-        return 0;
-      }
+    if (this.isChannelMuted(id)) {
+      // This channel is muted, so return 0
+      return 0;
     }
 
     const messages = id in this.messages ? this.messages[id] : {};

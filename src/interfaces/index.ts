@@ -1,4 +1,7 @@
 export interface IChatProvider {
+  // TODO: move oauth to the interface when we add discord
+  // launchAuthFlow: () => void;
+
   /**
    * getToken fetches token from the local keychain. This
    * is a critical initialization step for any provider.
@@ -39,7 +42,7 @@ export interface User {
 }
 
 export interface UserPreferences {
-  mutedChannels: string[];
+  mutedChannels?: string[];
 }
 
 export interface CurrentUser {
@@ -82,6 +85,8 @@ export interface MessageReply {
   userId: string;
   timestamp: string;
   text?: string;
+  attachment?: MessageAttachment;
+  textHTML?: string;
 }
 
 export interface Message {

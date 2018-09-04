@@ -87,9 +87,17 @@ class ConfigHelper {
             });
             break;
           case str.DONT_HAVE_SLACK:
-            const title = `Add new chat provider`;
-            const body = `My chat provider is: `;
-            IssueReporter.openNewIssue(title, body);
+            const opts: vscode.InputBoxOptions = {
+              prompt: "Which chat provider do you use?",
+              placeHolder: "For example: Discord, Microsoft Teams, Telegram"
+            };
+            vscode.window.showInputBox(opts).then(value => {
+              if (!!value) {
+                const title = `Add new chat provider: ${value}`;
+                const body = `My chat provider is ${value}`;
+                IssueReporter.openNewIssue(title, body);
+              }
+            });
             break;
         }
       });

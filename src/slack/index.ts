@@ -114,6 +114,8 @@ export class SlackChatProvider implements IChatProvider {
     return this.client
       .sendMessage({ channel: channelId, text: cleanText })
       .then((result: any) => {
+        // TODO: this is not the correct timestamp to attach, since the
+        // API might get delayed, because of network issues
         let newMessages: ChannelMessages = {};
         newMessages[result.ts] = {
           userId: currentUserId,

@@ -99,6 +99,10 @@ export const parseLinks = (messages: ChannelMessages): ChannelMessages => {
   return parsed;
 };
 
+const getAttachmentLink = ({ name, permalink }) => {
+  return `[${name}](${permalink})`;
+};
+
 export const markdownify = (messages: ChannelMessages): ChannelMessages => {
   let markdowned = {};
   const md = new MarkdownIt({ breaks: true }).use(markdownItSlack);
@@ -121,12 +125,29 @@ export const markdownify = (messages: ChannelMessages): ChannelMessages => {
   };
 
   Object.keys(messages).forEach(key => {
-    const { content, attachment, text } = messages[key];
-    const link = attachment
-      ? `[${attachment.name}](${attachment.permalink})`
-      : ``;
+    const { content, attachment, text, replies } = messages[key];
+    const parsedReplies = !!replies
+      ? replies.map(reply => {
+          const { attachment: replyAttachment, text: replyText } = reply;
+          // Replies might not have both attachment and text
+          if (!!replyAttachment) {
+            const attachmentLink = getAttachmentLink(replyAttachment);
+            return {
+              ...reply,
+              textHTML: md.renderInline(str.UPLOADED_FILE(attachmentLink))
+            };
+          } else if (!!replyText) {
+            return { ...reply, textHTML: md.renderInline(replyText) };
+          } else {
+            return reply;
+          }
+        })
+      : [];
+
+    const link = attachment ? getAttachmentLink(attachment) : ``;
     markdowned[key] = {
       ...messages[key],
+      replies: parsedReplies,
       textHTML: attachment
         ? md.render(str.UPLOADED_FILE(link))
         : md.render(text),
