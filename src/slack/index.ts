@@ -36,7 +36,7 @@ export class SlackChatProvider implements IChatProvider {
   private messenger: SlackMessenger;
 
   async getToken(): Promise<string> {
-    this.token = await ConfigHelper.getToken();
+    this.token = await ConfigHelper.getToken("slack");
     this.client = new SlackAPIClient(this.token);
     return this.token;
   }

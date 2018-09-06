@@ -64,6 +64,7 @@ export default class Store implements IStore, vscode.Disposable {
   token: string;
   installationId: string;
   lastChannelId: string;
+  // TODO: storage quota is getting exceeded for discord
   channels: Channel[] = [];
   channelsFetchedAt: Date;
   currentUserInfo: CurrentUser;

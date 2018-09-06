@@ -13,7 +13,7 @@ export interface IChatProvider {
   getBotInfo: (botId: string) => Promise<Users>;
   loadChannelHistory: (channelId: string) => Promise<ChannelMessages>;
   getUserPrefs: () => Promise<UserPreferences>;
-  markChannel: (channel: Channel, ts: string) => Promise<any>;
+  markChannel: (channel: Channel, ts: string) => Promise<Channel>;
   fetchThreadReplies: (channelId: string, ts: string) => Promise<Message>;
   sendMessage: (
     text: string,
@@ -49,8 +49,17 @@ export interface CurrentUser {
   id: string;
   name: string;
   token: string;
-  teamId: string;
-  teamName: string;
+  // TODO: migrate existing data
+  // teamId: string;
+  // teamName: string;
+  teams: Team[];
+  currentTeamId: string;
+}
+
+export interface Team {
+  // represents workspace for Slack, guild for Discord
+  id: string;
+  name: string;
 }
 
 export interface Users {

@@ -8,23 +8,24 @@ export class ExtensionUriHandler implements vscode.UriHandler {
     // vscode://karigari.chat/redirect?url=foobar
     const { path, query } = uri;
     const parsed = this.parseQuery(query);
+    const { token, msg, service } = parsed;
 
     switch (path) {
       case "/redirect":
-        return ConfigHelper.setToken(parsed.token);
+        return ConfigHelper.setToken(token, service);
       case "/error":
-        return this.showIssuePrompt(parsed.msg);
+        return this.showIssuePrompt(msg, service);
     }
   }
 
-  showIssuePrompt(errorMsg: string) {
+  showIssuePrompt(errorMsg: string, service: string) {
     const actionItems = [str.REPORT_ISSUE];
     vscode.window
       .showWarningMessage(str.AUTH_FAILED_MESSAGE, ...actionItems)
       .then(selected => {
         switch (selected) {
           case str.REPORT_ISSUE:
-            const issue = `Sign in with Slack failed: ${errorMsg}`;
+            const issue = `Sign in with ${service} failed: ${errorMsg}`;
             IssueReporter.openNewIssue(issue, issue);
         }
       });

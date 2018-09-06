@@ -9,19 +9,17 @@ import IssueReporter from "./issues";
 const TOKEN_CONFIG_KEY = "slack.legacyToken";
 const TELEMETRY_CONFIG_ROOT = "telemetry";
 const TELEMETRY_CONFIG_KEY = "enableTelemetry";
-
 const CREDENTIAL_SERVICE_NAME = "vscode-chat";
-const CREDENTIAL_ACCOUNT_NAME = "slack";
 
 class ConfigHelper {
   static getRootConfig() {
     return vscode.workspace.getConfiguration(CONFIG_ROOT);
   }
 
-  static async getToken(): Promise<string> {
+  static async getToken(service: string): Promise<string> {
     const keychainToken = await keychain.getPassword(
       CREDENTIAL_SERVICE_NAME,
-      CREDENTIAL_ACCOUNT_NAME
+      service
     );
 
     if (!!keychainToken) {
@@ -34,7 +32,7 @@ class ConfigHelper {
     const settingsToken = rootConfig.get<string>(TOKEN_CONFIG_KEY);
 
     if (!!settingsToken) {
-      ConfigHelper.setToken(settingsToken);
+      ConfigHelper.setToken(settingsToken, service);
       this.clearTokenFromSettings();
       return Promise.resolve(settingsToken);
     }
@@ -49,19 +47,19 @@ class ConfigHelper {
     );
   }
 
-  static setToken(token: string): Promise<void> {
+  static setToken(token: string, service: string): Promise<void> {
     // TODO: There is no token validation. We need to add one.
     return keychain
-      .setPassword(CREDENTIAL_SERVICE_NAME, CREDENTIAL_ACCOUNT_NAME, token)
+      .setPassword(CREDENTIAL_SERVICE_NAME, service, token)
       .then(() => {
         // When token is set, we need to call reset
         vscode.commands.executeCommand(SelfCommands.RESET_STORE);
       });
   }
 
-  static clearToken(): Promise<void> {
+  static clearToken(service: string): Promise<void> {
     return keychain
-      .deletePassword(CREDENTIAL_SERVICE_NAME, CREDENTIAL_ACCOUNT_NAME)
+      .deletePassword(CREDENTIAL_SERVICE_NAME, service)
       .then(() => {
         // When token is cleared, we need to call reset
         vscode.commands.executeCommand(SelfCommands.RESET_STORE);
@@ -69,7 +67,7 @@ class ConfigHelper {
   }
 
   static askForAuth() {
-    const actionItems = [str.SIGN_IN_SLACK];
+    const actionItems = [str.SIGN_IN_SLACK, str.SIGN_IN_DISCORD];
 
     if (hasExtensionPack()) {
       // If the extension was download via extension pack, it is
@@ -83,7 +81,14 @@ class ConfigHelper {
         switch (selected) {
           case str.SIGN_IN_SLACK:
             vscode.commands.executeCommand(SelfCommands.SIGN_IN, {
-              source: EventSource.info
+              source: EventSource.info,
+              service: "slack"
+            });
+            break;
+          case str.SIGN_IN_DISCORD:
+            vscode.commands.executeCommand(SelfCommands.SIGN_IN, {
+              source: EventSource.info,
+              service: "discord"
             });
             break;
           case str.DONT_HAVE_SLACK:

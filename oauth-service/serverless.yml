@@ -12,13 +12,20 @@ provider:
   environment: ${file(./env.yml):${opt:stage, self:provider.stage}}
 
 functions:
-  redirect:
-    handler: handler.redirect
+  slack-redirect:
+    handler: handler.slackRedirect
     timeout: 10
     events:
       - http:
           method: get
-          path: redirect
+          path: slack_redirect
+  discord-redirect:
+    handler: handler.discordRedirect
+    timeout: 10
+    events:
+      - http:
+          method: get
+          path: discord_redirect
   home:
     handler: handler.home
     events:

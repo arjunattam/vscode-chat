@@ -62,5 +62,8 @@ export const TRAVIS_SCHEME = "chat-travis-ci";
 // Slack App
 export const SLACK_OAUTH = `https://slack.com/oauth/authorize?scope=client&client_id=282186700213.419156835749`;
 
+// Discord
+export const DISCORD_OAUTH = `https://discordapp.com/oauth2/authorize?client_id=486416707951394817&response_type=code&scope=identify`;
+
 // Telemetry
 export const MIXPANEL_TOKEN = "14c9fea2bf4e06ba766e16eca1bce728";

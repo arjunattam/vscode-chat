@@ -10,24 +10,33 @@ import {
   ChatArgs,
   CurrentUser,
   EventType,
-  EventSource
+  EventSource,
+  IChatProvider
 } from "./interfaces";
-import { SelfCommands, LiveShareCommands, SLACK_OAUTH } from "./constants";
+import {
+  SelfCommands,
+  LiveShareCommands,
+  SLACK_OAUTH,
+  DISCORD_OAUTH
+} from "./constants";
 import { VSLS_EXTENSION_ID, CONFIG_ROOT, TRAVIS_SCHEME } from "./constants";
 import travis from "./providers/travis";
 import { ExtensionUriHandler } from "./uri";
 import { openUrl, getExtension } from "./utils";
 import ConfigHelper from "./config";
 import Reporter from "./telemetry";
+import { DiscordChatProvider } from "./discord";
 
 let store: Store | undefined = undefined;
 let controller: ViewController | undefined = undefined;
-let chatProvider: SlackChatProvider | undefined = undefined;
+let chatProvider: IChatProvider | undefined = undefined;
 let reporter: Reporter | undefined = undefined;
 
 export function activate(context: vscode.ExtensionContext) {
   Logger.log("Activating Slack Chat");
   chatProvider = new SlackChatProvider();
+  // chatProvider = new DiscordChatProvider();
+
   store = new Store(context, chatProvider);
   reporter = new Reporter(store);
 
@@ -224,12 +233,19 @@ export function activate(context: vscode.ExtensionContext) {
 
   const authenticate = (args?: any) => {
     const hasArgs = !!args && !!args.source;
+    // TODO: ensure that we always send service here
+    const service = args.service;
+    const urls = {
+      slack: SLACK_OAUTH,
+      discord: DISCORD_OAUTH
+    };
+    // TODO: update telemetry with service name
     reporter.record(
       EventType.authStarted,
       hasArgs ? args.source : EventSource.palette,
       undefined
     );
-    return openUrl(SLACK_OAUTH);
+    return openUrl(urls[service]);
   };
 
   const reset = async () => {
@@ -240,7 +256,8 @@ export function activate(context: vscode.ExtensionContext) {
   };
 
   const signout = async () => {
-    await ConfigHelper.clearToken();
+    // TODO: implement for discord also
+    await ConfigHelper.clearToken("slack");
   };
 
   const fetchReplies = parentTimestamp => {
@@ -270,7 +287,8 @@ export function activate(context: vscode.ExtensionContext) {
       })
       .then(input => {
         if (!!input) {
-          return ConfigHelper.setToken(input);
+          // TODO: implement for discord also
+          return ConfigHelper.setToken(input, "slack");
         }
       });
   };

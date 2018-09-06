@@ -180,8 +180,8 @@ class SlackMessenger {
             token: this.token,
             id,
             name,
-            teamId,
-            teamName
+            teams: [{ id: teamId, name: teamName }],
+            currentTeamId: teamId
           });
         }
       });
