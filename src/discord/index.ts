@@ -58,8 +58,8 @@ export class DiscordChatProvider implements IChatProvider {
   client: Discord.Client;
 
   async getToken(): Promise<string> {
-    this.token = await ConfigHelper.getToken("slack");
-    return this.token;
+    this.token = await ConfigHelper.getToken("discord");
+    return Promise.resolve(this.token);
   }
 
   connect(): Promise<CurrentUser> {
@@ -72,7 +72,9 @@ export class DiscordChatProvider implements IChatProvider {
           id: guild.id,
           name: guild.name
         }));
-        const currentTeam = teams.find(t => t.name === "Reactiflux"); // TODO: handle 0 length
+
+        // TODO: add switcher for teams
+        const currentTeam = teams.find(t => t.name === "arjun-test"); // TODO: handle 0 length
         this.currentUser = {
           id,
           name,
@@ -83,10 +85,17 @@ export class DiscordChatProvider implements IChatProvider {
         resolve(this.currentUser);
       });
 
-      this.client.on("message", msg => {
-        const currentGuild = this.getCurrentGuild();
+      // this.client.on("debug", info => {
+      //   console.log("Discord client log:", info);
+      // });
 
-        if (msg.guild.id === currentGuild.id) {
+      this.client.on("message", msg => {
+        // If message has guild, we check for current guild
+        // Else, message is from a DM or group DM
+        const currentGuild = this.getCurrentGuild();
+        const { guild } = msg;
+
+        if (!guild || guild.id === currentGuild.id) {
           let newMessages: ChannelMessages = {};
           const channelId = msg.channel.id;
           const parsed = getMessage(msg);
@@ -118,6 +127,8 @@ export class DiscordChatProvider implements IChatProvider {
 
   fetchUsers(): Promise<Users> {
     const guild = this.getCurrentGuild();
+    // TODO: save users for DMs and group DMs
+
     return guild.fetchMembers().then(response => {
       let users: Users = {};
       response.members.forEach(member => {
@@ -132,39 +143,74 @@ export class DiscordChatProvider implements IChatProvider {
           isOnline: presence.status === "online"
         };
       });
+
       return users;
     });
   }
 
   fetchChannels(users: Users): Promise<Channel[]> {
-    // TODO: only return authenticated channels?
+    // This fetches channels of the current guild, and (group) DMs
+    // for the client.
     const guild = this.getCurrentGuild();
-    const channels: Channel[] = guild.channels.map(channel => {
-      const { name, id } = channel;
-      return {
-        id,
-        name,
-        // TODO: more types?
-        type: ChannelType.channel,
-        readTimestamp: ``,
-        unreadCount: 0
-      };
-    });
-    return Promise.resolve(channels);
-  }
+    let categories = {};
+    guild.channels
+      .filter(channel => channel.type === "category")
+      .forEach(channel => {
+        const { id, name } = channel;
+        categories[id] = name;
+      });
 
-  fetchChannelInfo(channel: Channel): Promise<Channel> {
-    // TODO: do we need anything special here?
-    return Promise.resolve(channel);
-  }
+    const guildChannels: Channel[] = guild.channels
+      .filter(channel => channel.type !== "category")
+      .filter(channel => {
+        // Filter allowed channels
+        return channel
+          .permissionsFor(this.currentUser.id)
+          .has(Discord.Permissions.FLAGS.VIEW_CHANNEL);
+      })
+      .map(channel => {
+        const { name, id, parentID } = channel;
+        return {
+          id,
+          name,
+          categoryName: categories[parentID],
+          type: ChannelType.channel,
+          readTimestamp: ``, // TODO: fix
+          unreadCount: 0
+        };
+      });
 
-  subscribePresence(usersUsers): void {}
+    const imChannels = this.client.channels
+      .filter(channel => channel.type === "dm")
+      .map((channel: Discord.DMChannel) => {
+        const { id, recipient } = channel;
+        return {
+          id,
+          name: recipient.username,
+          type: ChannelType.im,
+          readTimestamp: ``, // TODO: fix
+          unreadCount: 0
+        };
+      });
+
+    const groupChannels = this.client.channels
+      .filter(channel => channel.type === "group")
+      .map((channel: Discord.GroupDMChannel) => {
+        const { id, recipients } = channel;
+        return {
+          id,
+          name: recipients.map(recipient => recipient.username).join(", "),
+          type: ChannelType.group,
+          readTimestamp: ``, // TODO: fix
+          unreadCount: 0
+        };
+      });
+
+    return Promise.resolve([...guildChannels, ...imChannels, ...groupChannels]);
+  }
 
   loadChannelHistory(channelId: string): Promise<ChannelMessages> {
-    // TODO: this gives error for missing access on some channels
-    // TODO: investigate text vs voice channels
-    const guild = this.getCurrentGuild();
-    const channel: any = guild.channels.find(
+    const channel: any = this.client.channels.find(
       channel => channel.id === channelId
     );
     return channel
@@ -185,9 +231,17 @@ export class DiscordChatProvider implements IChatProvider {
     currentUserId: string,
     channelId: string
   ): Promise<void> {
-    // TODO: implement this
-    return Promise.resolve();
+    const channel: any = this.client.channels.find(
+      channel => channel.id === channelId
+    );
+    return channel.send(text);
   }
+
+  fetchChannelInfo(channel: Channel): Promise<Channel> {
+    return Promise.resolve(channel);
+  }
+
+  subscribePresence(usersUsers): void {}
 
   getBotInfo(botId: string): Promise<Users> {
     return Promise.resolve({});

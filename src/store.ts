@@ -9,6 +9,7 @@ import {
   IStore,
   UIMessage,
   User,
+  Team,
   ChannelType,
   ChannelLabel,
   UserPreferences,
@@ -451,6 +452,14 @@ export default class Store implements IStore, vscode.Disposable {
   updateCurrentUser = (userInfo: CurrentUser): Thenable<void> => {
     this.currentUserInfo = userInfo;
     return this.context.globalState.update(stateKeys.USER_INFO, userInfo);
+  };
+
+  updateCurrentWorkspace = (team: Team): Thenable<void> => {
+    const newCurrentUser: CurrentUser = {
+      ...this.currentUserInfo,
+      currentTeamId: team.id
+    };
+    return this.updateCurrentUser(newCurrentUser);
   };
 
   updateMessages = (channelId: string, newMessages: ChannelMessages) => {

@@ -9,6 +9,7 @@ import IssueReporter from "./issues";
 const TOKEN_CONFIG_KEY = "slack.legacyToken";
 const TELEMETRY_CONFIG_ROOT = "telemetry";
 const TELEMETRY_CONFIG_KEY = "enableTelemetry";
+const SELECTED_PROVIDER_KEY = "selectedProvider";
 const CREDENTIAL_SERVICE_NAME = "vscode-chat";
 
 class ConfigHelper {
@@ -47,23 +48,51 @@ class ConfigHelper {
     );
   }
 
-  static setToken(token: string, service: string): Promise<void> {
+  static setToken(token: string, providerName: string): Promise<void> {
     // TODO: There is no token validation. We need to add one.
-    return keychain
-      .setPassword(CREDENTIAL_SERVICE_NAME, service, token)
-      .then(() => {
-        // When token is set, we need to call reset
-        vscode.commands.executeCommand(SelfCommands.RESET_STORE);
-      });
+    // TODO: it is possible that the keychain will fail
+    // See https://github.com/Microsoft/vscode-pull-request-github/commit/306dc5d27460599f3402f4b9e01d97bf638c639f
+    const configUpdate = this.setSelectedProvider(providerName);
+    const keychainUpdate = keychain.setPassword(
+      CREDENTIAL_SERVICE_NAME,
+      providerName,
+      token
+    );
+    return Promise.all([keychainUpdate, configUpdate]).then(() => {
+      // When token is set, we need to call reset
+      vscode.commands.executeCommand(SelfCommands.RESET_STORE);
+    });
   }
 
-  static clearToken(service: string): Promise<void> {
-    return keychain
-      .deletePassword(CREDENTIAL_SERVICE_NAME, service)
-      .then(() => {
-        // When token is cleared, we need to call reset
-        vscode.commands.executeCommand(SelfCommands.RESET_STORE);
-      });
+  static getSelectedProvider(): string {
+    // TODO: migration for 0.6.x: we should set the provider
+    // to slack for ones that are authenticated
+    const rootConfig = this.getRootConfig();
+    return rootConfig[SELECTED_PROVIDER_KEY];
+  }
+
+  static setSelectedProvider(providerName: string): Thenable<void> {
+    const rootConfig = this.getRootConfig();
+    return rootConfig.update(
+      SELECTED_PROVIDER_KEY,
+      providerName,
+      vscode.ConfigurationTarget.Global
+    );
+  }
+
+  static clearToken(): Promise<void> {
+    // TODO: what if selected provider is null for pre-0.6.x
+    // users?
+    const currentProvider = this.getSelectedProvider();
+    const configUpdate = this.setSelectedProvider(undefined);
+    const keychainUpdate = keychain.deletePassword(
+      CREDENTIAL_SERVICE_NAME,
+      currentProvider
+    );
+    return Promise.all([keychainUpdate, configUpdate]).then(() => {
+      // When token state is cleared, we need to call reset
+      vscode.commands.executeCommand(SelfCommands.RESET_STORE);
+    });
   }
 
   static askForAuth() {

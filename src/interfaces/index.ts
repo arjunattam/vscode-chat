@@ -132,6 +132,7 @@ export interface Channel {
   type: ChannelType;
   readTimestamp: string;
   unreadCount: number;
+  categoryName?: string; // for Discord
 }
 
 export interface ChannelLabel {
@@ -213,7 +214,7 @@ export interface ChatArgs {
 
 export enum EventSource {
   status = "status_item",
-  palette = "command_palette",
+  command = "command_palette",
   activity = "activity_bar",
   info = "info_message",
   slash = "slash_command"

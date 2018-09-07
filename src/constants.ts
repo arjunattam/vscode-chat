@@ -20,6 +20,7 @@ export const VSCodeCommands = {
 
 export const SelfCommands = {
   OPEN: "extension.chat.openSlackPanel",
+  CHANGE_WORKSPACE: "extension.chat.changeWorkspace",
   CHANGE_CHANNEL: "extension.chat.changeChannel",
   SIGN_IN: "extension.chat.authenticate",
   SIGN_OUT: "extension.chat.signout",
@@ -63,7 +64,10 @@ export const TRAVIS_SCHEME = "chat-travis-ci";
 export const SLACK_OAUTH = `https://slack.com/oauth/authorize?scope=client&client_id=282186700213.419156835749`;
 
 // Discord
-export const DISCORD_OAUTH = `https://discordapp.com/oauth2/authorize?client_id=486416707951394817&response_type=code&scope=identify`;
+const DISCORD_SCOPES = ["identify", "rpc.api", "messages.read", "guilds"];
+const DISCORD_SCOPE_STRING = DISCORD_SCOPES.join("%20");
+const DISCORD_CLIENT_ID = "486416707951394817";
+export const DISCORD_OAUTH = `https://discordapp.com/oauth2/authorize?client_id=${DISCORD_CLIENT_ID}&response_type=code&scope=${DISCORD_SCOPE_STRING}`;
 
 // Telemetry
 export const MIXPANEL_TOKEN = "14c9fea2bf4e06ba766e16eca1bce728";

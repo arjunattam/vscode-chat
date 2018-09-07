@@ -8,15 +8,16 @@ import {
   EventSource,
   ChannelLabel,
   Users,
-  CurrentUser
+  CurrentUser,
+  ChannelType
 } from "./interfaces";
 
 interface ChatTreeItem {
-  isOnline: boolean;
-  value: string;
   label: string;
   channel: Channel;
   user: User;
+  isCategory: boolean;
+  isOnline: boolean;
 }
 
 const GREEN_DOT = path.join(
@@ -29,7 +30,13 @@ const GREEN_DOT = path.join(
 );
 
 class CustomTreeItem extends vscode.TreeItem {
-  constructor(label: string, isOnline: boolean, channel: Channel, user: User) {
+  constructor(
+    label: string,
+    isOnline: boolean,
+    isCategory: boolean,
+    channel: Channel,
+    user: User
+  ) {
     super(label);
 
     if (!!channel) {
@@ -40,7 +47,7 @@ class CustomTreeItem extends vscode.TreeItem {
         title: "",
         arguments: [{ channel, user, source: EventSource.activity }]
       };
-    } else {
+    } else if (label === str.SIGN_IN_SLACK) {
       // This is the sign in item
       this.command = {
         command: SelfCommands.SIGN_IN,
@@ -54,6 +61,10 @@ class CustomTreeItem extends vscode.TreeItem {
         light: GREEN_DOT,
         dark: GREEN_DOT
       };
+    }
+
+    if (isCategory) {
+      this.collapsibleState = vscode.TreeItemCollapsibleState.Collapsed;
     }
   }
 }
@@ -88,23 +99,44 @@ class BaseTreeProvider
   getTreeItem(element: ChatTreeItem): vscode.TreeItem {
     // TODO: when selected, the highlight on the tree item seems to stick. This might
     // be because we don't use URIs (~= each channel is a URI) to open/close. Need to investigate.
-    const { label, isOnline, channel, user } = element;
-    const treeItem = new CustomTreeItem(label, isOnline, channel, user);
+    const { label, isOnline, isCategory, channel, user } = element;
+    const treeItem = new CustomTreeItem(
+      label,
+      isOnline,
+      isCategory,
+      channel,
+      user
+    );
     return treeItem;
   }
 
-  getParent?(element: ChatTreeItem): vscode.ProviderResult<ChatTreeItem> {
-    throw new Error("Method not implemented");
+  getParent(element: ChatTreeItem): vscode.ProviderResult<ChatTreeItem> {
+    if (!!element.channel.categoryName) {
+      return Promise.resolve(
+        this.getItemForCategory(element.channel.categoryName)
+      );
+    }
   }
 
   getChildren(element?: ChatTreeItem): vscode.ProviderResult<ChatTreeItem[]> {
     if (this.isAuthenticated) {
-      return this.getChildrenForType();
+      if (!!element && element.isCategory) {
+        const channels = this.channelLabels
+          .filter(this.filterFn)
+          .sort(this.sortingFn)
+          .filter(channelLabel => {
+            const { channel } = channelLabel;
+            return channel.categoryName === element.label;
+          });
+        return Promise.resolve(channels.map(this.getItemForChannel));
+      } else {
+        return this.getRootChildren();
+      }
     } else {
       return Promise.resolve([
         {
-          value: str.SIGN_IN_SLACK,
           label: str.SIGN_IN_SLACK,
+          isCategory: false,
           isOnline: false,
           channel: null,
           user: null
@@ -113,16 +145,46 @@ class BaseTreeProvider
     }
   }
 
-  getChildrenForType(): vscode.ProviderResult<ChatTreeItem[]> {
-    const channels = this.channelLabels.sort(this.sortingFn);
-    const filtered = channels.filter(this.filterFn).map(channel => ({
-      value: channel.channel.id,
-      label: channel.label,
-      isOnline: channel.isOnline,
-      channel: channel.channel,
+  getItemForChannel(channelLabel: ChannelLabel): ChatTreeItem {
+    const { label, isOnline, channel } = channelLabel;
+    return {
+      label,
+      isOnline,
+      channel,
+      isCategory: false,
       user: null
-    }));
-    return Promise.resolve(filtered);
+    };
+  }
+
+  getItemForCategory(category: string): ChatTreeItem {
+    return {
+      label: category,
+      isOnline: false,
+      isCategory: true,
+      channel: null,
+      user: null
+    };
+  }
+
+  getRootChildren(): vscode.ProviderResult<ChatTreeItem[]> {
+    // Returns all categories, and channels that don't have a category
+    const filtered = this.channelLabels
+      .filter(this.filterFn)
+      .sort(this.sortingFn);
+
+    const withoutCategories = filtered.filter(
+      channelLabel => !channelLabel.channel.categoryName
+    );
+
+    const categories = filtered
+      .map(channelLabel => channelLabel.channel.categoryName)
+      .filter(name => !!name);
+    const sansDuplicates = categories
+      .filter((item, pos) => categories.indexOf(item) == pos)
+      .map(this.getItemForCategory);
+
+    const channelItems = withoutCategories.map(this.getItemForChannel);
+    return Promise.resolve([...channelItems, ...sansDuplicates]);
   }
 }
 
@@ -140,7 +202,7 @@ export class UnreadsTreeProvider extends BaseTreeProvider {
 }
 
 export class ChannelTreeProvider extends BaseTreeProvider {
-  protected filterFn = c => c.channel.type === "channel";
+  protected filterFn = c => c.channel.type === ChannelType.channel;
   protected treeLabel = "channels-tree-view";
 
   constructor() {
@@ -152,7 +214,7 @@ export class ChannelTreeProvider extends BaseTreeProvider {
 }
 
 export class GroupTreeProvider extends BaseTreeProvider {
-  protected filterFn = c => c.channel.type === "group";
+  protected filterFn = c => c.channel.type === ChannelType.group;
   protected treeLabel = "groups-tree-view";
 
   constructor() {
@@ -164,7 +226,7 @@ export class GroupTreeProvider extends BaseTreeProvider {
 }
 
 export class IMsTreeProvider extends BaseTreeProvider {
-  protected filterFn = c => c.channel.type === "im";
+  protected filterFn = c => c.channel.type === ChannelType.im;
   protected treeLabel = "ims-tree-view";
 
   constructor() {
@@ -201,7 +263,7 @@ export class OnlineUsersTreeProvider extends BaseTreeProvider {
     this.refresh();
   }
 
-  getChildrenForType(): vscode.ProviderResult<ChatTreeItem[]> {
+  getRootChildren(): vscode.ProviderResult<ChatTreeItem[]> {
     const { id: currentId } = this.currentUser;
     const users: User[] = Object.keys(this.users)
       .map(userId => this.users[userId])
@@ -209,9 +271,9 @@ export class OnlineUsersTreeProvider extends BaseTreeProvider {
 
     return Promise.resolve(
       users.map(user => ({
-        value: user.name,
         label: user.name,
         isOnline: user.isOnline,
+        isCategory: false,
         user,
         channel: this.imChannels[user.id]
       }))

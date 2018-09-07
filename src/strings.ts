@@ -1,4 +1,6 @@
 export const CHANGE_CHANNEL_TITLE = "Select a channel";
+export const CHANGE_WORKSPACE_TITLE = "Select a workspace";
+export const CHANGE_PROVIDER_TITLE = "Select a provider";
 export const RELOAD_CHANNELS = "Reload Channels";
 export const TOKEN_NOT_FOUND = "Setup Slack Chat to work for your account.";
 export const SIGN_IN_SLACK = "Sign in with Slack";

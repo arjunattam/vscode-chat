@@ -49,7 +49,12 @@
         "chat.slack.legacyToken": {
           "type": "string",
           "default": null,
-          "description": "Slack token for authentication. Get yours here: https://api.slack.com/custom-integrations/legacy-tokens"
+          "description": "[DEPRECATED] Slack token for authentication. Get yours here: https://api.slack.com/custom-integrations/legacy-tokens"
+        },
+        "chat.selectedProvider": {
+          "type": "string",
+          "default": null,
+          "description": "Name of selected chat provider. Do not edit manually, use Sign In command"
         },
         "chat.proxyUrl": {
           "type": "string",
@@ -71,6 +76,10 @@
       {
         "command": "extension.chat.changeChannel",
         "title": "Slack: Change Channel"
+      },
+      {
+        "command": "extension.chat.changeWorkspace",
+        "title": "Slack: Change Workspace"
       },
       {
         "command": "extension.chat.authenticate",

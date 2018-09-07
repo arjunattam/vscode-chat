@@ -32,10 +32,12 @@ let controller: ViewController | undefined = undefined;
 let chatProvider: IChatProvider | undefined = undefined;
 let reporter: Reporter | undefined = undefined;
 
+const SUPPORTED_PROVIDERS = ["slack", "discord"];
+
 export function activate(context: vscode.ExtensionContext) {
-  Logger.log("Activating Slack Chat");
-  chatProvider = new SlackChatProvider();
-  // chatProvider = new DiscordChatProvider();
+  Logger.log("Activating vscode-chat");
+  // chatProvider = new SlackChatProvider();
+  chatProvider = new DiscordChatProvider();
 
   store = new Store(context, chatProvider);
   reporter = new Reporter(store);
@@ -173,7 +175,7 @@ export function activate(context: vscode.ExtensionContext) {
         const hasArgs = !!args && !!args.source;
         reporter.record(
           EventType.viewOpened,
-          hasArgs ? args.source : EventSource.palette,
+          hasArgs ? args.source : EventSource.command,
           lastChannelId
         );
         store.loadChannelHistory(lastChannelId);
@@ -181,11 +183,36 @@ export function activate(context: vscode.ExtensionContext) {
       .catch(error => console.error(error));
   };
 
+  const changeWorkspace = () => {
+    const { currentUserInfo } = store;
+    // TODO: If we don't have current user, we should
+    // ask for authentication
+
+    if (!!currentUserInfo) {
+      const { teams } = currentUserInfo;
+      const placeHolder = str.CHANGE_WORKSPACE_TITLE;
+      const labels = teams.map(t => t.name);
+      return vscode.window
+        .showQuickPick([...labels], {
+          placeHolder
+        })
+        .then(selected => {
+          if (!!selected) {
+            const selectedTeam = teams.find(t => t.name === selected);
+            return store.updateCurrentWorkspace(selectedTeam);
+          }
+        })
+        .then(() => {
+          return vscode.commands.executeCommand(SelfCommands.RESET_STORE);
+        });
+    }
+  };
+
   const changeChannel = (args?: any) => {
     const hasArgs = !!args && !!args.source;
     reporter.record(
       EventType.channelChanged,
-      hasArgs ? args.source : EventSource.palette,
+      hasArgs ? args.source : EventSource.command,
       undefined
     );
 
@@ -242,7 +269,7 @@ export function activate(context: vscode.ExtensionContext) {
     // TODO: update telemetry with service name
     reporter.record(
       EventType.authStarted,
-      hasArgs ? args.source : EventSource.palette,
+      hasArgs ? args.source : EventSource.command,
       undefined
     );
     return openUrl(urls[service]);
@@ -256,8 +283,8 @@ export function activate(context: vscode.ExtensionContext) {
   };
 
   const signout = async () => {
-    // TODO: implement for discord also
-    await ConfigHelper.clearToken("slack");
+    // Signing out will clear token for the current provider
+    await ConfigHelper.clearToken();
   };
 
   const fetchReplies = parentTimestamp => {
@@ -278,19 +305,36 @@ export function activate(context: vscode.ExtensionContext) {
     vscode.commands.executeCommand("setContext", "chat:vslsEnabled", isEnabled);
   };
 
+  const askForProvider = () => {
+    return vscode.window
+      .showQuickPick(
+        SUPPORTED_PROVIDERS.map(
+          // Convert to title case
+          name => name.charAt(0).toUpperCase() + name.substr(1).toLowerCase()
+        ),
+        { placeHolder: str.CHANGE_PROVIDER_TITLE }
+      )
+      .then(selected => (!!selected ? selected.toLowerCase() : undefined));
+  };
+
   const configureToken = () => {
-    reporter.record(EventType.tokenConfigured, EventSource.palette, undefined);
-    vscode.window
-      .showInputBox({
-        placeHolder: str.TOKEN_PLACEHOLDER,
-        password: true
-      })
-      .then(input => {
-        if (!!input) {
-          // TODO: implement for discord also
-          return ConfigHelper.setToken(input, "slack");
-        }
-      });
+    // TODO: save provider in telemetry event
+    reporter.record(EventType.tokenConfigured, EventSource.command, undefined);
+
+    return askForProvider().then(selectedProvider => {
+      if (!!selectedProvider) {
+        return vscode.window
+          .showInputBox({
+            placeHolder: str.TOKEN_PLACEHOLDER,
+            password: true
+          })
+          .then(input => {
+            if (!!input) {
+              return ConfigHelper.setToken(input, selectedProvider);
+            }
+          });
+      }
+    });
   };
 
   // Setup real-time messenger and updated local state
@@ -302,6 +346,10 @@ export function activate(context: vscode.ExtensionContext) {
   const uriHandler = new ExtensionUriHandler();
   context.subscriptions.push(
     vscode.commands.registerCommand(SelfCommands.OPEN, openSlackPanel),
+    vscode.commands.registerCommand(
+      SelfCommands.CHANGE_WORKSPACE,
+      changeWorkspace
+    ),
     vscode.commands.registerCommand(SelfCommands.CHANGE_CHANNEL, changeChannel),
     vscode.commands.registerCommand(SelfCommands.SIGN_IN, authenticate),
     vscode.commands.registerCommand(SelfCommands.SIGN_OUT, signout),
