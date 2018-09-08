@@ -29,7 +29,6 @@ function getTravisBuild(username, reponame, build) {
 
 function stripAnsiEscapes(input: string) {
   // Credits: https://stackoverflow.com/a/29497680/1469222
-  // TODO: maybe we show this as a webview, if the ANSI escape colors are required for UX
   return input.replace(
     /[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/g,
     ""

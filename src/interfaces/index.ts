@@ -1,11 +1,4 @@
 export interface IChatProvider {
-  // TODO: move oauth to the interface when we add discord
-  // launchAuthFlow: () => void;
-
-  /**
-   * getToken fetches token from the local keychain. This
-   * is a critical initialization step for any provider.
-   */
   getToken: () => Promise<string>;
   fetchUsers: () => Promise<Users>;
   fetchChannels: (users: Users) => Promise<Channel[]>;

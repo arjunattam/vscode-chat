@@ -1,6 +1,7 @@
 import * as vscode from "vscode";
 import * as Discord from "discord.js";
 import {
+  IStore,
   IChatProvider,
   CurrentUser,
   UserPreferences,
@@ -18,7 +19,7 @@ const HISTORY_LIMIT = 50;
 
 const getMessage = (raw: Discord.Message): Message => {
   const { author, createdTimestamp, content } = raw;
-  // TODO: save reactions, link unfurling (content)
+  // TODO: Handle reactions, link unfurling (content), attachments, edits
   const timestamp = (createdTimestamp / 1000).toString();
   return {
     timestamp,
@@ -52,12 +53,13 @@ const getImageUrl = (userId, avatar) => getAvatarUrl(userId, avatar, 128);
 const getSmallImageUrl = (userId, avatar) => getAvatarUrl(userId, avatar, 32);
 
 export class DiscordChatProvider implements IChatProvider {
-  // TODO: this needs to manage refresh token internally
   token: string;
-  currentUser: CurrentUser;
   client: Discord.Client;
 
+  constructor(private store: IStore) {}
+
   async getToken(): Promise<string> {
+    // When this starts using OAuth, we need to manage refresh tokens here
     this.token = await ConfigHelper.getToken("discord");
     return Promise.resolve(this.token);
   }
@@ -73,21 +75,31 @@ export class DiscordChatProvider implements IChatProvider {
           name: guild.name
         }));
 
-        // TODO: add switcher for teams
-        const currentTeam = teams.find(t => t.name === "arjun-test"); // TODO: handle 0 length
-        this.currentUser = {
+        const currentUser = {
           id,
           name,
           token: this.token,
           teams,
-          currentTeamId: currentTeam.id
+          currentTeamId: undefined
         };
-        resolve(this.currentUser);
+        resolve(currentUser);
       });
 
-      // this.client.on("debug", info => {
-      //   console.log("Discord client log:", info);
-      // });
+      if (process.env.IS_DEBUG === "true") {
+        // Debug logs for local testing
+        this.client.on("debug", info =>
+          console.log("Discord client log:", info)
+        );
+      }
+
+      this.client.on("presenceUpdate", (_, newMember: Discord.GuildMember) => {
+        const { id: userId, presence } = newMember;
+        const isOnline = presence.status === "online";
+        vscode.commands.executeCommand(SelfCommands.UPDATE_USER_PRESENCE, {
+          userId,
+          isOnline
+        });
+      });
 
       this.client.on("message", msg => {
         // If message has guild, we check for current guild
@@ -105,6 +117,16 @@ export class DiscordChatProvider implements IChatProvider {
             channelId,
             messages: newMessages
           });
+
+          // Handle links separately (for vsls invites)
+          let uri: vscode.Uri | undefined;
+          try {
+            uri = vscode.Uri.parse(parsed.text);
+            vscode.commands.executeCommand(SelfCommands.HANDLE_INCOMING_LINKS, {
+              senderId: parsed.userId,
+              uri
+            });
+          } catch (e) {}
         }
       });
 
@@ -121,7 +143,7 @@ export class DiscordChatProvider implements IChatProvider {
   }
 
   getCurrentGuild(): Discord.Guild {
-    const { currentTeamId } = this.currentUser;
+    const { currentTeamId } = this.store.currentUserInfo;
     return this.client.guilds.find(guild => guild.id === currentTeamId);
   }
 
@@ -151,6 +173,8 @@ export class DiscordChatProvider implements IChatProvider {
   fetchChannels(users: Users): Promise<Channel[]> {
     // This fetches channels of the current guild, and (group) DMs
     // for the client.
+    // For unreads, we are not retrieving historical unreads, not clear if API supports.
+    const readyTimestamp = (this.client.readyTimestamp / 1000.0).toString();
     const guild = this.getCurrentGuild();
     let categories = {};
     guild.channels
@@ -165,7 +189,7 @@ export class DiscordChatProvider implements IChatProvider {
       .filter(channel => {
         // Filter allowed channels
         return channel
-          .permissionsFor(this.currentUser.id)
+          .permissionsFor(this.store.currentUserInfo.id)
           .has(Discord.Permissions.FLAGS.VIEW_CHANNEL);
       })
       .map(channel => {
@@ -175,7 +199,7 @@ export class DiscordChatProvider implements IChatProvider {
           name,
           categoryName: categories[parentID],
           type: ChannelType.channel,
-          readTimestamp: ``, // TODO: fix
+          readTimestamp: readyTimestamp,
           unreadCount: 0
         };
       });
@@ -188,7 +212,7 @@ export class DiscordChatProvider implements IChatProvider {
           id,
           name: recipient.username,
           type: ChannelType.im,
-          readTimestamp: ``, // TODO: fix
+          readTimestamp: readyTimestamp,
           unreadCount: 0
         };
       });
@@ -201,7 +225,7 @@ export class DiscordChatProvider implements IChatProvider {
           id,
           name: recipients.map(recipient => recipient.username).join(", "),
           type: ChannelType.group,
-          readTimestamp: ``, // TODO: fix
+          readTimestamp: readyTimestamp,
           unreadCount: 0
         };
       });
@@ -248,7 +272,15 @@ export class DiscordChatProvider implements IChatProvider {
   }
 
   markChannel(channel: Channel, ts: string): Promise<Channel> {
-    return Promise.resolve(channel);
+    // Discord does not have a concept of timestamp, it will acknowledge everything
+    // return Promise.resolve(channel);
+    const { id: channelId } = channel;
+    const discordChannel: any = this.client.channels.find(
+      channel => channel.id === channelId
+    );
+    return discordChannel
+      .acknowledge()
+      .then(() => ({ ...channel, readTimestamp: ts }));
   }
 
   fetchThreadReplies(channelId: string, ts: string): Promise<any> {
@@ -257,6 +289,7 @@ export class DiscordChatProvider implements IChatProvider {
   }
 
   createIMChannel(user: User): Promise<any> {
+    // TODO: this is required for live share
     return Promise.resolve();
   }
 }

@@ -75,7 +75,11 @@
       },
       {
         "command": "extension.chat.changeChannel",
-        "title": "Slack: Change Channel"
+        "title": "Slack: Change Channel",
+        "icon": {
+          "light": "public/icons/light/search.svg",
+          "dark": "public/icons/dark/search.svg"
+        }
       },
       {
         "command": "extension.chat.changeWorkspace",
@@ -144,6 +148,12 @@
           "command": "extension.chat.startLiveShare",
           "when": "chat:vslsEnabled && viewItem == channel",
           "group": "inline"
+        }
+      ],
+      "view/title": [
+        {
+          "command": "extension.chat.changeChannel",
+          "group": "navigation@1"
         }
       ]
     }

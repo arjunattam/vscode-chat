@@ -94,7 +94,7 @@ export default class SlackAPIClient {
   getUsers(): Promise<Users> {
     return this.client.apiCall("users.list", {}).then((response: any) => {
       const { members, ok } = response;
-      let users = {};
+      let users: Users = {};
 
       if (ok) {
         members.forEach(member => {
@@ -106,7 +106,8 @@ export default class SlackAPIClient {
             name: display_name ? display_name : name,
             fullName: real_name,
             imageUrl: image_72,
-            smallImageUrl: image_24
+            smallImageUrl: image_24,
+            isOnline: undefined
           };
         });
 

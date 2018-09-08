@@ -18,7 +18,10 @@ import {
 } from "./interfaces";
 import StatusItem from "./status";
 import Logger from "./logger";
-import { getExtensionVersion } from "./utils";
+import ConfigHelper from "./config";
+import { getExtensionVersion, uuidv4, isSuperset, difference } from "./utils";
+import { DiscordChatProvider } from "./discord";
+import { SlackChatProvider } from "./slack";
 import {
   UnreadsTreeProvider,
   ChannelTreeProvider,
@@ -36,36 +39,14 @@ const stateKeys = {
   USERS: "users"
 };
 
-function uuidv4() {
-  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function(c) {
-    var r = (Math.random() * 16) | 0,
-      v = c == "x" ? r : (r & 0x3) | 0x8;
-    return v.toString(16);
-  });
-}
-
-function isSuperset(set, subset) {
-  for (var elem of subset) {
-    if (!set.has(elem)) {
-      return false;
-    }
-  }
-  return true;
-}
-
-function difference(setA, setB) {
-  var _difference = new Set(setA);
-  for (var elem of setB) {
-    _difference.delete(elem);
-  }
-  return _difference;
-}
+// Large discord communities like Reactiflux are not getting saved
+// due to quota limits of context.globalState
+const STORAGE_SIZE_LIMIT = 100;
 
 export default class Store implements IStore, vscode.Disposable {
   token: string;
   installationId: string;
   lastChannelId: string;
-  // TODO: storage quota is getting exceeded for discord
   channels: Channel[] = [];
   channelsFetchedAt: Date;
   currentUserInfo: CurrentUser;
@@ -85,10 +66,10 @@ export default class Store implements IStore, vscode.Disposable {
   groupsTreeProvider: GroupTreeProvider;
   usersTreeProvider: OnlineUsersTreeProvider;
 
-  constructor(
-    private context: vscode.ExtensionContext,
-    private chatProvider: IChatProvider
-  ) {
+  // Chat provider
+  chatProvider: IChatProvider;
+
+  constructor(private context: vscode.ExtensionContext) {
     const { globalState } = context;
     this.channels = globalState.get(stateKeys.CHANNELS);
     this.currentUserInfo = globalState.get(stateKeys.USER_INFO);
@@ -114,8 +95,7 @@ export default class Store implements IStore, vscode.Disposable {
       Logger.log(`Extension updated to ${currentVersion}`);
 
       if (!existingVersion && semver.gte(currentVersion, "0.5.6")) {
-        // Migration for changed user names
-        Logger.log("Migrating for 0.5.6");
+        Logger.log("Migrating for 0.5.6"); // Migration for changed user names
         this.updateChannels([]);
         this.updateUsers({});
         this.usersFetchedAt = null;
@@ -129,8 +109,27 @@ export default class Store implements IStore, vscode.Disposable {
   }
 
   initializeToken = async () => {
+    const selectedProvider = ConfigHelper.getSelectedProvider();
+
+    switch (selectedProvider) {
+      case "discord":
+        this.chatProvider = new DiscordChatProvider(this);
+        break;
+      case "slack": // Fallback to slack
+      default:
+        this.chatProvider = new SlackChatProvider();
+    }
+
     const token = await this.chatProvider.getToken();
     this.token = token;
+  };
+
+  initializeProvider = (): Promise<CurrentUser> => {
+    if (this.chatProvider.isConnected() && this.isAuthenticated()) {
+      return Promise.resolve(this.currentUserInfo);
+    } else {
+      return this.chatProvider.connect();
+    }
   };
 
   generateInstallationId() {
@@ -140,12 +139,16 @@ export default class Store implements IStore, vscode.Disposable {
     this.installationId = uuidStr;
   }
 
-  clear() {
+  clearAll() {
+    this.updateCurrentUser(undefined);
+    this.clearWorkspace();
+  }
+
+  clearWorkspace() {
+    // This clears workspace info, does not clear current user
     this.updateLastChannelId(undefined);
     this.updateChannels([]);
-    this.updateCurrentUser(undefined);
     this.updateUsers({});
-
     this.usersFetchedAt = undefined;
     this.channelsFetchedAt = undefined;
     this.messages = {};
@@ -323,7 +326,10 @@ export default class Store implements IStore, vscode.Disposable {
 
   updateUsers = users => {
     this.users = users;
-    this.context.globalState.update(stateKeys.USERS, users);
+
+    if (Object.keys(users).length <= STORAGE_SIZE_LIMIT) {
+      this.context.globalState.update(stateKeys.USERS, users);
+    }
   };
 
   updateUsersFetchedAt = () => {
@@ -336,7 +342,10 @@ export default class Store implements IStore, vscode.Disposable {
 
   updateChannels = channels => {
     this.channels = channels;
-    this.context.globalState.update(stateKeys.CHANNELS, channels);
+
+    if (channels.length <= STORAGE_SIZE_LIMIT) {
+      this.context.globalState.update(stateKeys.CHANNELS, channels);
+    }
   };
 
   updateChannel = (newChannel: Channel) => {
@@ -366,19 +375,35 @@ export default class Store implements IStore, vscode.Disposable {
 
   fetchUsers = (): Promise<Users> => {
     return this.chatProvider.fetchUsers().then((users: Users) => {
-      // Update users for their presence status, if already known
       let usersWithPresence: Users = {};
 
       Object.keys(users).forEach(userId => {
+        // This handles two different chat providers:
+        // In slack, we will get isOnline as undefined, because this API
+        //    does not know about user presence
+        // In discord, we will get true/false
         const existingUser = userId in this.users ? this.users[userId] : null;
+        const newUser = users[userId];
+        let calculatedIsOnline: boolean;
+
+        if (newUser.isOnline !== undefined) {
+          calculatedIsOnline = newUser.isOnline;
+        } else {
+          calculatedIsOnline = !!existingUser ? existingUser.isOnline : false;
+        }
+
         usersWithPresence[userId] = {
           ...users[userId],
-          isOnline: !!existingUser ? existingUser.isOnline : false
+          isOnline: calculatedIsOnline
         };
       });
 
       this.updateUsers(usersWithPresence);
       this.updateUsersFetchedAt();
+      // TODO: a few bugs found
+      // - even for online user, the direct messages channel does not show green dot
+      // - no vsls icon for online users
+      // - vsls link is not clickable
       return users;
     });
   };
@@ -450,7 +475,17 @@ export default class Store implements IStore, vscode.Disposable {
   };
 
   updateCurrentUser = (userInfo: CurrentUser): Thenable<void> => {
-    this.currentUserInfo = userInfo;
+    // In the case of discord, we need to know the current team (guild)
+    // If that is available in the store, we should use that
+    let currentTeamId: string = undefined;
+
+    if (!!userInfo && !!userInfo.currentTeamId) {
+      currentTeamId = userInfo.currentTeamId;
+    } else if (!!this.currentUserInfo) {
+      currentTeamId = this.currentUserInfo.currentTeamId;
+    }
+
+    this.currentUserInfo = { ...userInfo, currentTeamId };
     return this.context.globalState.update(stateKeys.USER_INFO, userInfo);
   };
 

@@ -88,16 +88,20 @@ export default class WebviewContainer {
     channel: Channel,
     currentUser: CurrentUser
   ): ChannelMessages {
-    // Annotate every message with isUnread (boolean)
-    const { readTimestamp } = channel;
-    let result = {};
-    Object.keys(messages).forEach(ts => {
-      const message = messages[ts];
-      const isDifferentUser = message.userId !== currentUser.id;
-      const isUnread = isDifferentUser && +ts > +readTimestamp;
-      result[ts] = { ...message, isUnread };
-    });
-    return result;
+    if (!!channel) {
+      // Annotates every message with isUnread (boolean)
+      const { readTimestamp } = channel;
+      let result = {};
+      Object.keys(messages).forEach(ts => {
+        const message = messages[ts];
+        const isDifferentUser = message.userId !== currentUser.id;
+        const isUnread = isDifferentUser && +ts > +readTimestamp;
+        result[ts] = { ...message, isUnread };
+      });
+      return result;
+    } else {
+      return messages;
+    }
   }
 
   getMessageGroups(input: ChannelMessages, users: Users): UIMessageDateGroup[] {

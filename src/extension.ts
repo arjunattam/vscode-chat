@@ -1,45 +1,35 @@
 import * as vscode from "vscode";
 import * as vsls from "vsls/vscode";
-import { SlackChatProvider } from "./slack";
 import ViewController from "./controller";
 import Store from "./store";
 import Logger from "./logger";
 import * as str from "./strings";
-import {
-  Channel,
-  ChatArgs,
-  CurrentUser,
-  EventType,
-  EventSource,
-  IChatProvider
-} from "./interfaces";
+import { Channel, ChatArgs, EventType, EventSource } from "./interfaces";
 import {
   SelfCommands,
   LiveShareCommands,
   SLACK_OAUTH,
-  DISCORD_OAUTH
+  DISCORD_OAUTH,
+  LIVE_SHARE_BASE_URL,
+  VSLS_EXTENSION_ID,
+  CONFIG_ROOT,
+  TRAVIS_SCHEME
 } from "./constants";
-import { VSLS_EXTENSION_ID, CONFIG_ROOT, TRAVIS_SCHEME } from "./constants";
 import travis from "./providers/travis";
 import { ExtensionUriHandler } from "./uri";
 import { openUrl, getExtension } from "./utils";
 import ConfigHelper from "./config";
 import Reporter from "./telemetry";
-import { DiscordChatProvider } from "./discord";
 
 let store: Store | undefined = undefined;
 let controller: ViewController | undefined = undefined;
-let chatProvider: IChatProvider | undefined = undefined;
 let reporter: Reporter | undefined = undefined;
 
 const SUPPORTED_PROVIDERS = ["slack", "discord"];
 
 export function activate(context: vscode.ExtensionContext) {
   Logger.log("Activating vscode-chat");
-  // chatProvider = new SlackChatProvider();
-  chatProvider = new DiscordChatProvider();
-
-  store = new Store(context, chatProvider);
+  store = new Store(context);
   reporter = new Reporter(store);
 
   controller = new ViewController(
@@ -49,49 +39,52 @@ export function activate(context: vscode.ExtensionContext) {
   );
   store.setUiCallback(uiMessage => controller.sendToUI(uiMessage));
 
-  const setup = async (canPromptForAuth?: boolean): Promise<any> => {
-    let messengerPromise: Promise<CurrentUser>;
-    const isConnected = chatProvider.isConnected();
+  const setupFreshInstall = () => {
+    store.generateInstallationId();
+    const { installationId } = store;
+    reporter.setUniqueId(installationId);
     const hasUser = store.isAuthenticated();
 
-    if (!store.installationId) {
-      store.generateInstallationId();
-      const { installationId } = store;
-      reporter.setUniqueId(installationId);
+    if (!hasUser) {
+      reporter.record(EventType.extensionInstalled, undefined, undefined);
+    }
+  };
 
-      if (!hasUser) {
-        reporter.record(EventType.extensionInstalled, undefined, undefined);
-      }
+  const setup = async (canPromptForAuth?: boolean): Promise<any> => {
+    // TODO: window reloading asks me for discord team id
+    if (!store.installationId) {
+      setupFreshInstall();
     }
 
     if (!store.token) {
       await store.initializeToken();
 
       if (!store.token) {
-        // We weren't able to get a token
         if (canPromptForAuth) {
           ConfigHelper.askForAuth();
         }
 
-        throw new Error("Slack token not found.");
+        throw new Error(str.TOKEN_NOT_FOUND);
       }
     }
 
-    if (isConnected && hasUser) {
-      messengerPromise = Promise.resolve(store.currentUserInfo);
-    } else {
-      messengerPromise = chatProvider.connect();
-    }
-
-    return messengerPromise
-      .then(currentUser => {
-        store.updateCurrentUser(currentUser);
+    return store
+      .initializeProvider()
+      .then(currentUser => store.updateCurrentUser(currentUser))
+      .then(() => {
+        // If no current team is available, we need to ask
+        const { currentUserInfo } = store;
+        if (!currentUserInfo.currentTeamId) {
+          return askForWorkspace();
+        }
+      })
+      .then(() => {
         store.updateUserPrefs();
         return store.getUsersPromise();
       })
       .then(() => {
         const { users } = store;
-        chatProvider.subscribePresence(users);
+        store.chatProvider.subscribePresence(users);
         return store.getChannelsPromise();
       })
       .catch(error => Logger.log(error));
@@ -101,7 +94,11 @@ export function activate(context: vscode.ExtensionContext) {
     const { lastChannelId, currentUserInfo } = store;
     reporter.record(EventType.messageSent, undefined, lastChannelId);
     store.updateReadMarker();
-    return chatProvider.sendMessage(text, currentUserInfo.id, lastChannelId);
+    return store.chatProvider.sendMessage(
+      text,
+      currentUserInfo.id,
+      lastChannelId
+    );
   };
 
   const askForChannel = (): Promise<Channel> => {
@@ -183,32 +180,38 @@ export function activate(context: vscode.ExtensionContext) {
       .catch(error => console.error(error));
   };
 
+  const askForWorkspace = () => {
+    const { currentUserInfo } = store;
+    const { teams } = currentUserInfo;
+    const placeHolder = str.CHANGE_WORKSPACE_TITLE;
+    const labels = teams.map(t => t.name);
+    return vscode.window
+      .showQuickPick([...labels], { placeHolder })
+      .then(selected => {
+        if (!!selected) {
+          const selectedTeam = teams.find(t => t.name === selected);
+          return store.updateCurrentWorkspace(selectedTeam);
+        }
+      });
+  };
+
   const changeWorkspace = () => {
     const { currentUserInfo } = store;
     // TODO: If we don't have current user, we should
     // ask for authentication
 
     if (!!currentUserInfo) {
-      const { teams } = currentUserInfo;
-      const placeHolder = str.CHANGE_WORKSPACE_TITLE;
-      const labels = teams.map(t => t.name);
-      return vscode.window
-        .showQuickPick([...labels], {
-          placeHolder
-        })
-        .then(selected => {
-          if (!!selected) {
-            const selectedTeam = teams.find(t => t.name === selected);
-            return store.updateCurrentWorkspace(selectedTeam);
-          }
-        })
-        .then(() => {
-          return vscode.commands.executeCommand(SelfCommands.RESET_STORE);
-        });
+      return askForWorkspace().then(() => {
+        store.clearWorkspace();
+        store.updateAllUI();
+        return setup();
+      });
     }
   };
 
   const changeChannel = (args?: any) => {
+    // TODO: when triggered from the search icon in the tree view,
+    // this should be filtered to the `type` of the tree view section
     const hasArgs = !!args && !!args.source;
     reporter.record(
       EventType.channelChanged,
@@ -228,7 +231,11 @@ export function activate(context: vscode.ExtensionContext) {
     let channelId: string = await getChatChannelId(args);
     reporter.record(EventType.vslsShared, EventSource.activity, channelId);
     const { currentUserInfo } = store;
-    chatProvider.sendMessage(vslsUri.toString(), currentUserInfo.id, channelId);
+    store.chatProvider.sendMessage(
+      vslsUri.toString(),
+      currentUserInfo.id,
+      channelId
+    );
   };
 
   const promptVslsJoin = (senderId: string, messageUri: vscode.Uri) => {
@@ -276,10 +283,10 @@ export function activate(context: vscode.ExtensionContext) {
   };
 
   const reset = async () => {
-    store.clear();
+    store.clearAll();
     store.updateAllUI();
     await setup();
-    store.updateAllUI();
+    store.updateAllUI(); // TODO: can we remove this
   };
 
   const signout = async () => {
@@ -419,6 +426,17 @@ export function activate(context: vscode.ExtensionContext) {
       SelfCommands.UPDATE_MESSAGE_REPLIES,
       ({ channelId, parentTimestamp, reply }) => {
         store.updateMessageReply(parentTimestamp, channelId, reply);
+      }
+    ),
+    vscode.commands.registerCommand(
+      SelfCommands.HANDLE_INCOMING_LINKS,
+      ({ uri, senderId }) => {
+        if (uri.authority === LIVE_SHARE_BASE_URL) {
+          vscode.commands.executeCommand(SelfCommands.LIVE_SHARE_JOIN_PROMPT, {
+            senderId,
+            messageUri: uri
+          });
+        }
       }
     ),
     vscode.workspace.onDidChangeConfiguration(resetConfiguration),

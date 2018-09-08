@@ -17,6 +17,21 @@ class ConfigHelper {
     return vscode.workspace.getConfiguration(CONFIG_ROOT);
   }
 
+  static updateRootConfig(section: string, value: any): Promise<void> {
+    // Convert Thenable to Promise to be able to use Promise.all
+    const rootConfig = this.getRootConfig();
+    return new Promise((resolve, reject) => {
+      rootConfig.update(section, value, vscode.ConfigurationTarget.Global).then(
+        result => {
+          return resolve(result);
+        },
+        error => {
+          return reject(error);
+        }
+      );
+    });
+  }
+
   static async getToken(service: string): Promise<string> {
     const keychainToken = await keychain.getPassword(
       CREDENTIAL_SERVICE_NAME,
@@ -40,12 +55,7 @@ class ConfigHelper {
   }
 
   static clearTokenFromSettings() {
-    const rootConfig = this.getRootConfig();
-    rootConfig.update(
-      TOKEN_CONFIG_KEY,
-      undefined,
-      vscode.ConfigurationTarget.Global
-    );
+    this.updateRootConfig(TOKEN_CONFIG_KEY, undefined);
   }
 
   static setToken(token: string, providerName: string): Promise<void> {
@@ -71,13 +81,8 @@ class ConfigHelper {
     return rootConfig[SELECTED_PROVIDER_KEY];
   }
 
-  static setSelectedProvider(providerName: string): Thenable<void> {
-    const rootConfig = this.getRootConfig();
-    return rootConfig.update(
-      SELECTED_PROVIDER_KEY,
-      providerName,
-      vscode.ConfigurationTarget.Global
-    );
+  static setSelectedProvider(providerName: string): Promise<void> {
+    return this.updateRootConfig(SELECTED_PROVIDER_KEY, providerName);
   }
 
   static clearToken(): Promise<void> {
@@ -115,6 +120,7 @@ class ConfigHelper {
             });
             break;
           case str.SIGN_IN_DISCORD:
+            // TODO: this is incorrect since discord oauth does not work
             vscode.commands.executeCommand(SelfCommands.SIGN_IN, {
               source: EventSource.info,
               service: "discord"

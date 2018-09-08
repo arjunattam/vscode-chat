@@ -93,7 +93,7 @@ class SlackMessenger {
                 ...newMessages,
                 ...message
               };
-              this.handleMessageCommands(message);
+              this.handleMessageLinks(message);
             }
           }
       }
@@ -195,31 +195,23 @@ class SlackMessenger {
     });
   };
 
-  handleMessageCommands = (incoming: ChannelMessages) => {
-    // We are going to check for vsls links here, as an approach to auto-joining
-    // TODO: This shouldn't be restricted to Slack
+  handleMessageLinks = (incoming: ChannelMessages) => {
     const messageTs = Object.keys(incoming)[0];
     const message = incoming[messageTs];
     let { text, userId } = message;
     let uri: vscode.Uri | undefined;
 
     if (text.startsWith("<") && text.endsWith(">")) {
-      // Strip link symbols
-      text = text.substring(1, text.length - 1);
+      text = text.substring(1, text.length - 1); // Strip link symbols
     }
 
     try {
       uri = vscode.Uri.parse(text);
-
-      if (uri.authority === LIVE_SHARE_BASE_URL) {
-        vscode.commands.executeCommand(SelfCommands.LIVE_SHARE_JOIN_PROMPT, {
-          senderId: userId,
-          messageUri: uri
-        });
-      }
-    } catch (err) {
-      // Ignore for now
-    }
+      vscode.commands.executeCommand(SelfCommands.HANDLE_INCOMING_LINKS, {
+        senderId: userId,
+        uri
+      });
+    } catch (err) {}
   };
 
   subscribePresence = (users: Users) => {

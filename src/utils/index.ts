@@ -41,3 +41,28 @@ export const getVersions = (): Versions => {
 export const hasExtensionPack = (): boolean => {
   return !!getExtension(VSLS_EXTENSION_PACK_ID);
 };
+
+export function uuidv4(): string {
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function(c) {
+    var r = (Math.random() * 16) | 0,
+      v = c == "x" ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
+}
+
+export function isSuperset(set, subset): boolean {
+  for (var elem of subset) {
+    if (!set.has(elem)) {
+      return false;
+    }
+  }
+  return true;
+}
+
+export function difference(setA, setB) {
+  var _difference = new Set(setA);
+  for (var elem of setB) {
+    _difference.delete(elem);
+  }
+  return _difference;
+}
