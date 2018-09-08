@@ -51,7 +51,6 @@ export function activate(context: vscode.ExtensionContext) {
   };
 
   const setup = async (canPromptForAuth?: boolean): Promise<any> => {
-    // TODO: window reloading asks me for discord team id
     if (!store.installationId) {
       setupFreshInstall();
     }
@@ -291,6 +290,7 @@ export function activate(context: vscode.ExtensionContext) {
 
   const signout = async () => {
     // Signing out will clear token for the current provider
+    // TODO: sign out should destroy the chat provider
     await ConfigHelper.clearToken();
   };
 
@@ -330,6 +330,8 @@ export function activate(context: vscode.ExtensionContext) {
 
     return askForProvider().then(selectedProvider => {
       if (!!selectedProvider) {
+        // TODO: discord returns "invalid token" after manually configured token?
+        // restart window fixes it
         return vscode.window
           .showInputBox({
             placeHolder: str.TOKEN_PLACEHOLDER,

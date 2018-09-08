@@ -87,7 +87,6 @@ export default class Reporter implements vscode.Disposable {
       event: name,
       properties: {
         distinct_id: this.uniqueId,
-        // TODO: move versions to user properties?
         extension_version: extension,
         os_version: os,
         editor_version: editor,

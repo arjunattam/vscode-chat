@@ -60,7 +60,7 @@ export default class WebviewContainer {
     const annotated = this.getAnnotatedMessages(messages, channel, currentUser);
     const groups = this.getMessageGroups(annotated, users);
     this.panel.webview.postMessage({ ...uiMessage, messages: groups });
-    this.panel.title = channel.name;
+    this.panel.title = !!channel ? channel.name : "";
   }
 
   reveal() {

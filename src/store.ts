@@ -79,13 +79,6 @@ export default class Store implements IStore, vscode.Disposable {
 
     this.statusItem = new StatusItem();
 
-    // Setup tree providers
-    this.unreadsTreeProvider = new UnreadsTreeProvider();
-    this.channelsTreeProvider = new ChannelTreeProvider();
-    this.groupsTreeProvider = new GroupTreeProvider();
-    this.imsTreeProvider = new IMsTreeProvider();
-    this.usersTreeProvider = new OnlineUsersTreeProvider();
-
     // Extension version migrations
     const existingVersion = globalState.get(stateKeys.EXTENSION_VERSION);
     const currentVersion = getExtensionVersion();
@@ -109,15 +102,35 @@ export default class Store implements IStore, vscode.Disposable {
   }
 
   initializeToken = async () => {
-    const selectedProvider = ConfigHelper.getSelectedProvider();
+    // Fallback to slack, for pre-0.6.x users. We should have a new no_auth
+    // state to simplify onboarding.
+    const selectedProvider = ConfigHelper.getSelectedProvider() || "slack";
+    const ALL_PROVIDERS = ["slack", "discord"];
 
     switch (selectedProvider) {
       case "discord":
         this.chatProvider = new DiscordChatProvider(this);
         break;
-      case "slack": // Fallback to slack
-      default:
+      case "slack":
         this.chatProvider = new SlackChatProvider();
+        break;
+    }
+
+    // Handle name changes for the online users provider
+    if (!!selectedProvider) {
+      this.usersTreeProvider = new OnlineUsersTreeProvider(selectedProvider);
+      this.unreadsTreeProvider = new UnreadsTreeProvider(selectedProvider);
+      this.channelsTreeProvider = new ChannelTreeProvider(selectedProvider);
+      this.groupsTreeProvider = new GroupTreeProvider(selectedProvider);
+      this.imsTreeProvider = new IMsTreeProvider(selectedProvider);
+
+      ALL_PROVIDERS.forEach(provider => {
+        vscode.commands.executeCommand(
+          "setContext",
+          `chat:${provider}`,
+          provider === selectedProvider
+        );
+      });
     }
 
     const token = await this.chatProvider.getToken();
@@ -198,7 +211,8 @@ export default class Store implements IStore, vscode.Disposable {
         const relatedUserId = Object.keys(this.users).find(value => {
           const user = this.users[value];
           const { name: username } = user;
-          return `@${username}` === name;
+          // Same issue as getIMChannel(), so we handle both
+          return `@${username}` === name || username === name;
         });
 
         if (!!relatedUserId) {
@@ -239,7 +253,12 @@ export default class Store implements IStore, vscode.Disposable {
   }
 
   getIMChannel(user: User): Channel | undefined {
-    return this.channels.find(channel => channel.name === `@${user.name}`);
+    // Hacky implementation to tackle chat provider differences
+    // Slack: DM channels look like `@name`
+    // Discord: DM channels look like `name`
+    return this.channels.find(
+      channel => channel.name === `@${user.name}` || channel.name === user.name
+    );
   }
 
   createIMChannel(user: User): Promise<Channel> {
@@ -400,10 +419,6 @@ export default class Store implements IStore, vscode.Disposable {
 
       this.updateUsers(usersWithPresence);
       this.updateUsersFetchedAt();
-      // TODO: a few bugs found
-      // - even for online user, the direct messages channel does not show green dot
-      // - no vsls icon for online users
-      // - vsls link is not clickable
       return users;
     });
   };
@@ -414,7 +429,8 @@ export default class Store implements IStore, vscode.Disposable {
       this.updateChannelsFetchedAt();
       this.updateTreeViews();
 
-      // TODO: why are we fetching twice?
+      // We have to fetch twice here because Slack does not return the
+      // historical unread counts for channels in the list API.
       const promises = channels.map(channel =>
         this.chatProvider
           .fetchChannelInfo(channel)

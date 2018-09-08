@@ -86,9 +86,8 @@ class ConfigHelper {
   }
 
   static clearToken(): Promise<void> {
-    // TODO: what if selected provider is null for pre-0.6.x
-    // users?
-    const currentProvider = this.getSelectedProvider();
+    // Fallback to slack for pre-0.6.x users
+    const currentProvider = this.getSelectedProvider() || "slack";
     const configUpdate = this.setSelectedProvider(undefined);
     const keychainUpdate = keychain.deletePassword(
       CREDENTIAL_SERVICE_NAME,

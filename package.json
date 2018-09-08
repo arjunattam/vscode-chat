@@ -2,7 +2,7 @@
   "name": "chat",
   "displayName": "Slack Chat",
   "description": "Send and receive Slack chat inside VSCode",
-  "version": "0.5.9",
+  "version": "0.6.0-pre-1",
   "homepage": "https://github.com/karigari/vscode-chat",
   "license": "SEE LICENSE IN LICENSE",
   "repository": {
@@ -34,11 +34,12 @@
     "*",
     "onCommand:extension.chat.openSlackPanel",
     "onCommand:extension.chat.changeChannel",
-    "onView:online-users-tree-view",
-    "onView:unreads-tree-view",
-    "onView:channels-tree-view",
-    "onView:groups-tree-view",
-    "onView:ims-tree-view"
+    "onView:chat.treeView.onlineUsers.slack",
+    "onView:chat.treeView.onlineUsers.discord",
+    "onView:chat.treeView.unreads",
+    "onView:chat.treeView.channels",
+    "onView:chat.treeView.groups",
+    "onView:chat.treeView.ims"
   ],
   "main": "./out/extension",
   "contributes": {
@@ -107,38 +108,76 @@
       }
     ],
     "views": {
-      "chat-activity": [
+      "chatActivityViewSlack": [
         {
-          "id": "unreads-tree-view",
-          "name": "Unreads"
+          "id": "chat.treeView.unreads.slack",
+          "name": "Unreads",
+          "when": "chat:slack"
         },
         {
-          "id": "channels-tree-view",
-          "name": "Channels"
+          "id": "chat.treeView.channels.slack",
+          "name": "Channels",
+          "when": "chat:slack"
         },
         {
-          "id": "groups-tree-view",
-          "name": "Groups"
+          "id": "chat.treeView.groups.slack",
+          "name": "Groups",
+          "when": "chat:slack"
         },
         {
-          "id": "ims-tree-view",
-          "name": "Direct Messages"
+          "id": "chat.treeView.ims.slack",
+          "name": "Direct Messages",
+          "when": "chat:slack"
+        }
+      ],
+      "chatActivityViewDiscord": [
+        {
+          "id": "chat.treeView.unreads.discord",
+          "name": "Unreads",
+          "when": "chat:discord"
+        },
+        {
+          "id": "chat.treeView.channels.discord",
+          "name": "Channels",
+          "when": "chat:discord"
+        },
+        {
+          "id": "chat.treeView.groups.discord",
+          "name": "Groups",
+          "when": "chat:discord"
+        },
+        {
+          "id": "chat.treeView.ims.discord",
+          "name": "Direct Messages",
+          "when": "chat:discord"
         }
       ],
       "vsliveshareTreeExplorerActivityBar": [
         {
-          "id": "online-users-tree-view",
+          "id": "chat.treeView.onlineUsers.slack",
           "name": "Slack Users",
-          "when": "chat:vslsEnabled"
+          "when": "chat:vslsEnabled && chat:slack"
+        },
+        {
+          "id": "chat.treeView.onlineUsers.discord",
+          "name": "Discord Users",
+          "when": "chat:vslsEnabled && chat:discord"
         }
       ]
     },
     "viewsContainers": {
       "activitybar": [
         {
-          "id": "chat-activity",
-          "title": "Slack Chat",
-          "icon": "public/icons/activity-bar-discord-icon.svg"
+          "id": "chatActivityViewSlack",
+          "title": "Slack",
+          "icon": "public/icons/activity-bar-slack-icon.svg",
+          "when": "chat:slack"
+        },
+        {
+          "id": "chatActivityViewDiscord",
+          "title": "Discord",
+          "icon": "public/icons/activity-bar-discord-icon.svg",
+          "when": "chat:discord"
         }
       ]
     },
@@ -153,6 +192,7 @@
       "view/title": [
         {
           "command": "extension.chat.changeChannel",
+          "when": "view =~ /^chat.treeView/",
           "group": "navigation@1"
         }
       ]

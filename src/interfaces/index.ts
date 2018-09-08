@@ -16,12 +16,10 @@ export interface IChatProvider {
   connect: () => Promise<CurrentUser>;
   isConnected: () => boolean;
   subscribePresence: (users: Users) => void;
-
-  /**
-   * createIMChannel is used when we want to invite an online
-   * user to VSLS, but we don't have an IM channel for that user
-   */
   createIMChannel: (user: User) => Promise<Channel>;
+  // validateToken: (token: string) => Promise<boolean>;
+  // fetchUser: (userId: string) => Promise<User>;
+  // destroy: () => Promise<void>;
 }
 
 export interface User {

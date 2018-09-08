@@ -16,10 +16,12 @@ import ConfigHelper from "../config";
 import { SelfCommands } from "../constants";
 
 const HISTORY_LIMIT = 50;
+const MEMBER_LIMIT = 500; // TODO: try removing this to debug tree refresh perf issues
 
 const getMessage = (raw: Discord.Message): Message => {
   const { author, createdTimestamp, content } = raw;
   // TODO: Handle reactions, link unfurling (content), attachments, edits
+  // TODO: vsls link is not clickable right now
   const timestamp = (createdTimestamp / 1000).toString();
   return {
     timestamp,
@@ -121,11 +123,17 @@ export class DiscordChatProvider implements IChatProvider {
           // Handle links separately (for vsls invites)
           let uri: vscode.Uri | undefined;
           try {
-            uri = vscode.Uri.parse(parsed.text);
-            vscode.commands.executeCommand(SelfCommands.HANDLE_INCOMING_LINKS, {
-              senderId: parsed.userId,
-              uri
-            });
+            const { text } = parsed;
+            if (text.startsWith("http")) {
+              uri = vscode.Uri.parse(parsed.text);
+              vscode.commands.executeCommand(
+                SelfCommands.HANDLE_INCOMING_LINKS,
+                {
+                  senderId: parsed.userId,
+                  uri
+                }
+              );
+            }
           } catch (e) {}
         }
       });
@@ -151,7 +159,7 @@ export class DiscordChatProvider implements IChatProvider {
     const guild = this.getCurrentGuild();
     // TODO: save users for DMs and group DMs
 
-    return guild.fetchMembers().then(response => {
+    return guild.fetchMembers("", MEMBER_LIMIT).then(response => {
       let users: Users = {};
       response.members.forEach(member => {
         const { id, displayName, presence, user } = member;
@@ -174,6 +182,7 @@ export class DiscordChatProvider implements IChatProvider {
     // This fetches channels of the current guild, and (group) DMs
     // for the client.
     // For unreads, we are not retrieving historical unreads, not clear if API supports.
+    // TODO: channel info contains isMuted => use that for preferences
     const readyTimestamp = (this.client.readyTimestamp / 1000.0).toString();
     const guild = this.getCurrentGuild();
     let categories = {};
@@ -237,6 +246,7 @@ export class DiscordChatProvider implements IChatProvider {
     const channel: any = this.client.channels.find(
       channel => channel.id === channelId
     );
+    // channel.fetchMessages will break for voice channels
     return channel
       .fetchMessages({ limit: HISTORY_LIMIT })
       .then((messages: Discord.Message[]) => {
@@ -289,7 +299,8 @@ export class DiscordChatProvider implements IChatProvider {
   }
 
   createIMChannel(user: User): Promise<any> {
-    // TODO: this is required for live share
+    // TODO: this is required to share vsls links with users that
+    // do not have corresponding DM channels
     return Promise.resolve();
   }
 }

@@ -9,7 +9,7 @@ import {
   Users,
   MessageReply
 } from "../interfaces";
-import { LIVE_SHARE_BASE_URL, SelfCommands } from "../constants";
+import { SelfCommands } from "../constants";
 
 const RTMEvents = {
   AUTHENTICATED: "authenticated",
@@ -206,11 +206,13 @@ class SlackMessenger {
     }
 
     try {
-      uri = vscode.Uri.parse(text);
-      vscode.commands.executeCommand(SelfCommands.HANDLE_INCOMING_LINKS, {
-        senderId: userId,
-        uri
-      });
+      if (text.startsWith("http")) {
+        uri = vscode.Uri.parse(text);
+        vscode.commands.executeCommand(SelfCommands.HANDLE_INCOMING_LINKS, {
+          senderId: userId,
+          uri
+        });
+      }
     } catch (err) {}
   };
 

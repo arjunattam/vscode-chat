@@ -73,6 +73,7 @@ class BaseTreeProvider
   implements vscode.TreeDataProvider<ChatTreeItem>, vscode.Disposable {
   private _onDidChangeTreeData = new vscode.EventEmitter<ChatTreeItem>();
   readonly onDidChangeTreeData? = this._onDidChangeTreeData.event;
+  protected treeLabel: string;
   protected sortingFn = (a, b) => a.label.localeCompare(b.label);
   protected filterFn = undefined;
 
@@ -191,10 +192,10 @@ class BaseTreeProvider
 export class UnreadsTreeProvider extends BaseTreeProvider {
   protected filterFn = c => c.unread > 0;
   protected sortingFn = (a, b) => b.unread - a.unread;
-  protected treeLabel = "unreads-tree-view";
 
-  constructor() {
+  constructor(provider: string) {
     super();
+    this.treeLabel = `chat.treeView.unreads.${provider}`;
     this._disposables.push(
       vscode.window.registerTreeDataProvider(this.treeLabel, this)
     );
@@ -203,10 +204,10 @@ export class UnreadsTreeProvider extends BaseTreeProvider {
 
 export class ChannelTreeProvider extends BaseTreeProvider {
   protected filterFn = c => c.channel.type === ChannelType.channel;
-  protected treeLabel = "channels-tree-view";
 
-  constructor() {
+  constructor(provider: string) {
     super();
+    this.treeLabel = `chat.treeView.channels.${provider}`;
     this._disposables.push(
       vscode.window.registerTreeDataProvider(this.treeLabel, this)
     );
@@ -215,10 +216,10 @@ export class ChannelTreeProvider extends BaseTreeProvider {
 
 export class GroupTreeProvider extends BaseTreeProvider {
   protected filterFn = c => c.channel.type === ChannelType.group;
-  protected treeLabel = "groups-tree-view";
 
-  constructor() {
+  constructor(provider: string) {
     super();
+    this.treeLabel = `chat.treeView.groups.${provider}`;
     this._disposables.push(
       vscode.window.registerTreeDataProvider(this.treeLabel, this)
     );
@@ -227,10 +228,10 @@ export class GroupTreeProvider extends BaseTreeProvider {
 
 export class IMsTreeProvider extends BaseTreeProvider {
   protected filterFn = c => c.channel.type === ChannelType.im;
-  protected treeLabel = "ims-tree-view";
 
-  constructor() {
+  constructor(provider: string) {
     super();
+    this.treeLabel = `chat.treeView.ims.${provider}`;
     this._disposables.push(
       vscode.window.registerTreeDataProvider(this.treeLabel, this)
     );
@@ -238,13 +239,13 @@ export class IMsTreeProvider extends BaseTreeProvider {
 }
 
 export class OnlineUsersTreeProvider extends BaseTreeProvider {
-  protected treeLabel = "online-users-tree-view";
   private currentUser: CurrentUser;
   private users: Users;
   private imChannels: any;
 
-  constructor() {
+  constructor(providerName: string) {
     super();
+    this.treeLabel = `chat.treeView.onlineUsers.${providerName}`;
     this._disposables.push(
       vscode.window.registerTreeDataProvider(this.treeLabel, this)
     );
