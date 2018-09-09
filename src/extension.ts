@@ -69,7 +69,6 @@ export function activate(context: vscode.ExtensionContext) {
 
     return store
       .initializeProvider()
-      .then(currentUser => store.updateCurrentUser(currentUser))
       .then(() => {
         // If no current team is available, we need to ask
         const { currentUserInfo } = store;
@@ -194,17 +193,18 @@ export function activate(context: vscode.ExtensionContext) {
       });
   };
 
-  const changeWorkspace = () => {
+  const changeWorkspace = async () => {
     const { currentUserInfo } = store;
     // TODO: If we don't have current user, we should
     // ask for authentication
 
+    // TODO: the last UI update does not happen instantly. need to change activity view
     if (!!currentUserInfo) {
-      return askForWorkspace().then(() => {
-        store.clearWorkspace();
-        store.updateAllUI();
-        return setup();
-      });
+      await askForWorkspace();
+      store.clearOldWorkspace();
+      store.updateAllUI();
+      await setup();
+      store.updateAllUI();
     }
   };
 

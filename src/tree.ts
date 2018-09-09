@@ -2,6 +2,7 @@ import * as vscode from "vscode";
 import * as path from "path";
 import * as str from "./strings";
 import { SelfCommands } from "./constants";
+import { equals } from "./utils";
 import {
   Channel,
   User,
@@ -12,7 +13,7 @@ import {
   ChannelType
 } from "./interfaces";
 
-interface ChatTreeItem {
+interface ChatTreeNode {
   label: string;
   channel: Channel;
   user: User;
@@ -70,8 +71,8 @@ class CustomTreeItem extends vscode.TreeItem {
 }
 
 class BaseTreeProvider
-  implements vscode.TreeDataProvider<ChatTreeItem>, vscode.Disposable {
-  private _onDidChangeTreeData = new vscode.EventEmitter<ChatTreeItem>();
+  implements vscode.TreeDataProvider<ChatTreeNode>, vscode.Disposable {
+  private _onDidChangeTreeData = new vscode.EventEmitter<ChatTreeNode>();
   readonly onDidChangeTreeData? = this._onDidChangeTreeData.event;
   protected treeLabel: string;
   protected sortingFn = (a, b) => a.label.localeCompare(b.label);
@@ -79,25 +80,147 @@ class BaseTreeProvider
 
   protected _disposables: vscode.Disposable[] = [];
   protected isAuthenticated: boolean;
-  protected channelLabels: ChannelLabel[];
+  protected channelLabels: ChannelLabel[] = [];
 
   dispose() {
     this._disposables.forEach(dispose => dispose.dispose());
   }
 
-  refresh(): void {
-    // We can also refresh specific items, but since the ordering
-    // might change we refresh the entire tree.
-    this._onDidChangeTreeData.fire();
+  getLabelsObject(
+    channeLabels: ChannelLabel[]
+  ): { [channelId: string]: ChannelLabel } {
+    let result = {};
+    channeLabels.forEach(label => {
+      const { channel } = label;
+      result[channel.id] = label;
+    });
+    return result;
   }
 
-  showData(isAuthenticated, channelLabels) {
+  async refresh(treeItem?: ChatTreeNode) {
+    return treeItem
+      ? this._onDidChangeTreeData.fire(treeItem)
+      : this._onDidChangeTreeData.fire();
+  }
+
+  update(isAuthenticated: boolean, channelLabels: ChannelLabel[]) {
+    const prevAuthenticated = this.isAuthenticated;
     this.isAuthenticated = isAuthenticated;
-    this.channelLabels = channelLabels;
-    this.refresh();
+
+    const filtered = channelLabels.filter(this.filterFn).sort(this.sortingFn);
+    const prevLabels = this.getLabelsObject(this.channelLabels);
+    const newLabels = this.getLabelsObject(filtered);
+    this.channelLabels = filtered;
+
+    if (prevAuthenticated !== isAuthenticated) {
+      // Changing auth means refreshing everything
+      return this.refresh();
+    }
+
+    if (
+      !equals(new Set(Object.keys(prevLabels)), new Set(Object.keys(newLabels)))
+    ) {
+      // We have new channels, so we are replacing everything
+      // Can potentially optimize this
+      return this.refresh();
+    }
+
+    // Looking for changes in isOnline and unread
+    Object.keys(newLabels).forEach(channelId => {
+      const newLabel = newLabels[channelId];
+      const prevLabel = prevLabels[channelId];
+
+      if (prevLabel.unread !== newLabel.unread) {
+        // Can we send just this element?
+        this.refresh();
+      }
+
+      if (prevLabel.isOnline !== newLabel.isOnline) {
+        // Can we send just this element?
+        this.refresh();
+      }
+    });
   }
 
-  getTreeItem(element: ChatTreeItem): vscode.TreeItem {
+  getParent(element: ChatTreeNode): vscode.ProviderResult<ChatTreeNode> {
+    if (!!element.channel.categoryName) {
+      return Promise.resolve(
+        this.getItemForCategory(element.channel.categoryName)
+      );
+    }
+  }
+
+  getChildren(element?: ChatTreeNode): vscode.ProviderResult<ChatTreeNode[]> {
+    if (!this.isAuthenticated) {
+      return this.getNoAuthChildren();
+    }
+
+    if (!element) {
+      return this.getRootChildren();
+    }
+
+    if (!!element && element.isCategory) {
+      const channels = this.channelLabels.filter(channelLabel => {
+        const { channel } = channelLabel;
+        return channel.categoryName === element.label;
+      });
+      return Promise.resolve(channels.map(this.getItemForChannel));
+    }
+  }
+
+  getRootChildren(): vscode.ProviderResult<ChatTreeNode[]> {
+    // Returns all categories, and channels that don't have a category
+    const withoutCategories = this.channelLabels.filter(
+      channelLabel => !channelLabel.channel.categoryName
+    );
+
+    const categories = this.channelLabels
+      .map(channelLabel => channelLabel.channel.categoryName)
+      .filter(name => !!name);
+    const sansDuplicates = categories
+      .filter((item, pos) => categories.indexOf(item) == pos)
+      .map(this.getItemForCategory);
+
+    const channelItems = withoutCategories.map(this.getItemForChannel);
+    return Promise.resolve([...channelItems, ...sansDuplicates]);
+  }
+
+  getNoAuthChildren(): vscode.ProviderResult<ChatTreeNode[]> {
+    // TODO: set this up for both slack and discord
+    // TODO: can we avoid this when we are changing workspaces in discord?
+    return Promise.resolve([
+      {
+        label: str.SIGN_IN_SLACK,
+        isCategory: false,
+        isOnline: false,
+        channel: null,
+        user: null
+      }
+    ]);
+  }
+
+  getItemForChannel(channelLabel: ChannelLabel): ChatTreeNode {
+    const { label, isOnline, channel } = channelLabel;
+    return {
+      label,
+      isOnline,
+      channel,
+      isCategory: false,
+      user: null
+    };
+  }
+
+  getItemForCategory(category: string): ChatTreeNode {
+    return {
+      label: category,
+      isOnline: false,
+      isCategory: true,
+      channel: null,
+      user: null
+    };
+  }
+
+  getTreeItem(element: ChatTreeNode): vscode.TreeItem {
     // TODO: when selected, the highlight on the tree item seems to stick. This might
     // be because we don't use URIs (~= each channel is a URI) to open/close. Need to investigate.
     const { label, isOnline, isCategory, channel, user } = element;
@@ -109,83 +232,6 @@ class BaseTreeProvider
       user
     );
     return treeItem;
-  }
-
-  getParent(element: ChatTreeItem): vscode.ProviderResult<ChatTreeItem> {
-    if (!!element.channel.categoryName) {
-      return Promise.resolve(
-        this.getItemForCategory(element.channel.categoryName)
-      );
-    }
-  }
-
-  getChildren(element?: ChatTreeItem): vscode.ProviderResult<ChatTreeItem[]> {
-    if (this.isAuthenticated) {
-      if (!!element && element.isCategory) {
-        const channels = this.channelLabels
-          .filter(this.filterFn)
-          .sort(this.sortingFn)
-          .filter(channelLabel => {
-            const { channel } = channelLabel;
-            return channel.categoryName === element.label;
-          });
-        return Promise.resolve(channels.map(this.getItemForChannel));
-      } else {
-        return this.getRootChildren();
-      }
-    } else {
-      return Promise.resolve([
-        {
-          label: str.SIGN_IN_SLACK,
-          isCategory: false,
-          isOnline: false,
-          channel: null,
-          user: null
-        }
-      ]);
-    }
-  }
-
-  getItemForChannel(channelLabel: ChannelLabel): ChatTreeItem {
-    const { label, isOnline, channel } = channelLabel;
-    return {
-      label,
-      isOnline,
-      channel,
-      isCategory: false,
-      user: null
-    };
-  }
-
-  getItemForCategory(category: string): ChatTreeItem {
-    return {
-      label: category,
-      isOnline: false,
-      isCategory: true,
-      channel: null,
-      user: null
-    };
-  }
-
-  getRootChildren(): vscode.ProviderResult<ChatTreeItem[]> {
-    // Returns all categories, and channels that don't have a category
-    const filtered = this.channelLabels
-      .filter(this.filterFn)
-      .sort(this.sortingFn);
-
-    const withoutCategories = filtered.filter(
-      channelLabel => !channelLabel.channel.categoryName
-    );
-
-    const categories = filtered
-      .map(channelLabel => channelLabel.channel.categoryName)
-      .filter(name => !!name);
-    const sansDuplicates = categories
-      .filter((item, pos) => categories.indexOf(item) == pos)
-      .map(this.getItemForCategory);
-
-    const channelItems = withoutCategories.map(this.getItemForChannel);
-    return Promise.resolve([...channelItems, ...sansDuplicates]);
   }
 }
 
@@ -239,8 +285,7 @@ export class IMsTreeProvider extends BaseTreeProvider {
 }
 
 export class OnlineUsersTreeProvider extends BaseTreeProvider {
-  private currentUser: CurrentUser;
-  private users: Users;
+  private users: User[] = [];
   private imChannels: any;
 
   constructor(providerName: string) {
@@ -257,21 +302,33 @@ export class OnlineUsersTreeProvider extends BaseTreeProvider {
     users: Users,
     imChannels
   ) {
+    const prevAuthenticated = this.isAuthenticated;
     this.isAuthenticated = isAuthenticated;
-    this.currentUser = currentUser;
-    this.users = users;
+    const { id: currentId } = currentUser;
+
+    const prevUserIds = new Set(this.users.map(user => user.id));
+    this.users = Object.keys(users)
+      .map(userId => users[userId])
+      .filter(user => user.isOnline && user.id !== currentId);
+    const newUserIds = new Set(this.users.map(user => user.id));
+
+    // TODO: In discord, we might have imChannels that do not have
+    // corresponding user. Should we show them? (Need to get online status)
+    // It would also be useful to categorise DM and guild users separately
     this.imChannels = imChannels;
-    this.refresh();
+
+    if (prevAuthenticated !== isAuthenticated) {
+      return this.refresh();
+    }
+
+    if (!equals(prevUserIds, newUserIds)) {
+      return this.refresh();
+    }
   }
 
-  getRootChildren(): vscode.ProviderResult<ChatTreeItem[]> {
-    const { id: currentId } = this.currentUser;
-    const users: User[] = Object.keys(this.users)
-      .map(userId => this.users[userId])
-      .filter(user => user.isOnline && user.id !== currentId);
-
+  getRootChildren(): vscode.ProviderResult<ChatTreeNode[]> {
     return Promise.resolve(
-      users.map(user => ({
+      this.users.map(user => ({
         label: user.name,
         isOnline: user.isOnline,
         isCategory: false,

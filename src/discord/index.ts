@@ -76,13 +76,16 @@ export class DiscordChatProvider implements IChatProvider {
           id: guild.id,
           name: guild.name
         }));
-
+        const { currentUserInfo: oldCurrentUser } = this.store;
+        const existingTeamId = oldCurrentUser.currentTeamId;
+        const isValidTeam =
+          teams.filter(team => team.id === existingTeamId).length > 0;
         const currentUser = {
           id,
           name,
           token: this.token,
           teams,
-          currentTeamId: undefined
+          currentTeamId: isValidTeam ? existingTeamId : undefined
         };
         resolve(currentUser);
       });
@@ -94,6 +97,7 @@ export class DiscordChatProvider implements IChatProvider {
         );
       }
 
+      // TODO: how to get presenceUpdate for non-guild (DMs) users?
       this.client.on("presenceUpdate", (_, newMember: Discord.GuildMember) => {
         const { id: userId, presence } = newMember;
         const isOnline = presence.status === "online";

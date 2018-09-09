@@ -137,12 +137,17 @@ export default class Store implements IStore, vscode.Disposable {
     this.token = token;
   };
 
-  initializeProvider = (): Promise<CurrentUser> => {
-    if (this.chatProvider.isConnected() && this.isAuthenticated()) {
-      return Promise.resolve(this.currentUserInfo);
-    } else {
-      return this.chatProvider.connect();
+  initializeProvider = async (): Promise<any> => {
+    const isConnected = this.chatProvider.isConnected();
+    const isAuthenticated = this.isAuthenticated();
+    let currentUser = this.currentUserInfo;
+
+    if (!(isConnected && isAuthenticated)) {
+      currentUser = await this.chatProvider.connect();
+      this.updateCurrentUser(currentUser);
     }
+
+    return currentUser;
   };
 
   generateInstallationId() {
@@ -154,10 +159,10 @@ export default class Store implements IStore, vscode.Disposable {
 
   clearAll() {
     this.updateCurrentUser(undefined);
-    this.clearWorkspace();
+    this.clearOldWorkspace();
   }
 
-  clearWorkspace() {
+  clearOldWorkspace() {
     // This clears workspace info, does not clear current user
     this.updateLastChannelId(undefined);
     this.updateChannels([]);
@@ -201,6 +206,7 @@ export default class Store implements IStore, vscode.Disposable {
   }
 
   getChannelLabels(): ChannelLabel[] {
+    // TODO: add category to label for change channel command
     return this.channels.map(channel => {
       const unread = this.getUnreadCount(channel);
       const { name, type, id } = channel;
@@ -221,18 +227,7 @@ export default class Store implements IStore, vscode.Disposable {
         }
       }
 
-      let icon, label;
-      switch (type) {
-        case ChannelType.channel:
-          icon = "comment";
-          break;
-        case ChannelType.group:
-          icon = name.startsWith("@") ? "organization" : "lock";
-          break;
-        case ChannelType.im:
-          icon = "person";
-          break;
-      }
+      let label;
 
       if (unread > 0) {
         label = `${name} ${unread > 0 ? `(${unread} new)` : ""}`;
@@ -245,7 +240,6 @@ export default class Store implements IStore, vscode.Disposable {
       return {
         channel,
         unread,
-        icon,
         label,
         isOnline
       };
@@ -306,10 +300,10 @@ export default class Store implements IStore, vscode.Disposable {
   updateTreeViews() {
     const isAuthenticated = this.isAuthenticated();
     const channelLabels = this.getChannelLabels();
-    this.unreadsTreeProvider.showData(isAuthenticated, channelLabels);
-    this.channelsTreeProvider.showData(isAuthenticated, channelLabels);
-    this.groupsTreeProvider.showData(isAuthenticated, channelLabels);
-    this.imsTreeProvider.showData(isAuthenticated, channelLabels);
+    this.unreadsTreeProvider.update(isAuthenticated, channelLabels);
+    this.channelsTreeProvider.update(isAuthenticated, channelLabels);
+    this.groupsTreeProvider.update(isAuthenticated, channelLabels);
+    this.imsTreeProvider.update(isAuthenticated, channelLabels);
 
     // We could possibly split this function for channel-updates and user-updates
     // to avoid extra UI refresh calls.

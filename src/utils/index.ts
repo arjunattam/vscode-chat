@@ -66,3 +66,17 @@ export function difference(setA, setB) {
   }
   return _difference;
 }
+
+export function equals(setA, setB) {
+  if (setA.size !== setB.size) {
+    return false;
+  }
+
+  for (var a of setA) {
+    if (!setB.has(a)) {
+      return false;
+    }
+  }
+
+  return true;
+}

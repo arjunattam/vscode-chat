@@ -45,6 +45,9 @@ export interface CurrentUser {
   // teamName: string;
   teams: Team[];
   currentTeamId: string;
+  // TODO: we could add provider name to this,
+  // and remove the setting that could be potentially
+  // edited by the user
 }
 
 export interface Team {
@@ -129,7 +132,6 @@ export interface Channel {
 export interface ChannelLabel {
   channel: Channel;
   unread: number;
-  icon: string;
   label: string;
   isOnline: boolean;
 }
