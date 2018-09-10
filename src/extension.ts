@@ -15,9 +15,10 @@ import {
   CONFIG_ROOT,
   TRAVIS_SCHEME
 } from "./constants";
-import travis from "./providers/travis";
+import travis from "./bots/travis";
 import { ExtensionUriHandler } from "./uri";
 import { openUrl, getExtension, toTitleCase } from "./utils";
+import { askForAuth } from "./onboarding";
 import ConfigHelper from "./config";
 import Reporter from "./telemetry";
 
@@ -59,7 +60,7 @@ export function activate(context: vscode.ExtensionContext) {
 
       if (!store.token) {
         if (canPromptForAuth) {
-          ConfigHelper.askForAuth();
+          askForAuth();
         }
 
         throw new Error(str.TOKEN_NOT_FOUND);
@@ -205,16 +206,12 @@ export function activate(context: vscode.ExtensionContext) {
   };
 
   const changeWorkspace = async () => {
-    const { currentUserInfo } = store;
-    // TODO: If we don't have current user, we should
-    // ask for authentication
-
-    if (!!currentUserInfo) {
+    // TODO: If we don't have current user, we should ask for auth
+    if (store.isAuthenticated()) {
       await askForWorkspace();
       store.clearOldWorkspace();
       store.updateAllUI();
       await setup({ canPromptForAuth: false, provider: undefined });
-      store.updateAllUI();
     }
   };
 
@@ -276,13 +273,11 @@ export function activate(context: vscode.ExtensionContext) {
 
   const authenticate = (args?: any) => {
     const hasArgs = !!args && !!args.source;
-    // TODO: ensure that we always send service here
     const service = args.service;
     const urls = {
       slack: SLACK_OAUTH,
       discord: DISCORD_OAUTH
     };
-    // TODO: update telemetry with service name
     reporter.record(
       EventType.authStarted,
       hasArgs ? args.source : EventSource.command,
@@ -295,7 +290,6 @@ export function activate(context: vscode.ExtensionContext) {
     store.clearAll();
     store.updateAllUI();
     await setup({ canPromptForAuth: false, provider: newProvider });
-    store.updateAllUI(); // TODO: can we remove this
   };
 
   const signout = async () => {
@@ -333,7 +327,6 @@ export function activate(context: vscode.ExtensionContext) {
   };
 
   const configureToken = async () => {
-    // TODO: save provider in telemetry event
     reporter.record(EventType.tokenConfigured, EventSource.command, undefined);
     const selectedProvider = await askForProvider();
 

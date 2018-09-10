@@ -10,7 +10,7 @@ All notable changes to the vscode-chat extension will be documented in this file
 - Added support to expand thread messages to render replies, with text and file attachments.
 - Consistency between Slack clients for unread counts: marking messages as read from other Slack clients will update the unread count.
 - Unread messages are now highlighted in the webview.
-- Added documentation for [product roadmap](VISION.md) and [adding chat providers](PROVIDERS.md).
+- Added documentation for [product roadmap](VISION.md) and [adding chat providers](docs/PROVIDERS.md).
 
 ### Fixed
 

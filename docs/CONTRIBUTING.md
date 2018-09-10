@@ -28,7 +28,7 @@ The watch command does not watch for CSS file changes. This means if you make ch
 
 Tests can only be run when VS Code is not running. If you want to run tests alongside development, use VS Code Insiders for development.
 
-## Providers
+## Bot actions
 
 Slack bot actions can be wired to open inside the editor. For example, Travis CI logs can be opened inside the editor by adding the following configuration.
 
@@ -38,4 +38,4 @@ Slack bot actions can be wired to open inside the editor. For example, Travis CI
 }
 ```
 
-This is configured via `src/providers/travis.ts` in the code. Similar providers can be added for other services. Feel free to [file an issue](https://github.com/karigari/vscode-chat/issues) or submit a PR for adding new providers.
+This is configured via `src/bots/travis.ts` in the code. Similar providers can be added for other services. Feel free to [file an issue](https://github.com/karigari/vscode-chat/issues) or submit a PR for adding new providers.

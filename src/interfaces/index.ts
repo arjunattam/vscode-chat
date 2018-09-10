@@ -174,6 +174,7 @@ export interface IStore {
   users: Users;
   messages: Messages;
   isAuthenticated: () => boolean;
+  getSelectedProvider: () => string;
   getChannel: (channelId: string) => Channel | undefined;
   getIMChannel: (user: User) => Channel | undefined;
   getChannelLabels: () => any;

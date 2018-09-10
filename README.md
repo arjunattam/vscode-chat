@@ -5,7 +5,7 @@
 
 # Slack Chat for VSCode 💬
 
-![Demo gif](public/example-v2.gif)
+![Demo gif](readme/example-v2.gif)
 
 ## Setup
 
@@ -24,13 +24,13 @@
 
 Open the [Command Palette](https://code.visualstudio.com/docs/getstarted/userinterface#_command-palette), and select **Slack: Open** or **Slack: Change Channel** to navigate your Slack workspace.
 
-![Slack commands](public/commands.gif)
+![Slack commands](readme/commands.gif)
 
 ## Rich formatting
 
 Supports Slack's markdown flavour for snippet sharing and feedback, without leaving the context of your editor.
 
-![Markdown](public/markdown.gif)
+![Markdown](readme/markdown.gif)
 
 ## VS Live Share
 
@@ -40,19 +40,7 @@ Use slash commands start/stop [VS Live Share](https://visualstudio.microsoft.com
 - Send `/live end` to end the ongoing session
 - Use `/live request` to request someone else to initiate a session
 
-![Live Share](public/live-share.gif)
-
-## Bots integration
-
-Code-related bots (CI, version control, etc.) can trigger their actions inside the editor. For example, you can open Travis CI build logs with this configuration. Read more about [Providers](CONTRIBUTING.md#providers).
-
-```json
-{
-  "chat.providers": ["travis"]
-}
-```
-
-![Travis CI logs](public/ci.gif)
+![Live Share](readme/live-share.gif)
 
 ## Using with network proxy
 
@@ -76,7 +64,7 @@ This extension collects anonymized telemetry data to improve the product. This r
 
 ## Contribute
 
-See [CONTRIBUTING](CONTRIBUTING.md). Our [issues](https://github.com/karigari/vscode-chat/issues) are the best place to look for contribution ideas.
+See [CONTRIBUTING](docs/CONTRIBUTING.md). Our [issues](https://github.com/karigari/vscode-chat/issues) are the best place to look for contribution ideas.
 
 ## Support
 

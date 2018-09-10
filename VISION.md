@@ -34,7 +34,7 @@ And you will have your teammates alongside for a quick question for any of the a
 
 ## Chat providers
 
-While Slack offered us an excellent API to kick-start the above, there is no reason for this extension to be tied to just Slack. The goal is to support other chat providers that teams use. See [PROVIDERS](PROVIDERS.md) for more details on how that works.
+While Slack offered us an excellent API to kick-start the above, there is no reason for this extension to be tied to just Slack. The goal is to support other chat providers that teams use. See [PROVIDERS](docs/PROVIDERS.md) for more details on how that works.
 
 ## Healthy notifications
 

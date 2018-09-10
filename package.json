@@ -123,6 +123,11 @@
           "id": "chat.treeView.ims.slack",
           "name": "Direct Messages",
           "when": "chat:slack"
+        },
+        {
+          "id": "chat.treeView.onboarding.main",
+          "name": "Setup",
+          "when": "!chat:slack && !chat:discord"
         }
       ],
       "chatActivityViewDiscord": [
@@ -157,6 +162,11 @@
           "id": "chat.treeView.onlineUsers.discord",
           "name": "Discord Users",
           "when": "chat:vslsEnabled && chat:discord"
+        },
+        {
+          "id": "chat.treeView.onboarding.vsls",
+          "name": "Online Users",
+          "when": "chat:vslsEnabled && !chat:slack && !chat:discord"
         }
       ]
     },
@@ -187,7 +197,7 @@
       "view/title": [
         {
           "command": "extension.chat.changeChannel",
-          "when": "view =~ /^chat.treeView/",
+          "when": "view =~ /^chat.treeView(?!.onboarding)/",
           "group": "navigation@1"
         }
       ]

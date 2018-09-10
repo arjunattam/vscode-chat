@@ -11,3 +11,4 @@ tslint.json
 tokens
 node_modules/emoji-datasource/**
 oauth-service/**
+readme/**

@@ -7,7 +7,6 @@ import {
   Messages,
   Users,
   IStore,
-  UIMessage,
   User,
   Team,
   ChannelType,
@@ -28,6 +27,7 @@ import {
   IMsTreeProvider,
   OnlineUsersTreeProvider
 } from "./tree";
+import { OnboardingTreeProvider } from "./onboarding";
 import { SelfCommands } from "./constants";
 
 const stateKeys = {
@@ -61,6 +61,7 @@ export default class Store implements IStore, vscode.Disposable {
   imsTreeProvider: IMsTreeProvider;
   groupsTreeProvider: GroupTreeProvider;
   usersTreeProvider: OnlineUsersTreeProvider;
+  onboardingTreeProvider: OnboardingTreeProvider;
 
   chatProvider: IChatProvider;
 
@@ -100,8 +101,6 @@ export default class Store implements IStore, vscode.Disposable {
   }
 
   initializeToken = async (selectedProvider?: string) => {
-    // TODO: Fallback to slack, for pre-0.6.x users
-    // TODO: `no_auth` provider to simplify onboarding?
     if (!selectedProvider) {
       selectedProvider = this.getSelectedProvider();
     }
@@ -124,17 +123,23 @@ export default class Store implements IStore, vscode.Disposable {
       this.groupsTreeProvider = new GroupTreeProvider(selectedProvider);
       this.imsTreeProvider = new IMsTreeProvider(selectedProvider);
 
-      ALL_PROVIDERS.forEach(provider => {
-        vscode.commands.executeCommand(
-          "setContext",
-          `chat:${provider}`,
-          provider === selectedProvider
-        );
-      });
+      if (!!this.onboardingTreeProvider) {
+        this.onboardingTreeProvider.dispose();
+      }
 
       const token = await this.chatProvider.getToken();
       this.token = token;
+    } else {
+      this.onboardingTreeProvider = new OnboardingTreeProvider();
     }
+
+    ALL_PROVIDERS.forEach(provider => {
+      vscode.commands.executeCommand(
+        "setContext",
+        `chat:${provider}`,
+        provider === selectedProvider
+      );
+    });
   };
 
   initializeProvider = async (): Promise<any> => {
@@ -298,35 +303,30 @@ export default class Store implements IStore, vscode.Disposable {
   }
 
   updateTreeViews() {
-    if (!this.unreadsTreeProvider) {
-      // TODO: do this properly once no_auth is decided
-      return;
+    if (this.isAuthenticated()) {
+      const channelLabels = this.getChannelLabels();
+      this.unreadsTreeProvider.update(channelLabels);
+      this.channelsTreeProvider.update(channelLabels);
+      this.groupsTreeProvider.update(channelLabels);
+      this.imsTreeProvider.update(channelLabels);
+
+      // We could possibly split this function for channel-updates and user-updates
+      // to avoid extra UI refresh calls.
+      const imChannels = {};
+      Object.keys(this.users).forEach(userId => {
+        const im = this.getIMChannel(this.users[userId]);
+
+        if (!!im) {
+          imChannels[userId] = im;
+        }
+      });
+
+      this.usersTreeProvider.updateData(
+        this.currentUserInfo,
+        this.users,
+        imChannels
+      );
     }
-
-    const isAuthenticated = this.isAuthenticated();
-    const channelLabels = this.getChannelLabels();
-    this.unreadsTreeProvider.update(isAuthenticated, channelLabels);
-    this.channelsTreeProvider.update(isAuthenticated, channelLabels);
-    this.groupsTreeProvider.update(isAuthenticated, channelLabels);
-    this.imsTreeProvider.update(isAuthenticated, channelLabels);
-
-    // We could possibly split this function for channel-updates and user-updates
-    // to avoid extra UI refresh calls.
-    const imChannels = {};
-    Object.keys(this.users).forEach(userId => {
-      const im = this.getIMChannel(this.users[userId]);
-
-      if (!!im) {
-        imChannels[userId] = im;
-      }
-    });
-
-    this.usersTreeProvider.updateData(
-      isAuthenticated,
-      this.currentUserInfo,
-      this.users,
-      imChannels
-    );
   }
 
   updateUnreadCount() {
@@ -496,15 +496,21 @@ export default class Store implements IStore, vscode.Disposable {
   updateCurrentUser = (userInfo: CurrentUser): Thenable<void> => {
     // In the case of discord, we need to know the current team (guild)
     // If that is available in the store, we should use that
-    let currentTeamId: string = !!this.currentUserInfo
-      ? this.currentUserInfo.currentTeamId
-      : undefined;
+    if (!userInfo) {
+      // Resetting userInfo
+      this.currentUserInfo = userInfo;
+    } else {
+      let currentTeamId: string = !!this.currentUserInfo
+        ? this.currentUserInfo.currentTeamId
+        : undefined;
 
-    if (!!userInfo && !!userInfo.currentTeamId) {
-      currentTeamId = userInfo.currentTeamId;
+      if (!!userInfo.currentTeamId) {
+        currentTeamId = userInfo.currentTeamId;
+      }
+
+      this.currentUserInfo = { ...userInfo, currentTeamId };
     }
 
-    this.currentUserInfo = { ...userInfo, currentTeamId };
     return this.context.globalState.update(
       stateKeys.USER_INFO,
       this.currentUserInfo

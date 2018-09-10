@@ -16,6 +16,7 @@ import {
 import ConfigHelper from "../config";
 import { SelfCommands } from "../constants";
 import { toTitleCase } from "../utils";
+import Logger from "../logger";
 
 const HISTORY_LIMIT = 50;
 const MEMBER_LIMIT = 500;
@@ -150,6 +151,10 @@ export class DiscordChatProvider implements IChatProvider {
         this.handleIncomingMessage(msg);
       });
 
+      this.client.on("error", error => {
+        Logger.log(`[ERROR] Discord: ${error.message}`);
+      });
+
       this.client.login(this.token);
     });
   }
@@ -159,6 +164,10 @@ export class DiscordChatProvider implements IChatProvider {
     // Else, message is from a DM or group DM
     const currentGuild = this.getCurrentGuild();
     const { guild } = msg;
+
+    if (!currentGuild) {
+      return;
+    }
 
     if (!guild || guild.id === currentGuild.id) {
       let newMessages: ChannelMessages = {};
@@ -177,6 +186,10 @@ export class DiscordChatProvider implements IChatProvider {
     // For vsls invitations
     const currentGuild = this.getCurrentGuild();
     const { guild } = msg;
+
+    if (!currentGuild) {
+      return;
+    }
 
     if (!guild || guild.id === currentGuild.id) {
       const parsed = getMessage(msg);

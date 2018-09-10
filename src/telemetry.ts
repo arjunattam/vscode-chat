@@ -92,6 +92,7 @@ export default class Reporter implements vscode.Disposable {
         editor_version: editor,
         has_extension_pack: this.hasExtensionPack,
         is_authenticated: this.store.isAuthenticated(),
+        provider: this.store.getSelectedProvider(),
         ...properties,
         time
       }

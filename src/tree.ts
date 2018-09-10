@@ -30,7 +30,7 @@ const GREEN_DOT = path.join(
   "green.svg"
 );
 
-class CustomTreeItem extends vscode.TreeItem {
+class CustomChatTreeItem extends vscode.TreeItem {
   constructor(
     label: string,
     isOnline: boolean,
@@ -47,13 +47,6 @@ class CustomTreeItem extends vscode.TreeItem {
         command: SelfCommands.OPEN,
         title: "",
         arguments: [{ channel, user, source: EventSource.activity }]
-      };
-    } else if (label === str.SETUP_SLACK) {
-      // This is the sign in item. TODO: let's keep this in separate classes
-      this.command = {
-        command: SelfCommands.SIGN_IN,
-        title: "",
-        arguments: [{ source: EventSource.activity }]
       };
     }
 
@@ -74,12 +67,11 @@ class BaseTreeProvider
   implements vscode.TreeDataProvider<ChatTreeNode>, vscode.Disposable {
   private _onDidChangeTreeData = new vscode.EventEmitter<ChatTreeNode>();
   readonly onDidChangeTreeData? = this._onDidChangeTreeData.event;
-  protected treeLabel: string;
+  protected viewId: string;
   protected sortingFn = (a, b) => a.label.localeCompare(b.label);
   protected filterFn = undefined;
 
   protected _disposables: vscode.Disposable[] = [];
-  protected isAuthenticated: boolean;
   protected channelLabels: ChannelLabel[] = [];
 
   dispose() {
@@ -103,19 +95,11 @@ class BaseTreeProvider
       : this._onDidChangeTreeData.fire();
   }
 
-  update(isAuthenticated: boolean, channelLabels: ChannelLabel[]) {
-    const prevAuthenticated = this.isAuthenticated;
-    this.isAuthenticated = isAuthenticated;
-
+  update(channelLabels: ChannelLabel[]) {
     const filtered = channelLabels.filter(this.filterFn).sort(this.sortingFn);
     const prevLabels = this.getLabelsObject(this.channelLabels);
     const newLabels = this.getLabelsObject(filtered);
     this.channelLabels = filtered;
-
-    if (prevAuthenticated !== isAuthenticated) {
-      // Changing auth means refreshing everything
-      return this.refresh();
-    }
 
     if (
       !equals(new Set(Object.keys(prevLabels)), new Set(Object.keys(newLabels)))
@@ -151,10 +135,6 @@ class BaseTreeProvider
   }
 
   getChildren(element?: ChatTreeNode): vscode.ProviderResult<ChatTreeNode[]> {
-    if (!this.isAuthenticated) {
-      return this.getNoAuthChildren();
-    }
-
     if (!element) {
       return this.getRootChildren();
     }
@@ -190,20 +170,6 @@ class BaseTreeProvider
     return Promise.resolve([...channelsWithoutCategories, ...uniqueCategories]);
   }
 
-  getNoAuthChildren(): vscode.ProviderResult<ChatTreeNode[]> {
-    // TODO: set this up for both slack and discord
-    // TODO: can we avoid this when we are changing workspaces in discord?
-    return Promise.resolve([
-      {
-        label: str.SETUP_SLACK,
-        isCategory: false,
-        isOnline: false,
-        channel: null,
-        user: null
-      }
-    ]);
-  }
-
   getItemForChannel(channelLabel: ChannelLabel): ChatTreeNode {
     const { label, isOnline, channel } = channelLabel;
     return {
@@ -229,7 +195,7 @@ class BaseTreeProvider
     // TODO: when selected, the highlight on the tree item seems to stick. This might
     // be because we don't use URIs (~= each channel is a URI) to open/close. Need to investigate.
     const { label, isOnline, isCategory, channel, user } = element;
-    const treeItem = new CustomTreeItem(
+    const treeItem = new CustomChatTreeItem(
       label,
       isOnline,
       isCategory,
@@ -246,9 +212,9 @@ export class UnreadsTreeProvider extends BaseTreeProvider {
 
   constructor(provider: string) {
     super();
-    this.treeLabel = `chat.treeView.unreads.${provider}`;
+    this.viewId = `chat.treeView.unreads.${provider}`;
     this._disposables.push(
-      vscode.window.registerTreeDataProvider(this.treeLabel, this)
+      vscode.window.registerTreeDataProvider(this.viewId, this)
     );
   }
 }
@@ -258,9 +224,9 @@ export class ChannelTreeProvider extends BaseTreeProvider {
 
   constructor(provider: string) {
     super();
-    this.treeLabel = `chat.treeView.channels.${provider}`;
+    this.viewId = `chat.treeView.channels.${provider}`;
     this._disposables.push(
-      vscode.window.registerTreeDataProvider(this.treeLabel, this)
+      vscode.window.registerTreeDataProvider(this.viewId, this)
     );
   }
 }
@@ -270,9 +236,9 @@ export class GroupTreeProvider extends BaseTreeProvider {
 
   constructor(provider: string) {
     super();
-    this.treeLabel = `chat.treeView.groups.${provider}`;
+    this.viewId = `chat.treeView.groups.${provider}`;
     this._disposables.push(
-      vscode.window.registerTreeDataProvider(this.treeLabel, this)
+      vscode.window.registerTreeDataProvider(this.viewId, this)
     );
   }
 }
@@ -282,35 +248,28 @@ export class IMsTreeProvider extends BaseTreeProvider {
 
   constructor(provider: string) {
     super();
-    this.treeLabel = `chat.treeView.ims.${provider}`;
+    this.viewId = `chat.treeView.ims.${provider}`;
     this._disposables.push(
-      vscode.window.registerTreeDataProvider(this.treeLabel, this)
+      vscode.window.registerTreeDataProvider(this.viewId, this)
     );
   }
 }
 
 export class OnlineUsersTreeProvider extends BaseTreeProvider {
   private users: User[] = [];
-  private imChannels: any;
+  private imChannels: { [userId: string]: Channel } = {};
   private DM_ROLE_NAME = "Direct Messages";
   private OTHERS_ROLE_NAME = "Others";
 
   constructor(private providerName: string) {
     super();
-    this.treeLabel = `chat.treeView.onlineUsers.${providerName}`;
+    this.viewId = `chat.treeView.onlineUsers.${providerName}`;
     this._disposables.push(
-      vscode.window.registerTreeDataProvider(this.treeLabel, this)
+      vscode.window.registerTreeDataProvider(this.viewId, this)
     );
   }
 
-  updateData(
-    isAuthenticated,
-    currentUser: CurrentUser,
-    users: Users,
-    imChannels
-  ) {
-    const prevAuthenticated = this.isAuthenticated;
-    this.isAuthenticated = isAuthenticated;
+  updateData(currentUser: CurrentUser, users: Users, imChannels) {
     const { id: currentId } = currentUser;
 
     const prevUserIds = new Set(this.users.map(user => user.id));
@@ -319,10 +278,6 @@ export class OnlineUsersTreeProvider extends BaseTreeProvider {
       .filter(user => user.isOnline && user.id !== currentId);
     const newUserIds = new Set(this.users.map(user => user.id));
     this.imChannels = imChannels;
-
-    if (prevAuthenticated !== isAuthenticated) {
-      return this.refresh();
-    }
 
     if (!equals(prevUserIds, newUserIds)) {
       return this.refresh();
