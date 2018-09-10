@@ -262,7 +262,6 @@ Vue.component("message-reactions", {
 });
 
 Vue.component("message-reaction", {
-  // TODO: add hover behaviour to show users
   props: ["emoji", "count", "users"],
   template: /* html */ `
     <li>

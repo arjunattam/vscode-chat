@@ -31,7 +31,7 @@ const getContent = attachment => {
 };
 
 const getReaction = reaction => ({
-  name: reaction.name,
+  name: `:${reaction.name}:`,
   count: reaction.count,
   userIds: reaction.users
 });
@@ -116,24 +116,24 @@ export default class SlackAPIClient {
     });
   }
 
-  getBotInfo(botId: string): Promise<Users> {
+  getBotInfo(botId: string): Promise<User> {
     return this.client
       .apiCall("bots.info", { bot: botId })
       .then((response: any) => {
         const { bot, ok } = response;
-        let users = {};
 
         if (ok) {
           const { id, name, icons } = bot;
-          users[bot.id] = {
+          return {
             id,
             name,
+            fullName: name,
             imageUrl: icons.image_72,
+            smallImageUrl: icons.image_24,
+            isOnline: false,
             isBot: true
           };
         }
-
-        return users;
       });
   }
 

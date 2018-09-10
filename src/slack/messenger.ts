@@ -181,7 +181,8 @@ class SlackMessenger {
             id,
             name,
             teams: [{ id: teamId, name: teamName }],
-            currentTeamId: teamId
+            currentTeamId: teamId,
+            provider: "slack"
           });
         }
       });
@@ -219,6 +220,12 @@ class SlackMessenger {
   subscribePresence = (users: Users) => {
     this.rtmClient.subscribePresence(Object.keys(users));
   };
+
+  disconnect() {
+    if (!!this.rtmClient) {
+      return this.rtmClient.disconnect();
+    }
+  }
 }
 
 export default SlackMessenger;

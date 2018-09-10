@@ -48,8 +48,8 @@ class CustomTreeItem extends vscode.TreeItem {
         title: "",
         arguments: [{ channel, user, source: EventSource.activity }]
       };
-    } else if (label === str.SIGN_IN_SLACK) {
-      // This is the sign in item
+    } else if (label === str.SETUP_SLACK) {
+      // This is the sign in item. TODO: let's keep this in separate classes
       this.command = {
         command: SelfCommands.SIGN_IN,
         title: "",
@@ -160,29 +160,34 @@ class BaseTreeProvider
     }
 
     if (!!element && element.isCategory) {
-      const channels = this.channelLabels.filter(channelLabel => {
-        const { channel } = channelLabel;
-        return channel.categoryName === element.label;
-      });
-      return Promise.resolve(channels.map(this.getItemForChannel));
+      return this.getChildrenForCategory(element);
     }
   }
 
-  getRootChildren(): vscode.ProviderResult<ChatTreeNode[]> {
-    // Returns all categories, and channels that don't have a category
-    const withoutCategories = this.channelLabels.filter(
-      channelLabel => !channelLabel.channel.categoryName
-    );
+  getChildrenForCategory(
+    element: ChatTreeNode
+  ): vscode.ProviderResult<ChatTreeNode[]> {
+    const { label: category } = element;
+    const channels = this.channelLabels
+      .filter(channelLabel => {
+        const { channel } = channelLabel;
+        return channel.categoryName === category;
+      })
+      .map(this.getItemForChannel);
+    return Promise.resolve(channels);
+  }
 
+  getRootChildren(): vscode.ProviderResult<ChatTreeNode[]> {
+    const channelsWithoutCategories = this.channelLabels
+      .filter(channelLabel => !channelLabel.channel.categoryName)
+      .map(this.getItemForChannel);
     const categories = this.channelLabels
       .map(channelLabel => channelLabel.channel.categoryName)
       .filter(name => !!name);
-    const sansDuplicates = categories
+    const uniqueCategories = categories
       .filter((item, pos) => categories.indexOf(item) == pos)
       .map(this.getItemForCategory);
-
-    const channelItems = withoutCategories.map(this.getItemForChannel);
-    return Promise.resolve([...channelItems, ...sansDuplicates]);
+    return Promise.resolve([...channelsWithoutCategories, ...uniqueCategories]);
   }
 
   getNoAuthChildren(): vscode.ProviderResult<ChatTreeNode[]> {
@@ -190,7 +195,7 @@ class BaseTreeProvider
     // TODO: can we avoid this when we are changing workspaces in discord?
     return Promise.resolve([
       {
-        label: str.SIGN_IN_SLACK,
+        label: str.SETUP_SLACK,
         isCategory: false,
         isOnline: false,
         channel: null,
@@ -287,8 +292,10 @@ export class IMsTreeProvider extends BaseTreeProvider {
 export class OnlineUsersTreeProvider extends BaseTreeProvider {
   private users: User[] = [];
   private imChannels: any;
+  private DM_ROLE_NAME = "Direct Messages";
+  private OTHERS_ROLE_NAME = "Others";
 
-  constructor(providerName: string) {
+  constructor(private providerName: string) {
     super();
     this.treeLabel = `chat.treeView.onlineUsers.${providerName}`;
     this._disposables.push(
@@ -311,10 +318,6 @@ export class OnlineUsersTreeProvider extends BaseTreeProvider {
       .map(userId => users[userId])
       .filter(user => user.isOnline && user.id !== currentId);
     const newUserIds = new Set(this.users.map(user => user.id));
-
-    // TODO: In discord, we might have imChannels that do not have
-    // corresponding user. Should we show them? (Need to get online status)
-    // It would also be useful to categorise DM and guild users separately
     this.imChannels = imChannels;
 
     if (prevAuthenticated !== isAuthenticated) {
@@ -326,15 +329,78 @@ export class OnlineUsersTreeProvider extends BaseTreeProvider {
     }
   }
 
+  getItemForUser(user: User): ChatTreeNode {
+    return {
+      label: user.name,
+      isOnline: user.isOnline,
+      isCategory: false,
+      user,
+      channel: this.imChannels[user.id]
+    };
+  }
+
+  getChildrenForCategory(element: ChatTreeNode) {
+    const { label: role } = element;
+
+    if (role === this.DM_ROLE_NAME) {
+      const dmUserIds = Object.keys(this.imChannels);
+      return Promise.resolve(
+        this.users
+          .filter(user => dmUserIds.indexOf(user.id) >= 0)
+          .map(user => this.getItemForUser(user))
+      );
+    }
+
+    if (role === this.OTHERS_ROLE_NAME) {
+      const usersWithoutRoles = this.users.filter(user => !user.roleName);
+      return Promise.resolve(
+        usersWithoutRoles.map(user => this.getItemForUser(user))
+      );
+    }
+
+    const users = this.users
+      .filter(user => user.roleName === role)
+      .map(user => this.getItemForUser(user));
+    return Promise.resolve(users);
+  }
+
   getRootChildren(): vscode.ProviderResult<ChatTreeNode[]> {
-    return Promise.resolve(
-      this.users.map(user => ({
-        label: user.name,
-        isOnline: user.isOnline,
-        isCategory: false,
-        user,
-        channel: this.imChannels[user.id]
-      }))
-    );
+    if (this.providerName === "slack") {
+      return Promise.resolve(this.users.map(user => this.getItemForUser(user)));
+    }
+
+    // Since Discord guilds can have lots of members, we want to ensure all
+    // members are categorised for easy navigation.
+    // For this, we introduced 2 roles: "Direct Messages" and "Others"
+    // const dmRoles = this.
+    let rootElements = [];
+    const dmUserIds = Object.keys(this.imChannels);
+
+    if (dmUserIds.length > 0) {
+      rootElements.push(this.getItemForCategory(this.DM_ROLE_NAME));
+    }
+
+    const roles = this.users
+      .filter(user => !!user.roleName)
+      .map(user => user.roleName);
+    const uniqueRoles = roles
+      .filter((item, pos) => roles.indexOf(item) == pos)
+      .map(this.getItemForCategory);
+
+    if (uniqueRoles.length > 0) {
+      rootElements = [...rootElements, ...uniqueRoles];
+    }
+
+    const usersWithoutRoles = this.users.filter(user => !user.roleName);
+
+    if (usersWithoutRoles.length > 0) {
+      rootElements.push(this.getItemForCategory(this.OTHERS_ROLE_NAME));
+    }
+
+    return Promise.resolve(rootElements);
+  }
+
+  getParent(element: ChatTreeNode): vscode.ProviderResult<ChatTreeNode> {
+    return;
   }
 }

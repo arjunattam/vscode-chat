@@ -9,7 +9,6 @@ import IssueReporter from "./issues";
 const TOKEN_CONFIG_KEY = "slack.legacyToken";
 const TELEMETRY_CONFIG_ROOT = "telemetry";
 const TELEMETRY_CONFIG_KEY = "enableTelemetry";
-const SELECTED_PROVIDER_KEY = "selectedProvider";
 const CREDENTIAL_SERVICE_NAME = "vscode-chat";
 
 class ConfigHelper {
@@ -62,70 +61,59 @@ class ConfigHelper {
     // TODO: There is no token validation. We need to add one.
     // TODO: it is possible that the keychain will fail
     // See https://github.com/Microsoft/vscode-pull-request-github/commit/306dc5d27460599f3402f4b9e01d97bf638c639f
-    const configUpdate = this.setSelectedProvider(providerName);
     const keychainUpdate = keychain.setPassword(
       CREDENTIAL_SERVICE_NAME,
       providerName,
       token
     );
-    return Promise.all([keychainUpdate, configUpdate]).then(() => {
+    return keychainUpdate.then(() => {
       // When token is set, we need to call reset
-      vscode.commands.executeCommand(SelfCommands.RESET_STORE);
+      vscode.commands.executeCommand(SelfCommands.RESET_STORE, {
+        newProvider: providerName
+      });
     });
   }
 
-  static getSelectedProvider(): string {
-    // TODO: migration for 0.6.x: we should set the provider
-    // to slack for ones that are authenticated
-    const rootConfig = this.getRootConfig();
-    return rootConfig[SELECTED_PROVIDER_KEY];
-  }
-
-  static setSelectedProvider(providerName: string): Promise<void> {
-    return this.updateRootConfig(SELECTED_PROVIDER_KEY, providerName);
-  }
-
-  static clearToken(): Promise<void> {
-    // Fallback to slack for pre-0.6.x users
-    const currentProvider = this.getSelectedProvider() || "slack";
-    const configUpdate = this.setSelectedProvider(undefined);
+  static clearToken(provider: string): Promise<void> {
     const keychainUpdate = keychain.deletePassword(
       CREDENTIAL_SERVICE_NAME,
-      currentProvider
+      provider
     );
-    return Promise.all([keychainUpdate, configUpdate]).then(() => {
+    return keychainUpdate.then(() => {
       // When token state is cleared, we need to call reset
-      vscode.commands.executeCommand(SelfCommands.RESET_STORE);
+      vscode.commands.executeCommand(SelfCommands.RESET_STORE, {
+        newProvider: undefined
+      });
     });
   }
 
   static askForAuth() {
-    const actionItems = [str.SIGN_IN_SLACK, str.SIGN_IN_DISCORD];
+    const actionItems = [str.SETUP_SLACK, str.SETUP_DISCORD];
 
     if (hasExtensionPack()) {
       // If the extension was download via extension pack, it is
       // possible that the user does not use Slack
-      actionItems.push(str.DONT_HAVE_SLACK);
+      actionItems.push(str.ADD_NEW_PROVIDER);
     }
 
     vscode.window
       .showInformationMessage(str.TOKEN_NOT_FOUND, ...actionItems)
       .then(selected => {
         switch (selected) {
-          case str.SIGN_IN_SLACK:
+          case str.SETUP_SLACK:
             vscode.commands.executeCommand(SelfCommands.SIGN_IN, {
               source: EventSource.info,
               service: "slack"
             });
             break;
-          case str.SIGN_IN_DISCORD:
+          case str.SETUP_DISCORD:
             // TODO: this is incorrect since discord oauth does not work
             vscode.commands.executeCommand(SelfCommands.SIGN_IN, {
               source: EventSource.info,
               service: "discord"
             });
             break;
-          case str.DONT_HAVE_SLACK:
+          case str.ADD_NEW_PROVIDER:
             const opts: vscode.InputBoxOptions = {
               prompt: "Which chat provider do you use?",
               placeHolder: "For example: Discord, Microsoft Teams, Telegram"

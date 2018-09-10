@@ -1,9 +1,9 @@
 export interface IChatProvider {
   getToken: () => Promise<string>;
   fetchUsers: () => Promise<Users>;
+  fetchUserInfo: (userId: string) => Promise<User>;
   fetchChannels: (users: Users) => Promise<Channel[]>;
   fetchChannelInfo: (channel: Channel) => Promise<Channel>;
-  getBotInfo: (botId: string) => Promise<Users>;
   loadChannelHistory: (channelId: string) => Promise<ChannelMessages>;
   getUserPrefs: () => Promise<UserPreferences>;
   markChannel: (channel: Channel, ts: string) => Promise<Channel>;
@@ -17,9 +17,8 @@ export interface IChatProvider {
   isConnected: () => boolean;
   subscribePresence: (users: Users) => void;
   createIMChannel: (user: User) => Promise<Channel>;
+  destroy: () => Promise<void>;
   // validateToken: (token: string) => Promise<boolean>;
-  // fetchUser: (userId: string) => Promise<User>;
-  // destroy: () => Promise<void>;
 }
 
 export interface User {
@@ -30,6 +29,7 @@ export interface User {
   smallImageUrl: string;
   isOnline: boolean;
   isBot?: boolean;
+  roleName?: string;
 }
 
 export interface UserPreferences {
@@ -45,13 +45,11 @@ export interface CurrentUser {
   // teamName: string;
   teams: Team[];
   currentTeamId: string;
-  // TODO: we could add provider name to this,
-  // and remove the setting that could be potentially
-  // edited by the user
+  provider: "slack" | "discord";
 }
 
 export interface Team {
-  // represents workspace for Slack, guild for Discord
+  // Team represents workspace for Slack, guild for Discord
   id: string;
   name: string;
 }
@@ -65,7 +63,7 @@ interface MessageAttachment {
   permalink: string;
 }
 
-interface MessageContent {
+export interface MessageContent {
   author: string;
   authorIcon?: string;
   pretext: string;
@@ -102,8 +100,6 @@ export interface Message {
   content: MessageContent;
   reactions: MessageReaction[];
   replies: MessageReply[];
-  // TODO - add
-  // subscribed (for threads)
 }
 
 export interface ChannelMessages {

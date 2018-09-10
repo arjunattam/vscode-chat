@@ -17,7 +17,7 @@ import {
 } from "./constants";
 import travis from "./providers/travis";
 import { ExtensionUriHandler } from "./uri";
-import { openUrl, getExtension } from "./utils";
+import { openUrl, getExtension, toTitleCase } from "./utils";
 import ConfigHelper from "./config";
 import Reporter from "./telemetry";
 
@@ -37,7 +37,6 @@ export function activate(context: vscode.ExtensionContext) {
     () => store.loadChannelHistory(store.lastChannelId),
     () => store.updateReadMarker()
   );
-  store.setUiCallback(uiMessage => controller.sendToUI(uiMessage));
 
   const setupFreshInstall = () => {
     store.generateInstallationId();
@@ -50,13 +49,13 @@ export function activate(context: vscode.ExtensionContext) {
     }
   };
 
-  const setup = async (canPromptForAuth?: boolean): Promise<any> => {
+  const setup = async ({ canPromptForAuth, provider }): Promise<any> => {
     if (!store.installationId) {
       setupFreshInstall();
     }
 
     if (!store.token) {
-      await store.initializeToken();
+      await store.initializeToken(provider);
 
       if (!store.token) {
         if (canPromptForAuth) {
@@ -70,14 +69,14 @@ export function activate(context: vscode.ExtensionContext) {
     return store
       .initializeProvider()
       .then(() => {
-        // If no current team is available, we need to ask
         const { currentUserInfo } = store;
         if (!currentUserInfo.currentTeamId) {
+          // If no current team is available, we need to ask
           return askForWorkspace();
         }
       })
       .then(() => {
-        store.updateUserPrefs();
+        store.updateUserPrefs(); // TODO: for discord, this needs to happen after channels are fetched
         return store.getUsersPromise();
       })
       .then(() => {
@@ -100,26 +99,38 @@ export function activate(context: vscode.ExtensionContext) {
   };
 
   const askForChannel = (): Promise<Channel> => {
-    return setup(true).then(() => {
+    return setup({ canPromptForAuth: true, provider: undefined }).then(() => {
       let channelList = store
         .getChannelLabels()
         .sort((a, b) => b.unread - a.unread);
 
       const placeHolder = str.CHANGE_CHANNEL_TITLE;
-      const labels = channelList.map(c => `${c.label}`);
+      const qpickItems: vscode.QuickPickItem[] = channelList.map(
+        channelLabel => ({
+          label: channelLabel.label,
+          description: channelLabel.channel.categoryName
+        })
+      );
 
       return vscode.window
-        .showQuickPick([...labels, str.RELOAD_CHANNELS], { placeHolder })
+        .showQuickPick([...qpickItems, { label: str.RELOAD_CHANNELS }], {
+          placeHolder
+        })
         .then(selected => {
           if (selected) {
-            if (selected === str.RELOAD_CHANNELS) {
+            if (selected.label === str.RELOAD_CHANNELS) {
               return store
                 .fetchUsers()
                 .then(() => store.fetchChannels())
                 .then(() => askForChannel());
             }
-            const selectedChannel = channelList.find(x => x.label === selected);
-            const { channel } = selectedChannel;
+
+            const selectedChannelLabel = channelList.find(
+              x =>
+                x.label === selected.label &&
+                x.channel.categoryName === selected.description
+            );
+            const { channel } = selectedChannelLabel;
             store.updateLastChannelId(channel.id);
             return channel;
           }
@@ -162,7 +173,7 @@ export function activate(context: vscode.ExtensionContext) {
       controller.loadUi();
     }
 
-    setup(true)
+    setup({ canPromptForAuth: true, provider: undefined })
       .then(() => getChatChannelId(args))
       .then(() => {
         store.updateWebviewUI();
@@ -198,12 +209,11 @@ export function activate(context: vscode.ExtensionContext) {
     // TODO: If we don't have current user, we should
     // ask for authentication
 
-    // TODO: the last UI update does not happen instantly. need to change activity view
     if (!!currentUserInfo) {
       await askForWorkspace();
       store.clearOldWorkspace();
       store.updateAllUI();
-      await setup();
+      await setup({ canPromptForAuth: false, provider: undefined });
       store.updateAllUI();
     }
   };
@@ -281,17 +291,19 @@ export function activate(context: vscode.ExtensionContext) {
     return openUrl(urls[service]);
   };
 
-  const reset = async () => {
+  const reset = async (newProvider?: string) => {
     store.clearAll();
     store.updateAllUI();
-    await setup();
+    await setup({ canPromptForAuth: false, provider: newProvider });
     store.updateAllUI(); // TODO: can we remove this
   };
 
   const signout = async () => {
-    // Signing out will clear token for the current provider
-    // TODO: sign out should destroy the chat provider
-    await ConfigHelper.clearToken();
+    const provider = store.getSelectedProvider();
+
+    if (!!provider) {
+      await ConfigHelper.clearToken(provider);
+    }
   };
 
   const fetchReplies = parentTimestamp => {
@@ -314,40 +326,33 @@ export function activate(context: vscode.ExtensionContext) {
 
   const askForProvider = () => {
     return vscode.window
-      .showQuickPick(
-        SUPPORTED_PROVIDERS.map(
-          // Convert to title case
-          name => name.charAt(0).toUpperCase() + name.substr(1).toLowerCase()
-        ),
-        { placeHolder: str.CHANGE_PROVIDER_TITLE }
-      )
+      .showQuickPick(SUPPORTED_PROVIDERS.map(name => toTitleCase(name)), {
+        placeHolder: str.CHANGE_PROVIDER_TITLE
+      })
       .then(selected => (!!selected ? selected.toLowerCase() : undefined));
   };
 
-  const configureToken = () => {
+  const configureToken = async () => {
     // TODO: save provider in telemetry event
     reporter.record(EventType.tokenConfigured, EventSource.command, undefined);
+    const selectedProvider = await askForProvider();
 
-    return askForProvider().then(selectedProvider => {
-      if (!!selectedProvider) {
-        // TODO: discord returns "invalid token" after manually configured token?
-        // restart window fixes it
-        return vscode.window
-          .showInputBox({
-            placeHolder: str.TOKEN_PLACEHOLDER,
-            password: true
-          })
-          .then(input => {
-            if (!!input) {
-              return ConfigHelper.setToken(input, selectedProvider);
-            }
-          });
-      }
-    });
+    if (!!selectedProvider) {
+      return vscode.window
+        .showInputBox({
+          placeHolder: str.TOKEN_PLACEHOLDER,
+          password: true
+        })
+        .then(input => {
+          if (!!input) {
+            return ConfigHelper.setToken(input, selectedProvider);
+          }
+        });
+    }
   };
 
   // Setup real-time messenger and updated local state
-  setup(true);
+  setup({ canPromptForAuth: true, provider: undefined });
 
   // Setup context for conditional views
   setVslsContext();
@@ -362,7 +367,10 @@ export function activate(context: vscode.ExtensionContext) {
     vscode.commands.registerCommand(SelfCommands.CHANGE_CHANNEL, changeChannel),
     vscode.commands.registerCommand(SelfCommands.SIGN_IN, authenticate),
     vscode.commands.registerCommand(SelfCommands.SIGN_OUT, signout),
-    vscode.commands.registerCommand(SelfCommands.RESET_STORE, reset),
+    vscode.commands.registerCommand(
+      SelfCommands.RESET_STORE,
+      ({ newProvider }) => reset(newProvider)
+    ),
     vscode.commands.registerCommand(
       SelfCommands.CONFIGURE_TOKEN,
       configureToken
@@ -440,6 +448,10 @@ export function activate(context: vscode.ExtensionContext) {
           });
         }
       }
+    ),
+    vscode.commands.registerCommand(
+      SelfCommands.SEND_TO_WEBVIEW,
+      ({ uiMessage }) => controller.sendToUI(uiMessage)
     ),
     vscode.workspace.onDidChangeConfiguration(resetConfiguration),
     vscode.workspace.registerTextDocumentContentProvider(TRAVIS_SCHEME, travis),

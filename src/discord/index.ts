@@ -10,26 +10,63 @@ import {
   Channel,
   ChannelType,
   ChannelMessages,
-  Message
+  Message,
+  MessageContent
 } from "../interfaces";
 import ConfigHelper from "../config";
 import { SelfCommands } from "../constants";
+import { toTitleCase } from "../utils";
 
 const HISTORY_LIMIT = 50;
-const MEMBER_LIMIT = 500; // TODO: try removing this to debug tree refresh perf issues
+const MEMBER_LIMIT = 500;
+
+const isOnline = (presence: Discord.Presence): boolean => {
+  const { status } = presence;
+  return status === "online" || status === "idle";
+};
+
+const getMessageContent = (raw: Discord.Message): MessageContent => {
+  const { embeds } = raw;
+  if (!!embeds && embeds.length > 0) {
+    const firstEmbed = embeds[0];
+    return {
+      author: ``,
+      pretext: ``,
+      title: firstEmbed.title,
+      titleLink: firstEmbed.url,
+      text: firstEmbed.description,
+      footer: ``
+    };
+  }
+};
 
 const getMessage = (raw: Discord.Message): Message => {
-  const { author, createdTimestamp, content } = raw;
-  // TODO: Handle reactions, link unfurling (content), attachments, edits
-  // TODO: vsls link is not clickable right now
+  const { author, createdTimestamp, content, reactions, editedTimestamp } = raw;
   const timestamp = (createdTimestamp / 1000).toString();
   return {
     timestamp,
     userId: author.id,
     text: content,
-    content: undefined,
-    reactions: [],
-    replies: []
+    isEdited: !!editedTimestamp,
+    content: getMessageContent(raw),
+    replies: [],
+    reactions: reactions.map(rxn => ({
+      name: rxn.emoji.name,
+      count: rxn.count,
+      userIds: rxn.users.map(user => user.id)
+    }))
+  };
+};
+
+const getUser = (raw: Discord.User): User => {
+  const { id: userId, username, avatar, presence } = raw;
+  return {
+    id: userId,
+    name: username,
+    fullName: username,
+    imageUrl: getImageUrl(userId, avatar),
+    smallImageUrl: getSmallImageUrl(userId, avatar),
+    isOnline: isOnline(presence)
   };
 };
 
@@ -57,6 +94,8 @@ const getSmallImageUrl = (userId, avatar) => getAvatarUrl(userId, avatar, 32);
 export class DiscordChatProvider implements IChatProvider {
   token: string;
   client: Discord.Client;
+  mutedChannels: Set<string> = new Set([]);
+  imChannels: Channel[] = [];
 
   constructor(private store: IStore) {}
 
@@ -76,16 +115,13 @@ export class DiscordChatProvider implements IChatProvider {
           id: guild.id,
           name: guild.name
         }));
-        const { currentUserInfo: oldCurrentUser } = this.store;
-        const existingTeamId = oldCurrentUser.currentTeamId;
-        const isValidTeam =
-          teams.filter(team => team.id === existingTeamId).length > 0;
-        const currentUser = {
+        const currentUser: CurrentUser = {
           id,
           name,
           token: this.token,
           teams,
-          currentTeamId: isValidTeam ? existingTeamId : undefined
+          currentTeamId: undefined,
+          provider: "discord"
         };
         resolve(currentUser);
       });
@@ -97,53 +133,65 @@ export class DiscordChatProvider implements IChatProvider {
         );
       }
 
-      // TODO: how to get presenceUpdate for non-guild (DMs) users?
       this.client.on("presenceUpdate", (_, newMember: Discord.GuildMember) => {
         const { id: userId, presence } = newMember;
-        const isOnline = presence.status === "online";
         vscode.commands.executeCommand(SelfCommands.UPDATE_USER_PRESENCE, {
           userId,
-          isOnline
+          isOnline: isOnline(presence)
         });
       });
 
       this.client.on("message", msg => {
-        // If message has guild, we check for current guild
-        // Else, message is from a DM or group DM
-        const currentGuild = this.getCurrentGuild();
-        const { guild } = msg;
+        this.handleIncomingMessage(msg);
+        this.handleIncomingLinks(msg);
+      });
 
-        if (!guild || guild.id === currentGuild.id) {
-          let newMessages: ChannelMessages = {};
-          const channelId = msg.channel.id;
-          const parsed = getMessage(msg);
-          const { timestamp } = parsed;
-          newMessages[timestamp] = parsed;
-          vscode.commands.executeCommand(SelfCommands.UPDATE_MESSAGES, {
-            channelId,
-            messages: newMessages
-          });
-
-          // Handle links separately (for vsls invites)
-          let uri: vscode.Uri | undefined;
-          try {
-            const { text } = parsed;
-            if (text.startsWith("http")) {
-              uri = vscode.Uri.parse(parsed.text);
-              vscode.commands.executeCommand(
-                SelfCommands.HANDLE_INCOMING_LINKS,
-                {
-                  senderId: parsed.userId,
-                  uri
-                }
-              );
-            }
-          } catch (e) {}
-        }
+      this.client.on("messageUpdate", (_, msg: Discord.Message) => {
+        this.handleIncomingMessage(msg);
       });
 
       this.client.login(this.token);
     });
+  }
+
+  handleIncomingMessage(msg: Discord.Message) {
+    // If message has guild, we check for current guild
+    // Else, message is from a DM or group DM
+    const currentGuild = this.getCurrentGuild();
+    const { guild } = msg;
+
+    if (!guild || guild.id === currentGuild.id) {
+      let newMessages: ChannelMessages = {};
+      const channelId = msg.channel.id;
+      const parsed = getMessage(msg);
+      const { timestamp } = parsed;
+      newMessages[timestamp] = parsed;
+      vscode.commands.executeCommand(SelfCommands.UPDATE_MESSAGES, {
+        channelId,
+        messages: newMessages
+      });
+    }
+  }
+
+  handleIncomingLinks(msg: Discord.Message) {
+    // For vsls invitations
+    const currentGuild = this.getCurrentGuild();
+    const { guild } = msg;
+
+    if (!guild || guild.id === currentGuild.id) {
+      const parsed = getMessage(msg);
+      let uri: vscode.Uri | undefined;
+      try {
+        const { text } = parsed;
+        if (text.startsWith("http")) {
+          uri = vscode.Uri.parse(parsed.text);
+          vscode.commands.executeCommand(SelfCommands.HANDLE_INCOMING_LINKS, {
+            senderId: parsed.userId,
+            uri
+          });
+        }
+      } catch (e) {}
+    }
   }
 
   isConnected(): boolean {
@@ -151,7 +199,8 @@ export class DiscordChatProvider implements IChatProvider {
   }
 
   getUserPrefs(): Promise<UserPreferences> {
-    return Promise.resolve({});
+    const mutedChannels = Array.from(this.mutedChannels);
+    return Promise.resolve({ mutedChannels });
   }
 
   getCurrentGuild(): Discord.Guild {
@@ -161,46 +210,67 @@ export class DiscordChatProvider implements IChatProvider {
 
   fetchUsers(): Promise<Users> {
     const guild = this.getCurrentGuild();
-    // TODO: save users for DMs and group DMs
+    const readyTimestamp = (this.client.readyTimestamp / 1000.0).toString();
+    let users: Users = {};
+    // We first build users from IM channels, and then from the guild members
+    this.imChannels = this.client.channels
+      .filter(channel => channel.type === "dm")
+      .map((channel: Discord.DMChannel) => {
+        const { id, recipient } = channel;
+        const user = getUser(recipient);
+        users[user.id] = user;
+        return {
+          id,
+          name: recipient.username,
+          type: ChannelType.im,
+          readTimestamp: readyTimestamp,
+          unreadCount: 0
+        };
+      });
 
     return guild.fetchMembers("", MEMBER_LIMIT).then(response => {
-      let users: Users = {};
       response.members.forEach(member => {
-        const { id, displayName, presence, user } = member;
-        const { avatar, id: userId } = user;
-        users[id] = {
-          id,
-          name: displayName,
-          fullName: displayName,
-          imageUrl: getImageUrl(userId, avatar),
-          smallImageUrl: getSmallImageUrl(userId, avatar),
-          isOnline: presence.status === "online"
-        };
+        const { user: discordUser, roles } = member;
+        const hoistedRole = roles.find(role => role.hoist);
+        let roleName = undefined;
+
+        if (!!hoistedRole) {
+          roleName = toTitleCase(hoistedRole.name);
+        }
+
+        const user = getUser(discordUser);
+        users[user.id] = { ...user, roleName };
       });
 
       return users;
     });
   }
 
+  async fetchUserInfo(userId: string): Promise<User> {
+    const discordUser = await this.client.fetchUser(userId);
+    return getUser(discordUser);
+  }
+
   fetchChannels(users: Users): Promise<Channel[]> {
-    // This fetches channels of the current guild, and (group) DMs
-    // for the client.
-    // For unreads, we are not retrieving historical unreads, not clear if API supports.
-    // TODO: channel info contains isMuted => use that for preferences
+    // This fetches channels of the current guild, and (group) DMs.
+    // For unreads, we are not retrieving historical unreads, not clear if API supports that.
     const readyTimestamp = (this.client.readyTimestamp / 1000.0).toString();
     const guild = this.getCurrentGuild();
     let categories = {};
     guild.channels
       .filter(channel => channel.type === "category")
       .forEach(channel => {
-        const { id, name } = channel;
-        categories[id] = name;
+        const { id: channelId, name, muted } = channel;
+        categories[channelId] = name;
+
+        if (muted) {
+          this.mutedChannels.add(channelId);
+        }
       });
 
     const guildChannels: Channel[] = guild.channels
       .filter(channel => channel.type !== "category")
       .filter(channel => {
-        // Filter allowed channels
         return channel
           .permissionsFor(this.store.currentUserInfo.id)
           .has(Discord.Permissions.FLAGS.VIEW_CHANNEL);
@@ -212,19 +282,6 @@ export class DiscordChatProvider implements IChatProvider {
           name,
           categoryName: categories[parentID],
           type: ChannelType.channel,
-          readTimestamp: readyTimestamp,
-          unreadCount: 0
-        };
-      });
-
-    const imChannels = this.client.channels
-      .filter(channel => channel.type === "dm")
-      .map((channel: Discord.DMChannel) => {
-        const { id, recipient } = channel;
-        return {
-          id,
-          name: recipient.username,
-          type: ChannelType.im,
           readTimestamp: readyTimestamp,
           unreadCount: 0
         };
@@ -243,7 +300,11 @@ export class DiscordChatProvider implements IChatProvider {
         };
       });
 
-    return Promise.resolve([...guildChannels, ...imChannels, ...groupChannels]);
+    return Promise.resolve([
+      ...guildChannels,
+      ...this.imChannels,
+      ...groupChannels
+    ]);
   }
 
   loadChannelHistory(channelId: string): Promise<ChannelMessages> {
@@ -281,8 +342,10 @@ export class DiscordChatProvider implements IChatProvider {
 
   subscribePresence(usersUsers): void {}
 
-  getBotInfo(botId: string): Promise<Users> {
-    return Promise.resolve({});
+  destroy() {
+    if (!!this.client) {
+      return this.client.destroy();
+    }
   }
 
   markChannel(channel: Channel, ts: string): Promise<Channel> {
@@ -302,9 +365,9 @@ export class DiscordChatProvider implements IChatProvider {
     return Promise.resolve();
   }
 
-  createIMChannel(user: User): Promise<any> {
-    // TODO: this is required to share vsls links with users that
+  createIMChannel(user: User): Promise<Channel> {
+    // This is required to share vsls links with users that
     // do not have corresponding DM channels
-    return Promise.resolve();
+    return Promise.resolve(undefined);
   }
 }

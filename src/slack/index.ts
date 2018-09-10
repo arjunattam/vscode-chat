@@ -68,8 +68,11 @@ export class SlackChatProvider implements IChatProvider {
     return this.client.getChannels(users);
   }
 
-  getBotInfo(botId: string): Promise<Users> {
-    return this.client.getBotInfo(botId);
+  fetchUserInfo(botId: string): Promise<User> {
+    // Works for bots only, since workspace users are fetched already
+    if (botId.startsWith("B")) {
+      return this.client.getBotInfo(botId);
+    }
   }
 
   loadChannelHistory(channelId: string): Promise<ChannelMessages> {
@@ -132,5 +135,13 @@ export class SlackChatProvider implements IChatProvider {
         });
       })
       .catch(error => console.error(error));
+  }
+
+  destroy(): Promise<void> {
+    if (!!this.messenger) {
+      this.messenger.disconnect();
+    }
+
+    return Promise.resolve();
   }
 }

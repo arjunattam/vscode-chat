@@ -50,7 +50,7 @@ export const emojify = (messages: ChannelMessages): ChannelMessages => {
       reactions: reactions
         ? reactions.map(reaction => ({
             ...reaction,
-            name: emoji.replace_colons(`:${reaction.name}:`)
+            name: emoji.replace_colons(reaction.name)
           }))
         : [],
       text: emoji.replace_colons(text ? text : "")

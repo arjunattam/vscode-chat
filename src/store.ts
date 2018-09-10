@@ -18,7 +18,6 @@ import {
 } from "./interfaces";
 import StatusItem from "./status";
 import Logger from "./logger";
-import ConfigHelper from "./config";
 import { getExtensionVersion, uuidv4, isSuperset, difference } from "./utils";
 import { DiscordChatProvider } from "./discord";
 import { SlackChatProvider } from "./slack";
@@ -29,6 +28,7 @@ import {
   IMsTreeProvider,
   OnlineUsersTreeProvider
 } from "./tree";
+import { SelfCommands } from "./constants";
 
 const stateKeys = {
   EXTENSION_VERSION: "extensionVersion",
@@ -54,19 +54,14 @@ export default class Store implements IStore, vscode.Disposable {
   users: Users = {};
   usersFetchedAt: Date;
   messages: Messages = {};
-
-  // We could merge these 3 store subscribers with one protocol
-  uiCallback: (message: UIMessage) => void;
   statusItem: StatusItem;
 
-  // Tree providers
   unreadsTreeProvider: UnreadsTreeProvider;
   channelsTreeProvider: ChannelTreeProvider;
   imsTreeProvider: IMsTreeProvider;
   groupsTreeProvider: GroupTreeProvider;
   usersTreeProvider: OnlineUsersTreeProvider;
 
-  // Chat provider
   chatProvider: IChatProvider;
 
   constructor(private context: vscode.ExtensionContext) {
@@ -79,7 +74,6 @@ export default class Store implements IStore, vscode.Disposable {
 
     this.statusItem = new StatusItem();
 
-    // Extension version migrations
     const existingVersion = globalState.get(stateKeys.EXTENSION_VERSION);
     const currentVersion = getExtensionVersion();
 
@@ -88,7 +82,7 @@ export default class Store implements IStore, vscode.Disposable {
       Logger.log(`Extension updated to ${currentVersion}`);
 
       if (!existingVersion && semver.gte(currentVersion, "0.5.6")) {
-        Logger.log("Migrating for 0.5.6"); // Migration for changed user names
+        Logger.log("Migrating for 0.5.6: user names were changed");
         this.updateChannels([]);
         this.updateUsers({});
         this.usersFetchedAt = null;
@@ -101,10 +95,17 @@ export default class Store implements IStore, vscode.Disposable {
     }
   }
 
-  initializeToken = async () => {
-    // Fallback to slack, for pre-0.6.x users. We should have a new no_auth
-    // state to simplify onboarding.
-    const selectedProvider = ConfigHelper.getSelectedProvider() || "slack";
+  getSelectedProvider() {
+    return !!this.currentUserInfo ? this.currentUserInfo.provider : undefined;
+  }
+
+  initializeToken = async (selectedProvider?: string) => {
+    // TODO: Fallback to slack, for pre-0.6.x users
+    // TODO: `no_auth` provider to simplify onboarding?
+    if (!selectedProvider) {
+      selectedProvider = this.getSelectedProvider();
+    }
+
     const ALL_PROVIDERS = ["slack", "discord"];
 
     switch (selectedProvider) {
@@ -116,7 +117,6 @@ export default class Store implements IStore, vscode.Disposable {
         break;
     }
 
-    // Handle name changes for the online users provider
     if (!!selectedProvider) {
       this.usersTreeProvider = new OnlineUsersTreeProvider(selectedProvider);
       this.unreadsTreeProvider = new UnreadsTreeProvider(selectedProvider);
@@ -131,10 +131,10 @@ export default class Store implements IStore, vscode.Disposable {
           provider === selectedProvider
         );
       });
-    }
 
-    const token = await this.chatProvider.getToken();
-    this.token = token;
+      const token = await this.chatProvider.getToken();
+      this.token = token;
+    }
   };
 
   initializeProvider = async (): Promise<any> => {
@@ -171,6 +171,10 @@ export default class Store implements IStore, vscode.Disposable {
     this.channelsFetchedAt = undefined;
     this.messages = {};
     this.token = undefined;
+
+    if (!!this.chatProvider) {
+      this.chatProvider.destroy();
+    }
   }
 
   updateAllUI() {
@@ -189,11 +193,7 @@ export default class Store implements IStore, vscode.Disposable {
   }
 
   isAuthenticated() {
-    return !!this.token;
-  }
-
-  setUiCallback(uiCallback) {
-    this.uiCallback = uiCallback;
+    return !!this.currentUserInfo && !!this.currentUserInfo.id;
   }
 
   getChannel(channelId: string): Channel {
@@ -206,7 +206,6 @@ export default class Store implements IStore, vscode.Disposable {
   }
 
   getChannelLabels(): ChannelLabel[] {
-    // TODO: add category to label for change channel command
     return this.channels.map(channel => {
       const unread = this.getUnreadCount(channel);
       const { name, type, id } = channel;
@@ -250,8 +249,9 @@ export default class Store implements IStore, vscode.Disposable {
     // Hacky implementation to tackle chat provider differences
     // Slack: DM channels look like `@name`
     // Discord: DM channels look like `name`
+    const { name } = user;
     return this.channels.find(
-      channel => channel.name === `@${user.name}` || channel.name === user.name
+      channel => channel.name === `@${name}` || channel.name === name
     );
   }
 
@@ -269,15 +269,15 @@ export default class Store implements IStore, vscode.Disposable {
         ? this.messages[this.lastChannelId]
         : {};
 
-    if (!!this.uiCallback) {
-      this.uiCallback({
+    vscode.commands.executeCommand(SelfCommands.SEND_TO_WEBVIEW, {
+      uiMessage: {
         messages,
         users: this.users,
         currentUser: this.currentUserInfo,
         channel,
         statusText: ""
-      });
-    }
+      }
+    });
   }
 
   getUnreadCount(channel: Channel): number {
@@ -298,6 +298,11 @@ export default class Store implements IStore, vscode.Disposable {
   }
 
   updateTreeViews() {
+    if (!this.unreadsTreeProvider) {
+      // TODO: do this properly once no_auth is decided
+      return;
+    }
+
     const isAuthenticated = this.isAuthenticated();
     const channelLabels = this.getChannelLabels();
     this.unreadsTreeProvider.update(isAuthenticated, channelLabels);
@@ -309,7 +314,11 @@ export default class Store implements IStore, vscode.Disposable {
     // to avoid extra UI refresh calls.
     const imChannels = {};
     Object.keys(this.users).forEach(userId => {
-      imChannels[userId] = this.getIMChannel(this.users[userId]);
+      const im = this.getIMChannel(this.users[userId]);
+
+      if (!!im) {
+        imChannels[userId] = im;
+      }
     });
 
     this.usersTreeProvider.updateData(
@@ -337,11 +346,11 @@ export default class Store implements IStore, vscode.Disposable {
     }
   };
 
-  updateUsers = users => {
+  updateUsers = (users): Thenable<void> => {
     this.users = users;
 
-    if (Object.keys(users).length <= STORAGE_SIZE_LIMIT) {
-      this.context.globalState.update(stateKeys.USERS, users);
+    if (Object.keys(this.users).length <= STORAGE_SIZE_LIMIT) {
+      return this.context.globalState.update(stateKeys.USERS, this.users);
     }
   };
 
@@ -356,8 +365,8 @@ export default class Store implements IStore, vscode.Disposable {
   updateChannels = channels => {
     this.channels = channels;
 
-    if (channels.length <= STORAGE_SIZE_LIMIT) {
-      this.context.globalState.update(stateKeys.CHANNELS, channels);
+    if (this.channels.length <= STORAGE_SIZE_LIMIT) {
+      this.context.globalState.update(stateKeys.CHANNELS, this.channels);
     }
   };
 
@@ -480,23 +489,26 @@ export default class Store implements IStore, vscode.Disposable {
     this.lastChannelId = channelId;
     return this.context.globalState.update(
       stateKeys.LAST_CHANNEL_ID,
-      channelId
+      this.lastChannelId
     );
   };
 
   updateCurrentUser = (userInfo: CurrentUser): Thenable<void> => {
     // In the case of discord, we need to know the current team (guild)
     // If that is available in the store, we should use that
-    let currentTeamId: string = undefined;
+    let currentTeamId: string = !!this.currentUserInfo
+      ? this.currentUserInfo.currentTeamId
+      : undefined;
 
     if (!!userInfo && !!userInfo.currentTeamId) {
       currentTeamId = userInfo.currentTeamId;
-    } else if (!!this.currentUserInfo) {
-      currentTeamId = this.currentUserInfo.currentTeamId;
     }
 
     this.currentUserInfo = { ...userInfo, currentTeamId };
-    return this.context.globalState.update(stateKeys.USER_INFO, userInfo);
+    return this.context.globalState.update(
+      stateKeys.USER_INFO,
+      this.currentUserInfo
+    );
   };
 
   updateCurrentWorkspace = (team: Team): Thenable<void> => {
@@ -527,27 +539,27 @@ export default class Store implements IStore, vscode.Disposable {
     );
     const allIds = new Set(Object.keys(this.users));
     if (!isSuperset(allIds, userIds)) {
-      this.fillUpBots(difference(userIds, allIds));
+      this.fillUpUsers(difference(userIds, allIds));
     }
 
     this.updateAllUI();
   };
 
-  fillUpBots(missingIds: Set<any>): Promise<any> {
-    // missingIds are bot ids that we don't have in the store. We will
+  fillUpUsers(missingIds: Set<any>): Promise<void> {
+    // missingIds are user/bot ids that we don't have in the store. We will
     // fetch their details, and then update the UI.
-    const ids = [...missingIds].filter(id => id.startsWith("B"));
-    // This filter for bots is specific to Slack
+    const usersCopy = { ...this.users };
+    let ids = Array.from(missingIds);
+
     return Promise.all(
-      ids.map(botId => {
-        return this.chatProvider.getBotInfo(botId).then(users => {
-          this.users = {
-            ...this.users,
-            ...users
-          };
+      ids.map(userId => {
+        return this.chatProvider.fetchUserInfo(userId).then((user: User) => {
+          const { id } = user;
+          usersCopy[id] = user;
         });
       })
     ).then(() => {
+      this.users = usersCopy;
       return this.updateWebviewUI();
     });
   }

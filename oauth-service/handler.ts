@@ -10,14 +10,6 @@ import errorHtml from "./html/error.template.html";
 import successHtml from "./html/success.template.html";
 import homeHtml from "./html/home.template.html";
 
-/**
- * TODO: improvements for access denied
- * -  can we load the authorize page in the background to see if user is going
- *    to get access denied + which one (slack app directory, admin approval)
- * -  can you still approve the app if the slack app directory condition is required?
- * -  on access_denied error page, have separate links for app directory/admin approval
- */
-
 interface TokenAPIResponse {
   accessToken: string;
   expiresIn?: Date;
@@ -141,8 +133,6 @@ export const discordRedirect: Handler = (
   if (!!code) {
     const tokenPromise = getDiscordToken(code);
     tokenPromise.then(result => {
-      // TODO: refresh token needs to be handled
-      // separately
       const { accessToken, error } = result;
 
       if (!accessToken) {

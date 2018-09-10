@@ -37,7 +37,8 @@ export const SelfCommands = {
   REMOVE_MESSAGE_REACTION: "extension.chat.removeMessageReaction",
   SEND_MESSAGE: "extension.chat.sendMessage",
   CHANNEL_MARKED: "extension.chat.updateChannelMark",
-  HANDLE_INCOMING_LINKS: "extension.chat.handleIncomingLinks"
+  HANDLE_INCOMING_LINKS: "extension.chat.handleIncomingLinks",
+  SEND_TO_WEBVIEW: "extension.chat.sendToWebview"
 };
 
 export const SLASH_COMMANDS = {

@@ -2,7 +2,7 @@
   "name": "chat",
   "displayName": "Slack Chat",
   "description": "Send and receive Slack chat inside VSCode",
-  "version": "0.6.0-pre-1",
+  "version": "0.6.0-pre-3",
   "homepage": "https://github.com/karigari/vscode-chat",
   "license": "SEE LICENSE IN LICENSE",
   "repository": {
@@ -50,12 +50,7 @@
         "chat.slack.legacyToken": {
           "type": "string",
           "default": null,
-          "description": "[DEPRECATED] Slack token for authentication. Get yours here: https://api.slack.com/custom-integrations/legacy-tokens"
-        },
-        "chat.selectedProvider": {
-          "type": "string",
-          "default": null,
-          "description": "Name of selected chat provider. Do not edit manually, use Sign In command"
+          "description": "[DEPRECATED] Run the Sign In with Slack command."
         },
         "chat.proxyUrl": {
           "type": "string",
@@ -96,7 +91,7 @@
       },
       {
         "command": "extension.chat.configureToken",
-        "title": "Slack: Configure Slack Access Token"
+        "title": "Slack: Configure Access Token"
       },
       {
         "command": "extension.chat.startLiveShare",
