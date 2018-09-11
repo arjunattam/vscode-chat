@@ -1,7 +1,8 @@
-<h1  align="center">Team Chat for VS Code</h1>
+<img src="readme/logo.png" width="120" align="right" hspace="30" />
+<p>&nbsp;</p>
+<h1>Team Chat for VS Code</h1>
 
 <p align="center"><img src="readme/preview.png" alt="Screenshot" width="800"></p>
-
 <h3 align="center">Collaborate with your team and bots, without context switches. Supports Slack and Discord.</h3>
 
 <p align="center">Quieter notifications, integrated with VS Live Share, and third lead feature</p>
@@ -19,6 +20,8 @@
 2.  Post install, run **Slack: Sign In** from the command palette.
 3.  You're set!
 
+Are you a Slack workspace admin? [Approve this app](https://slack.com/apps/ACB4LQKN1-slack-chat-for-vs-code) for your team.
+
 # Features
 
 ## Quieter notifications
@@ -35,9 +38,7 @@ Use slash commands start/stop [VS Live Share](https://visualstudio.microsoft.com
 - Send `/live end` to end the ongoing session
 - Use `/live request` to request someone else to initiate a session
 
-# For your team
-
-Are you a Slack workspace admin? [Approve this app](https://slack.com/apps/ACB4LQKN1-slack-chat-for-vs-code) for your team.
+## adf
 
 # Support
 
