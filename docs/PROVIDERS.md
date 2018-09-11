@@ -1,8 +1,6 @@
 # Chat providers
 
-The goal of this extension is to open up support for other chat providers, in addition to Slack and Discord.
-
-Chat providers can be added by implementing the `IChatProvider` interface, see [src/interfaces/index.ts](src/interfaces/index.ts). Providers will use a common set of types for `User`, `Channel`, `Message`.
+The goal of this extension is to open up support for other chat providers, in addition to Slack and Discord. Chat providers can be added by implementing the `IChatProvider` [interface](src/interfaces/index.ts). Providers will use a common set of types for `User`, `Channel`, `Message`.
 
 For reference, see the implementation [for Slack](src/slack/index.ts) and [for Discord](src/discord/index.ts).
 

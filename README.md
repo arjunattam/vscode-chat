@@ -1,11 +1,8 @@
-<img src="readme/logo.png" width="120" align="right" hspace="30" />
-<p>&nbsp;</p>
-<h1>Team Chat for VS Code</h1>
+<h1 align="center">Team Chat for VS Code</h1>
 
-<p align="center"><img src="readme/preview.png" alt="Screenshot" width="800"></p>
 <h3 align="center">Collaborate with your team and bots, without context switches. Supports Slack and Discord.</h3>
 
-<p align="center">Quieter notifications, integrated with VS Live Share, and third lead feature</p>
+<p align="center"><img src="readme/preview.png" alt="Screenshot" width="800" /></p>
 
 <p align="center">
     <a href="https://travis-ci.org/karigari/vscode-chat"><img src="https://travis-ci.org/karigari/vscode-chat.svg?branch=master" alt="Build status" /></a>
@@ -16,38 +13,27 @@
 
 # Setup
 
-1.  Install the extension from the [VS Marketplace](https://marketplace.visualstudio.com/items?itemName=karigari.chat).
-2.  Post install, run **Slack: Sign In** from the command palette.
-3.  You're set!
+1.  Install the extension from the [VS Marketplace](https://marketplace.visualstudio.com/items?itemName=karigari.chat)
+2.  **For Slack**, run "Sign In with Slack" from the VS Code command palette
+3.  **For Discord**, configure your token with instructions [given here](docs/DISCORD.md)
 
 Are you a Slack workspace admin? [Approve this app](https://slack.com/apps/ACB4LQKN1-slack-chat-for-vs-code) for your team.
 
-# Features
+# VS Live Share
 
-## Quieter notifications
+Online users can be invited for [VS Live Share](https://aka.ms/vsls) users can easily invite online team members for a collaboration session. You can also use slash commands `/live share` and `/live end` to start or stop collaboration sessions.
 
-Turn off your system notifications
+<p align="center"><img src="readme/vsls.png" alt="VS Live Share" width="800" /></p>
 
-## VS Live Share
-
-Invite online users for a VS Live Share session with just one click.
-
-Use slash commands start/stop [VS Live Share](https://visualstudio.microsoft.com/services/live-share/) sessions.
-
-- Use `/live share` to initiate a session as host, and send the link to the active channel
-- Send `/live end` to end the ongoing session
-- Use `/live request` to request someone else to initiate a session
-
-## adf
-
-# Support
-
-- **Configuration**: To use this behind a proxy, see [CONFIGURATION](docs/CONFIGURATION.md)
-
-See [CONTRIBUTING](docs/CONTRIBUTING.md). Our [issues](https://github.com/karigari/vscode-chat/issues) are the best place to look for contribution ideas.
-
-# Configuration
+# Links
 
 ## Support
 
-Feel free to [raise an issue](https://github.com/karigari/vscode-chat/issues), or [tweet at us](https://twitter.com/getrubberduck) for any questions or support. You can also reach me directly at arjun@rubberduck.io
+- **Configuration settings**: To use behind a proxy and other settings, see [CONFIGURATION](docs/CONFIG.md).
+- **Raise an issue**: Feel free to [report an issue](https://github.com/karigari/vscode-chat/issues), or find [me on Twitter](https://twitter.com/arjunattam) for any suggestions or support.
+
+## Developer docs
+
+- **Get started with contribution**: See [CONTRIBUTING](docs/CONTRIBUTING.md) to understand repo structure, building and testing.
+- **Add new chat providers**: [PROVIDERS](docs/PROVIDERS.md) covers implementation details for any third-party chat provider.
+- **Vision**: Read the [VISION](VISION.md) doc to understand the motivation behind this extension and the roadmap ahead.
