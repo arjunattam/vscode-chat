@@ -19,20 +19,30 @@
 
 Are you a Slack workspace admin? [Approve this app](https://slack.com/apps/ACB4LQKN1-slack-chat-for-vs-code) for your team.
 
+# Features
+
+- **Quiet notifications**: status bar item
+- **Rich formatting**: code snippets, emojis
+- **Native look and feel**: theme, grid layout
+
+<p align="center">
+    <img src="readme/vsls.png" alt="VS Live Share" width="200" />
+    <img src="readme/vsls.png" alt="VS Live Share" width="200" />
+    <img src="readme/vsls.png" alt="VS Live Share" width="200" />
+</p>
+
 # VS Live Share
 
-Online users can be invited for [VS Live Share](https://aka.ms/vsls) users can easily invite online team members for a collaboration session. You can also use slash commands `/live share` and `/live end` to start or stop collaboration sessions.
+Online users can be invited for a [VS Live Share](https://aka.ms/vsls) collaboration session. You can also use slash commands `/live share` and `/live end` to start or stop collaboration sessions.
 
-<p align="center"><img src="readme/vsls.png" alt="VS Live Share" width="800" /></p>
+<p align="center"><img src="readme/vsls-magnifier.png" alt="VS Live Share" width="800" /></p>
 
-# Links
-
-## Support
+# Support
 
 - **Configuration settings**: To use behind a proxy and other settings, see [CONFIGURATION](docs/CONFIG.md).
 - **Raise an issue**: Feel free to [report an issue](https://github.com/karigari/vscode-chat/issues), or find [me on Twitter](https://twitter.com/arjunattam) for any suggestions or support.
 
-## Developer docs
+# Developer docs
 
 - **Get started with contribution**: See [CONTRIBUTING](docs/CONTRIBUTING.md) to understand repo structure, building and testing.
 - **Add new chat providers**: [PROVIDERS](docs/PROVIDERS.md) covers implementation details for any third-party chat provider.
