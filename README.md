@@ -26,9 +26,9 @@ Are you a Slack workspace admin? [Approve this app](https://slack.com/apps/ACB4L
 - **Native look and feel**: theme, grid layout
 
 <p align="center">
-    <img src="readme/vsls.png" alt="VS Live Share" width="200" />
-    <img src="readme/vsls.png" alt="VS Live Share" width="200" />
-    <img src="readme/vsls.png" alt="VS Live Share" width="200" />
+    <img src="readme/vsls.png" alt="VS Live Share" width="290" />
+    <img src="readme/vsls.png" alt="VS Live Share" width="290" />
+    <img src="readme/vsls.png" alt="VS Live Share" width="290" />
 </p>
 
 # VS Live Share

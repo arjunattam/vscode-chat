@@ -25,7 +25,7 @@ export interface Versions {
   editor: string;
 }
 
-export const getExtensionVersion = () => {
+export const getExtensionVersion = (): string => {
   const extension = getExtension(EXTENSION_ID);
   return extension.packageJSON.version;
 };
