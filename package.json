@@ -145,7 +145,7 @@
     "watch": "tsc-watch -p ./ --onSuccess \"npm run webview:copy\"",
     "postinstall": "node ./node_modules/vscode/bin/install",
     "test": "npm run compile && node ./node_modules/vscode/bin/test",
-    "webview:all": "npm run webiew:setup && npm run webview:copy",
+    "webview:all": "npm run webview:setup && npm run webview:copy",
     "webview:setup": "rm -rf static && mkdir -p static && node scripts/vue.js",
     "webview:copy": "cp -fr src/webview/static* static/.",
     "vscode:prepublish": "npm run compile"
