@@ -2,7 +2,7 @@
   "name": "chat",
   "displayName": "Slack Chat",
   "description": "Send and receive Slack chat inside VSCode",
-  "version": "0.5.9",
+  "version": "0.5.10-pre-1",
   "homepage": "https://github.com/karigari/vscode-chat",
   "license": "SEE LICENSE IN LICENSE",
   "repository": {
@@ -141,14 +141,17 @@
   },
   "scripts": {
     "compile": "tsc -p ./",
-    "postcompile": "npm run webview:setup",
-    "watch": "tsc-watch -p ./ --onSuccess \"npm run webview:setup\"",
+    "postcompile": "npm run webview:all",
+    "watch": "tsc-watch -p ./ --onSuccess \"npm run webview:copy\"",
     "postinstall": "node ./node_modules/vscode/bin/install",
     "test": "npm run compile && node ./node_modules/vscode/bin/test",
-    "webview:setup": "rm -rf static && mkdir -p static && cp src/webview/static* static/.",
+    "webview:all": "npm run webiew:setup && npm run webview:copy",
+    "webview:setup": "rm -rf static && mkdir -p static && node scripts/vue.js",
+    "webview:copy": "cp -fr src/webview/static* static/.",
     "vscode:prepublish": "npm run compile"
   },
   "devDependencies": {
+    "@types/http-proxy-agent": "^2.0.0",
     "@types/keytar": "^4.0.1",
     "@types/mixpanel": "^2.14.0",
     "@types/mocha": "^2.2.42",
