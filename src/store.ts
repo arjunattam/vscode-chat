@@ -25,6 +25,7 @@ import {
   IMsTreeProvider,
   OnlineUsersTreeProvider
 } from "./tree";
+import SlackAPIClient from "./slack/client";
 
 const stateKeys = {
   EXTENSION_VERSION: "extensionVersion",
@@ -654,5 +655,11 @@ export default class Store implements IStore, vscode.Disposable {
       };
       this.updateMessages(channelId, newMessages);
     }
+  }
+
+  runAuthTest(): Promise<string> {
+    // TODO: Abstract out for non-slack
+    const client = new SlackAPIClient(this.token);
+    return client.getAuthTest();
   }
 }

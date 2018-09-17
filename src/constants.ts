@@ -24,6 +24,7 @@ export const SelfCommands = {
   SIGN_IN: "extension.chat.authenticate",
   SIGN_OUT: "extension.chat.signout",
   CONFIGURE_TOKEN: "extension.chat.configureToken",
+  DIAGNOSTIC: "extension.chat.diagnostic",
   LIVE_SHARE_FROM_MENU: "extension.chat.startLiveShare",
   LIVE_SHARE_SLASH: "extension.chat.slashLiveShare",
   LIVE_SHARE_JOIN_PROMPT: "extension.chat.promptLiveShare",

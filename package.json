@@ -2,7 +2,7 @@
   "name": "chat",
   "displayName": "Slack Chat",
   "description": "Send and receive Slack chat inside VSCode",
-  "version": "0.5.10-pre-1",
+  "version": "0.5.10",
   "homepage": "https://github.com/karigari/vscode-chat",
   "license": "SEE LICENSE IN LICENSE",
   "repository": {
@@ -88,6 +88,10 @@
       {
         "command": "extension.chat.configureToken",
         "title": "Slack: Configure Slack Access Token"
+      },
+      {
+        "command": "extension.chat.diagnostic",
+        "title": "Slack: (Debug) Export Diagnostic Logs"
       },
       {
         "command": "extension.chat.startLiveShare",

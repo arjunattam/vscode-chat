@@ -19,6 +19,7 @@ import { ExtensionUriHandler } from "./uri";
 import { openUrl, getExtension } from "./utils";
 import ConfigHelper from "./config";
 import Reporter from "./telemetry";
+import IssueReporter from "./issues";
 
 let store: Store | undefined = undefined;
 let controller: ViewController | undefined = undefined;
@@ -275,6 +276,22 @@ export function activate(context: vscode.ExtensionContext) {
       });
   };
 
+  const runDiagnostic = async () => {
+    let results = [];
+    results.push(`Installation id: ${!!store.installationId}`);
+    results.push(`Token configured: ${!!store.token}`);
+    results.push(`Current user available: ${!!store.currentUserInfo}`);
+
+    const authResult = await store.runAuthTest();
+    results.push(`Authentication result: ${authResult}`);
+    results.push(`Websocket connected: ${chatProvider.isConnected()}`);
+
+    const logs = results.join("\n");
+    const body = `### Issue description\n\n### Logs\n ${logs}`;
+    const title = `Diagnostic logs`;
+    return IssueReporter.openNewIssue(title, body);
+  };
+
   // Setup real-time messenger and updated local state
   setup(true);
 
@@ -292,6 +309,7 @@ export function activate(context: vscode.ExtensionContext) {
       SelfCommands.CONFIGURE_TOKEN,
       configureToken
     ),
+    vscode.commands.registerCommand(SelfCommands.DIAGNOSTIC, runDiagnostic),
     vscode.commands.registerCommand(SelfCommands.SEND_MESSAGE, ({ text }) =>
       sendMessage(text)
     ),
