@@ -49,12 +49,17 @@
         "chat.slack.legacyToken": {
           "type": "string",
           "default": null,
-          "description": "Slack token for authentication. Get yours here: https://api.slack.com/custom-integrations/legacy-tokens"
+          "description": "[Deprecated] Run the \"Sign In with Slack\" command instead."
         },
         "chat.proxyUrl": {
           "type": "string",
           "default": null,
-          "description": "Proxy URL for network connections to the Slack API."
+          "description": "Proxy URL for network connections to the Slack http/websocket requests."
+        },
+        "chat.rejectTlsUnauthorized": {
+          "type": "boolean",
+          "default": true,
+          "description": "Set this to false to accept unauthorized SSL connections. Defaults to true."
         },
         "chat.providers": {
           "type": "array",
@@ -163,7 +168,7 @@
     "vscode": "^1.1.6"
   },
   "dependencies": {
-    "@slack/client": "^4.3.1",
+    "@slack/client": "^4.6.0",
     "emoji-js": "^3.4.1",
     "https-proxy-agent": "^2.2.1",
     "markdown-it": "^8.4.1",

@@ -1,6 +1,5 @@
 import * as vscode from "vscode";
 import { RTMClient, RTMClientOptions } from "@slack/client";
-import * as HttpsProxyAgent from "https-proxy-agent";
 import ConfigHelper from "../config";
 import { getMessage } from "./client";
 import {
@@ -36,10 +35,10 @@ class SlackMessenger {
     // We can also use { useRtmConnect: false } for rtm.start
     // instead of rtm.connect, which has more fields in the payload
     let options: RTMClientOptions = {};
-    const proxyUrl = ConfigHelper.getProxyUrl();
+    const customAgent = ConfigHelper.getCustomAgent();
 
-    if (proxyUrl) {
-      options.agent = new HttpsProxyAgent(proxyUrl);
+    if (!!customAgent) {
+      options.agent = customAgent;
     }
 
     this.rtmClient = new RTMClient(token, options);
@@ -209,13 +208,15 @@ class SlackMessenger {
     }
 
     try {
-      uri = vscode.Uri.parse(text);
+      if (text.startsWith("http")) {
+        uri = vscode.Uri.parse(text);
 
-      if (uri.authority === LIVE_SHARE_BASE_URL) {
-        vscode.commands.executeCommand(SelfCommands.LIVE_SHARE_JOIN_PROMPT, {
-          senderId: userId,
-          messageUri: uri
-        });
+        if (uri.authority === LIVE_SHARE_BASE_URL) {
+          vscode.commands.executeCommand(SelfCommands.LIVE_SHARE_JOIN_PROMPT, {
+            senderId: userId,
+            messageUri: uri
+          });
+        }
       }
     } catch (err) {
       // Ignore for now

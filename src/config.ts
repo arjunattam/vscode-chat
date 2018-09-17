@@ -1,5 +1,7 @@
 import * as vscode from "vscode";
 import * as str from "./strings";
+import * as https from "https";
+import * as HttpsProxyAgent from "https-proxy-agent";
 import { CONFIG_ROOT, SelfCommands } from "./constants";
 import { EventSource } from "./interfaces";
 import { keychain } from "./utils/keychain";
@@ -109,6 +111,11 @@ class ConfigHelper {
     return proxyUrl;
   }
 
+  static getTlsRejectUnauthorized() {
+    const { rejectTlsUnauthorized } = this.getRootConfig();
+    return rejectTlsUnauthorized;
+  }
+
   static hasTelemetry(): boolean {
     const config = vscode.workspace.getConfiguration(TELEMETRY_CONFIG_ROOT);
     return !!config.get<boolean>(TELEMETRY_CONFIG_KEY);
@@ -118,6 +125,22 @@ class ConfigHelper {
     // Stored under CONFIG_ROOT.providers, which is string[]
     const { providers } = this.getRootConfig();
     return providers && providers.indexOf("travis") >= 0;
+  }
+
+  static getCustomAgent() {
+    const proxyUrl = this.getProxyUrl();
+
+    if (!!proxyUrl) {
+      return new HttpsProxyAgent(proxyUrl);
+    }
+
+    const rejectUnauthorized = this.getTlsRejectUnauthorized();
+
+    if (!rejectUnauthorized) {
+      return new https.Agent({
+        rejectUnauthorized: false
+      });
+    }
   }
 }
 

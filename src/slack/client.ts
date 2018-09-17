@@ -1,5 +1,4 @@
 import { WebClient, WebClientOptions } from "@slack/client";
-import * as HttpsProxyAgent from "https-proxy-agent";
 import ConfigHelper from "../config";
 import {
   Users,
@@ -62,10 +61,10 @@ export default class SlackAPIClient {
 
   constructor(token: string) {
     let options: WebClientOptions = { retryConfig: { retries: 1 } };
-    const proxyUrl = ConfigHelper.getProxyUrl();
+    const customAgent = ConfigHelper.getCustomAgent();
 
-    if (proxyUrl) {
-      options.agent = new HttpsProxyAgent(proxyUrl);
+    if (!!customAgent) {
+      options.agent = customAgent;
     }
 
     this.client = new WebClient(token, options);
