@@ -36,6 +36,7 @@ export const SelfCommands = {
   ADD_MESSAGE_REACTION: "extension.chat.addMessageReaction",
   REMOVE_MESSAGE_REACTION: "extension.chat.removeMessageReaction",
   SEND_MESSAGE: "extension.chat.sendMessage",
+  SEND_THREAD_REPLY: "extension.chat.sendThreadReply",
   CHANNEL_MARKED: "extension.chat.updateChannelMark"
 };
 

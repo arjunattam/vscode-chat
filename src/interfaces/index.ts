@@ -20,6 +20,12 @@ export interface IChatProvider {
     currentUserId: string,
     channelId: string
   ) => Promise<void>;
+  sendThreadReply: (
+    text: string,
+    currentUserId: string,
+    channelId: string,
+    parentTimestamp: string
+  ) => Promise<void>;
   connect: () => Promise<CurrentUser>;
   isConnected: () => boolean;
   subscribePresence: (users: Users) => void;
@@ -139,6 +145,7 @@ export interface ChannelLabel {
 
 enum MessageType {
   text = "text",
+  thread_reply = "thread_reply",
   command = "command",
   link = "link",
   internal = "internal"

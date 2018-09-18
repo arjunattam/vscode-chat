@@ -103,6 +103,20 @@ export class SlackChatProvider implements IChatProvider {
     return this.client.getChannelInfo(channel);
   }
 
+  sendThreadReply(
+    text: string,
+    currentUserId: string,
+    channelId: string,
+    parentTimestamp: string
+  ) {
+    const cleanText = stripLinkSymbols(text);
+    return this.client.sendMessage({
+      channel: channelId,
+      text: cleanText,
+      thread_ts: parentTimestamp
+    });
+  }
+
   sendMessage(text: string, currentUserId: string, channelId: string) {
     // The rtm gives an error while sending messages. Might be related to
     // https://github.com/slackapi/node-slack-sdk/issues/527
@@ -112,7 +126,11 @@ export class SlackChatProvider implements IChatProvider {
     // this.rtmClient.sendMessage(cleanText, id)
     const cleanText = stripLinkSymbols(text);
     return this.client
-      .sendMessage({ channel: channelId, text: cleanText })
+      .sendMessage({
+        channel: channelId,
+        text: cleanText,
+        thread_ts: undefined
+      })
       .then((result: any) => {
         // TODO: this is not the correct timestamp to attach, since the
         // API might get delayed, because of network issues

@@ -87,11 +87,24 @@ export function activate(context: vscode.ExtensionContext) {
       .catch(error => Logger.log(error));
   };
 
-  const sendMessage = (text: string): Promise<void> => {
+  const sendMessage = (
+    text: string,
+    parentTimestamp: string
+  ): Promise<void> => {
     const { lastChannelId, currentUserInfo } = store;
     reporter.record(EventType.messageSent, undefined, lastChannelId);
     store.updateReadMarker();
-    return chatProvider.sendMessage(text, currentUserInfo.id, lastChannelId);
+
+    if (!!parentTimestamp) {
+      return chatProvider.sendThreadReply(
+        text,
+        currentUserInfo.id,
+        lastChannelId,
+        parentTimestamp
+      );
+    } else {
+      return chatProvider.sendMessage(text, currentUserInfo.id, lastChannelId);
+    }
   };
 
   const askForChannel = (): Promise<Channel> => {
@@ -311,7 +324,11 @@ export function activate(context: vscode.ExtensionContext) {
     ),
     vscode.commands.registerCommand(SelfCommands.DIAGNOSTIC, runDiagnostic),
     vscode.commands.registerCommand(SelfCommands.SEND_MESSAGE, ({ text }) =>
-      sendMessage(text)
+      sendMessage(text, undefined)
+    ),
+    vscode.commands.registerCommand(
+      SelfCommands.SEND_THREAD_REPLY,
+      ({ text, parentTimestamp }) => sendMessage(text, parentTimestamp)
     ),
     vscode.commands.registerCommand(SelfCommands.LIVE_SHARE_FROM_MENU, item =>
       shareVslsLink({

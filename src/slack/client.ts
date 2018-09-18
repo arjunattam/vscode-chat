@@ -252,10 +252,11 @@ export default class SlackAPIClient {
     }
   };
 
-  sendMessage = ({ channel, text }): Promise<any> => {
+  sendMessage = ({ channel, text, thread_ts }): Promise<any> => {
     return this.client.chat.postMessage({
       channel,
       text,
+      thread_ts,
       as_user: true
     });
   };

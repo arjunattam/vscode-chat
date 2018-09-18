@@ -62,7 +62,7 @@ class ViewController {
       if (!!result) {
         const { sendToSlack, response } = result;
         if (sendToSlack && response) {
-          this.sendToSlack(response);
+          this.sendTextMessage(response);
         }
       }
     });
@@ -102,13 +102,13 @@ class ViewController {
     }
 
     if (this.isValidReverseCommand(text)) {
-      return this.sendToSlack(text);
+      return this.sendTextMessage(text);
     }
 
     // TODO(arjun): if not valid, then we need to parse and make a chat.command
     // API call, instead of sending it as a simple text message.
     // Docs: https://github.com/ErikKalkoken/slackApiDoc/blob/master/chat.command.md
-    return this.sendToSlack(text);
+    return this.sendTextMessage(text);
   };
 
   handleInternal = (message: any) => {
@@ -132,8 +132,16 @@ class ViewController {
     }
   };
 
-  sendToSlack = (text: string) => {
+  sendTextMessage = (text: string) => {
     return vscode.commands.executeCommand(SelfCommands.SEND_MESSAGE, { text });
+  };
+
+  sendThreadReply = (payload: any) => {
+    const { text, parentTimestamp } = payload;
+    return vscode.commands.executeCommand(SelfCommands.SEND_THREAD_REPLY, {
+      text,
+      parentTimestamp
+    });
   };
 
   sendToExtension = (message: ExtensionMessage) => {
@@ -148,7 +156,9 @@ class ViewController {
       case "command":
         return this.handleCommand(text);
       case "text":
-        return text ? this.sendToSlack(text) : null;
+        return text ? this.sendTextMessage(text) : null;
+      case "thread_reply":
+        return this.sendThreadReply(text);
     }
   };
 
