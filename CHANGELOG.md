@@ -2,6 +2,24 @@
 
 All notable changes to the vscode-chat extension will be documented in this file. This follows the [Keep a Changelog](http://keepachangelog.com/) format.
 
+## [0.5.11] - 2018-09-18
+
+### Added
+
+- Added support for replying to thread messages.
+
+### Fixed
+
+- Fixed rendering of duplicate thread replies.
+
+## [0.5.10] - 2018-09-17
+
+### Added
+
+- Added new configuration `chat.rejectTlsUnauthorized` for self-signed certificate users.
+- Load vue.js assets locally, removing dependency on the jsdelivr CDN.
+- Upgraded Slack dependency to keep up with the network library improvements upstream.
+
 ## [0.5.9] - 2018-09-04
 
 ### Added

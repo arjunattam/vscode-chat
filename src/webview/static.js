@@ -136,7 +136,7 @@ Vue.component("message-item", {
   props: ["message", "allUsers"],
   computed: {
     hasReplies: function() {
-      return this.message.replies.length > 0;
+      return Object.keys(this.message.replies).length > 0;
     }
   },
   template: /* html */ `
@@ -165,7 +165,9 @@ Vue.component("message-replies", {
 
       if (this.isExpanded) {
         const hasPendingText =
-          this.message.replies.filter(reply => !reply.textHTML).length > 0;
+          Object.keys(this.message.replies).filter(
+            replyTs => !this.message.replies[replyTs].textHTML
+          ).length > 0;
 
         if (hasPendingText) {
           vscode.postMessage({
@@ -175,11 +177,17 @@ Vue.component("message-replies", {
           });
         }
       }
+    },
+    onSubmit: function(text) {
+      const payload = { text, parentTimestamp: this.message.timestamp };
+      sendMessage(payload, "thread_reply");
     }
   },
   computed: {
     imageUrls: function() {
-      const userIds = this.message.replies.map(reply => reply.userId);
+      const userIds = Object.keys(this.message.replies).map(
+        replyTs => this.message.replies[replyTs].userId
+      );
       const uniques = userIds.filter(
         (item, pos) => userIds.indexOf(item) == pos
       );
@@ -188,8 +196,11 @@ Vue.component("message-replies", {
         .filter(userId => !!this.allUsers[userId].smallImageUrl)
         .map(userId => this.allUsers[userId].smallImageUrl);
     },
+    placeholder: function() {
+      return "Reply to thread";
+    },
     count: function() {
-      return this.message.replies.length;
+      return Object.keys(this.message.replies).length;
     },
     expandText: function() {
       return this.isExpanded ? "Show less" : "Show all";
@@ -212,6 +223,12 @@ Vue.component("message-replies", {
           v-bind:textHTML="reply.textHTML">
         </message-reply-item>
       </ul>
+      <message-input
+        v-if="isExpanded"
+        v-bind:placeholder="placeholder"
+        v-bind:onSubmit="onSubmit"
+        ref="threadFormSection">
+      </message-input>
     </div>
   `
 });
@@ -324,13 +341,8 @@ Vue.component("message-title", {
   `
 });
 
-Vue.component("form-section", {
-  props: ["channel", "status"],
-  computed: {
-    placeholder: function() {
-      return `Message ${this.channel.name}`;
-    }
-  },
+Vue.component("message-input", {
+  props: ["placeholder", "onSubmit"],
   watch: {
     text: function(newText, oldText) {
       if (newText && !newText.trim()) {
@@ -349,28 +361,31 @@ Vue.component("form-section", {
     };
   },
   template: /* html */ `
-    <div class="form-section">
-      <form
-        v-on:submit="onSubmit">
-        <textarea
-          ref="messageInput"
-          v-model="text"
-          v-bind:placeholder="placeholder"
-          v-on:keydown="onKeydown"
-          v-on:keydown.meta.65="onSelectAll"
-          v-on:focus="onFocus"
-          v-focus
-          rows="1">
-        </textarea>
-        <input type="submit"></input>
-      </form>
-      <status-text v-bind:status="status"></status-text>
-    </div>
+    <form class="message-input-form" v-on:submit="onSubmitFunc">
+      <textarea
+        ref="messageInput"
+        v-model="text"
+        v-bind:placeholder="placeholder"
+        v-on:keydown="onKeydown"
+        v-on:keydown.meta.65="onSelectAll"
+        v-on:focus="onFocus"
+        v-focus
+        rows="1">
+      </textarea>
+      <input type="submit"></input>
+    </form>
   `,
+  mounted() {
+    this.$refs.messageInput.addEventListener("compositionstart", event => {
+      this.inComposition = true;
+    });
+    this.$refs.messageInput.addEventListener("compositionend", event => {
+      this.inComposition = false;
+    });
+  },
   methods: {
-    onSubmit: function(event) {
-      type = this.text.startsWith("/") ? "command" : "text";
-      sendMessage(this.text, type);
+    onSubmitFunc: function(event) {
+      this.onSubmit(this.text);
       this.text = "";
     },
     onFocus: function(event) {
@@ -401,16 +416,32 @@ Vue.component("form-section", {
         input.rows = expectedRows;
       }
     }
+  }
+});
+
+Vue.component("form-section", {
+  props: ["channel", "status"],
+  computed: {
+    placeholder: function() {
+      return `Message ${!!this.channel ? this.channel.name : ""}`;
+    }
   },
+  methods: {
+    onSubmit: function(text) {
+      const type = text.startsWith("/") ? "command" : "text";
+      sendMessage(text, type);
+    }
+  },
+  template: /* html */ `
+    <div class="form-section">
+      <message-input
+        v-bind:onSubmit="onSubmit"
+        v-bind:placeholder="placeholder">
+      </message-input>
+      <status-text v-bind:status="status"></status-text>
+    </div>
+  `,
   mounted() {
-    this.$refs.messageInput.addEventListener("compositionstart", event => {
-      this.inComposition = true;
-    });
-
-    this.$refs.messageInput.addEventListener("compositionend", event => {
-      this.inComposition = false;
-    });
-
     return sendMessage("is_ready", "internal");
   }
 });

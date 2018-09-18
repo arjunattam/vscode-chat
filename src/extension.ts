@@ -21,6 +21,7 @@ import { openUrl, getExtension, toTitleCase } from "./utils";
 import { askForAuth } from "./onboarding";
 import ConfigHelper from "./config";
 import Reporter from "./telemetry";
+import IssueReporter from "./issues";
 
 let store: Store | undefined = undefined;
 let controller: ViewController | undefined = undefined;
@@ -88,15 +89,28 @@ export function activate(context: vscode.ExtensionContext) {
       .catch(error => Logger.log(error));
   };
 
-  const sendMessage = (text: string): Promise<void> => {
+  const sendMessage = (
+    text: string,
+    parentTimestamp: string
+  ): Promise<void> => {
     const { lastChannelId, currentUserInfo } = store;
     reporter.record(EventType.messageSent, undefined, lastChannelId);
     store.updateReadMarker();
-    return store.chatProvider.sendMessage(
-      text,
-      currentUserInfo.id,
-      lastChannelId
-    );
+
+    if (!!parentTimestamp) {
+      return store.chatProvider.sendThreadReply(
+        text,
+        currentUserInfo.id,
+        lastChannelId,
+        parentTimestamp
+      );
+    } else {
+      return store.chatProvider.sendMessage(
+        text,
+        currentUserInfo.id,
+        lastChannelId
+      );
+    }
   };
 
   const askForChannel = (): Promise<Channel> => {
@@ -344,6 +358,24 @@ export function activate(context: vscode.ExtensionContext) {
     }
   };
 
+  const runDiagnostic = async () => {
+    // TODO: add discord support to this
+    let results = [];
+    results.push(`Installation id: ${!!store.installationId}`);
+    results.push(`Token configured: ${!!store.token}`);
+    results.push(`Current user available: ${!!store.currentUserInfo}`);
+
+    const authResult = await store.runAuthTest();
+    results.push(`Authentication result: ${authResult}`);
+    // TODO: chat provider might not be defined
+    results.push(`Websocket connected: ${store.chatProvider.isConnected()}`);
+
+    const logs = results.join("\n");
+    const body = `### Issue description\n\n### Logs\n ${logs}`;
+    const title = `Diagnostic logs`;
+    return IssueReporter.openNewIssue(title, body);
+  };
+
   // Setup real-time messenger and updated local state
   setup({ canPromptForAuth: true, provider: undefined });
 
@@ -368,8 +400,13 @@ export function activate(context: vscode.ExtensionContext) {
       SelfCommands.CONFIGURE_TOKEN,
       configureToken
     ),
+    vscode.commands.registerCommand(SelfCommands.DIAGNOSTIC, runDiagnostic),
     vscode.commands.registerCommand(SelfCommands.SEND_MESSAGE, ({ text }) =>
-      sendMessage(text)
+      sendMessage(text, undefined)
+    ),
+    vscode.commands.registerCommand(
+      SelfCommands.SEND_THREAD_REPLY,
+      ({ text, parentTimestamp }) => sendMessage(text, parentTimestamp)
     ),
     vscode.commands.registerCommand(SelfCommands.LIVE_SHARE_FROM_MENU, item =>
       shareVslsLink({

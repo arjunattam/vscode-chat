@@ -1,5 +1,6 @@
 export interface IChatProvider {
   getToken: () => Promise<string>;
+  getAuthTest: () => Promise<string>;
   fetchUsers: () => Promise<Users>;
   fetchUserInfo: (userId: string) => Promise<User>;
   fetchChannels: (users: Users) => Promise<Channel[]>;
@@ -12,6 +13,12 @@ export interface IChatProvider {
     text: string,
     currentUserId: string,
     channelId: string
+  ) => Promise<void>;
+  sendThreadReply: (
+    text: string,
+    currentUserId: string,
+    channelId: string,
+    parentTimestamp: string
   ) => Promise<void>;
   connect: () => Promise<CurrentUser>;
   isConnected: () => boolean;
@@ -90,6 +97,10 @@ export interface MessageReply {
   textHTML?: string;
 }
 
+export interface MessageReplies {
+  [timestamp: string]: MessageReply;
+}
+
 export interface Message {
   timestamp: string;
   userId: string;
@@ -99,7 +110,9 @@ export interface Message {
   attachment?: MessageAttachment;
   content: MessageContent;
   reactions: MessageReaction[];
-  replies: MessageReply[];
+  replies: MessageReplies;
+  // TODO - add
+  // subscribed (for threads)
 }
 
 export interface ChannelMessages {
@@ -134,6 +147,7 @@ export interface ChannelLabel {
 
 enum MessageType {
   text = "text",
+  thread_reply = "thread_reply",
   command = "command",
   link = "link",
   internal = "internal"

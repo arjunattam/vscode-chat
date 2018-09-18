@@ -50,7 +50,7 @@ const getMessage = (raw: Discord.Message): Message => {
     text: content,
     isEdited: !!editedTimestamp,
     content: getMessageContent(raw),
-    replies: [],
+    replies: {},
     reactions: reactions.map(rxn => ({
       name: rxn.emoji.name,
       count: rxn.count,
@@ -104,6 +104,10 @@ export class DiscordChatProvider implements IChatProvider {
     // When this starts using OAuth, we need to manage refresh tokens here
     this.token = await ConfigHelper.getToken("discord");
     return Promise.resolve(this.token);
+  }
+
+  getAuthTest(): Promise<string> {
+    return Promise.resolve("not implemented");
   }
 
   connect(): Promise<CurrentUser> {
@@ -354,6 +358,10 @@ export class DiscordChatProvider implements IChatProvider {
   }
 
   subscribePresence(usersUsers): void {}
+
+  sendThreadReply() {
+    return Promise.resolve();
+  }
 
   destroy() {
     if (!!this.client) {

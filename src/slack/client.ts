@@ -1,5 +1,4 @@
 import { WebClient, WebClientOptions } from "@slack/client";
-import * as HttpsProxyAgent from "https-proxy-agent";
 import ConfigHelper from "../config";
 import {
   Users,
@@ -62,14 +61,32 @@ export default class SlackAPIClient {
 
   constructor(token: string) {
     let options: WebClientOptions = { retryConfig: { retries: 1 } };
-    const proxyUrl = ConfigHelper.getProxyUrl();
+    const customAgent = ConfigHelper.getCustomAgent();
 
-    if (proxyUrl) {
-      options.agent = new HttpsProxyAgent(proxyUrl);
+    if (!!customAgent) {
+      options.agent = customAgent;
     }
 
     this.client = new WebClient(token, options);
   }
+
+  getAuthTest = (): Promise<string> => {
+    // Used for diagnostic logging
+    return this.client.auth
+      .test()
+      .then(response => {
+        const { ok } = response;
+
+        if (ok) {
+          return "auth.test successful";
+        } else {
+          return response.toString();
+        }
+      })
+      .catch(response => {
+        return `error: ${response.toString()}`;
+      });
+  };
 
   getConversationHistory = (channel: string): Promise<ChannelMessages> => {
     return this.client
@@ -236,10 +253,11 @@ export default class SlackAPIClient {
     }
   };
 
-  sendMessage = ({ channel, text }): Promise<any> => {
+  sendMessage = ({ channel, text, thread_ts }): Promise<any> => {
     return this.client.chat.postMessage({
       channel,
       text,
+      thread_ts,
       as_user: true
     });
   };

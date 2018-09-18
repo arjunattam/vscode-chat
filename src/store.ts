@@ -13,7 +13,8 @@ import {
   ChannelLabel,
   UserPreferences,
   IChatProvider,
-  MessageReply
+  MessageReply,
+  MessageReplies
 } from "./interfaces";
 import StatusItem from "./status";
 import Logger from "./logger";
@@ -731,11 +732,18 @@ export default class Store implements IStore, vscode.Disposable {
 
     if (!!message) {
       let newMessages = {};
+      const replyTs = reply.timestamp;
+      let replies: MessageReplies = { ...message.replies };
+      replies[replyTs] = { ...reply };
       newMessages[parentTimestamp] = {
         ...message,
-        replies: [...message.replies, reply]
+        replies
       };
       this.updateMessages(channelId, newMessages);
     }
+  }
+
+  runAuthTest(): Promise<string> {
+    return this.chatProvider.getAuthTest();
   }
 }
