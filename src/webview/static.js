@@ -136,7 +136,7 @@ Vue.component("message-item", {
   props: ["message", "allUsers"],
   computed: {
     hasReplies: function() {
-      return this.message.replies.length > 0;
+      return Object.keys(this.message.replies).length > 0;
     }
   },
   template: /* html */ `
@@ -165,7 +165,9 @@ Vue.component("message-replies", {
 
       if (this.isExpanded) {
         const hasPendingText =
-          this.message.replies.filter(reply => !reply.textHTML).length > 0;
+          Object.keys(this.message.replies).filter(
+            replyTs => !this.message.replies[replyTs].textHTML
+          ).length > 0;
 
         if (hasPendingText) {
           vscode.postMessage({
@@ -179,7 +181,9 @@ Vue.component("message-replies", {
   },
   computed: {
     imageUrls: function() {
-      const userIds = this.message.replies.map(reply => reply.userId);
+      const userIds = Object.keys(this.message.replies).map(
+        replyTs => this.message.replies[replyTs].userId
+      );
       const uniques = userIds.filter(
         (item, pos) => userIds.indexOf(item) == pos
       );
@@ -189,7 +193,7 @@ Vue.component("message-replies", {
         .map(userId => this.allUsers[userId].smallImageUrl);
     },
     count: function() {
-      return this.message.replies.length;
+      return Object.keys(this.message.replies).length;
     },
     expandText: function() {
       return this.isExpanded ? "Show less" : "Show all";

@@ -124,25 +124,30 @@ export const markdownify = (messages: ChannelMessages): ChannelMessages => {
     return defaultRender(tokens, idx, options, env, self);
   };
 
+  const replyParser = reply => {
+    const { attachment: replyAttachment, text: replyText } = reply;
+    // Replies might not have both attachment and text
+    if (!!replyAttachment) {
+      const attachmentLink = getAttachmentLink(replyAttachment);
+      return {
+        ...reply,
+        textHTML: md.renderInline(str.UPLOADED_FILE(attachmentLink))
+      };
+    } else if (!!replyText) {
+      return { ...reply, textHTML: md.renderInline(replyText) };
+    } else {
+      return reply;
+    }
+  };
+
   Object.keys(messages).forEach(key => {
     const { content, attachment, text, replies } = messages[key];
-    const parsedReplies = !!replies
-      ? replies.map(reply => {
-          const { attachment: replyAttachment, text: replyText } = reply;
-          // Replies might not have both attachment and text
-          if (!!replyAttachment) {
-            const attachmentLink = getAttachmentLink(replyAttachment);
-            return {
-              ...reply,
-              textHTML: md.renderInline(str.UPLOADED_FILE(attachmentLink))
-            };
-          } else if (!!replyText) {
-            return { ...reply, textHTML: md.renderInline(replyText) };
-          } else {
-            return reply;
-          }
-        })
-      : [];
+    let parsedReplies = {};
+
+    Object.keys(replies).forEach(replyTs => {
+      const reply = replies[replyTs];
+      parsedReplies[replyTs] = replyParser(reply);
+    });
 
     const link = attachment ? getAttachmentLink(attachment) : ``;
     markdowned[key] = {

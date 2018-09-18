@@ -123,7 +123,7 @@ export class SlackChatProvider implements IChatProvider {
           text,
           content: null,
           reactions: [],
-          replies: []
+          replies: {}
         };
 
         vscode.commands.executeCommand(SelfCommands.UPDATE_MESSAGES, {

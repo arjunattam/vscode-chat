@@ -89,6 +89,10 @@ export interface MessageReply {
   textHTML?: string;
 }
 
+export interface MessageReplies {
+  [timestamp: string]: MessageReply;
+}
+
 export interface Message {
   timestamp: string;
   userId: string;
@@ -98,7 +102,7 @@ export interface Message {
   attachment?: MessageAttachment;
   content: MessageContent;
   reactions: MessageReaction[];
-  replies: MessageReply[];
+  replies: MessageReplies;
   // TODO - add
   // subscribed (for threads)
 }
