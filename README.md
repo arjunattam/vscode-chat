@@ -1,6 +1,6 @@
 <h1 align="center">Team Chat for VS Code</h1>
 
-<h3 align="center">Collaborate with your team and bots, without context switches. Supports Slack and Discord.</h3>
+<h3 align="center">Collaborate with your team and chat bots without context switches. Supports Slack and Discord.</h3>
 
 <p align="center"><img src="readme/preview.png" alt="Screenshot" width="800" /></p>
 
@@ -21,29 +21,29 @@ Are you a Slack workspace admin? [Approve this app](https://slack.com/apps/ACB4L
 
 # Features
 
-- **Quiet notifications**: status bar item
-- **Rich formatting**: code snippets, emojis
-- **Native look and feel**: theme, grid layout
+- **Quiet notifications**: System notifications for chat can be painful, and this extension implements a subtle unread count instead.
+- **Rich formatting**: Support for markdown code snippets, emojis, message reactions, and threads.
+- **Native look-and-feel**: Use your dark theme and grid editor layout preferences with chat.
 
 <p align="center">
-    <img src="readme/vsls.png" alt="VS Live Share" width="290" />
-    <img src="readme/vsls.png" alt="VS Live Share" width="290" />
-    <img src="readme/vsls.png" alt="VS Live Share" width="290" />
+    <img src="readme/feature-1.png" alt="Quiet notifications" width="290" />
+    <img src="readme/feature-2.png" alt="Rich formatting" width="290" />
+    <img src="readme/feature-3.png" alt="Theme and grid layout" width="290" />
 </p>
 
 # VS Live Share
 
-Online users can be invited for a [VS Live Share](https://aka.ms/vsls) collaboration session. You can also use slash commands `/live share` and `/live end` to start or stop collaboration sessions.
+Start a [VS Live Share](https://aka.ms/vsls) collaboration session with your online team members, with just a click. You can also use slash commands `/live share` and `/live end` to start or end sessions.
 
-<p align="center"><img src="readme/vsls-magnifier.png" alt="VS Live Share" width="800" /></p>
+<p align="center"><img src="readme/vsls.png" alt="VS Live Share" width="800" /></p>
 
 # Support
 
-- **Configuration settings**: To use behind a proxy and other settings, see [CONFIGURATION](docs/CONFIG.md).
+- **Configuration settings**: To use behind a network proxy and other settings, see [CONFIGURATION](docs/CONFIG.md).
 - **Raise an issue**: Feel free to [report an issue](https://github.com/karigari/vscode-chat/issues), or find [me on Twitter](https://twitter.com/arjunattam) for any suggestions or support.
 
 # Developer docs
 
 - **Get started with contribution**: See [CONTRIBUTING](docs/CONTRIBUTING.md) to understand repo structure, building and testing.
-- **Add new chat providers**: [PROVIDERS](docs/PROVIDERS.md) covers implementation details for any third-party chat provider.
+- **New chat providers**: The implementation can be extended to support any chat provider, see [PROVIDERS](docs/PROVIDERS.md).
 - **Vision**: Read the [VISION](VISION.md) doc to understand the motivation behind this extension and the roadmap ahead.
