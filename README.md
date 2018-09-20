@@ -26,7 +26,7 @@ Are you a Slack workspace admin? [Approve this app](https://slack.com/apps/ACB4L
 - **Native look-and-feel**: Use your dark theme and grid editor layout preferences with chat.
 
 <p align="center">
-    <img src="readme/feature-1.png" alt="Quiet notifications" width="290" />
+    <img src="readme/feature-1-magnifier.png" alt="Quiet notifications" width="290" />
     <img src="readme/feature-2.png" alt="Rich formatting" width="290" />
     <img src="readme/feature-3.png" alt="Theme and grid layout" width="290" />
 </p>
@@ -35,7 +35,7 @@ Are you a Slack workspace admin? [Approve this app](https://slack.com/apps/ACB4L
 
 Start a [VS Live Share](https://aka.ms/vsls) collaboration session with your online team members, with just a click. You can also use slash commands `/live share` and `/live end` to start or end sessions.
 
-<p align="center"><img src="readme/vsls.png" alt="VS Live Share" width="800" /></p>
+<p align="center"><img src="readme/vsls-magnifier.png" alt="VS Live Share" width="800" /></p>
 
 # Support
 
