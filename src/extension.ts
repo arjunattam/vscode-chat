@@ -183,7 +183,7 @@ export function activate(context: vscode.ExtensionContext) {
       : askForChannel().then(channel => channel.id);
   };
 
-  const openSlackPanel = (args?: ChatArgs) => {
+  const openChatPanel = (args?: ChatArgs) => {
     if (!!store.token) {
       controller.loadUi();
     }
@@ -240,7 +240,7 @@ export function activate(context: vscode.ExtensionContext) {
     );
 
     return askForChannel().then(
-      result => (!!result ? openSlackPanel(args) : null)
+      result => (!!result ? openChatPanel(args) : null)
     );
   };
 
@@ -287,7 +287,7 @@ export function activate(context: vscode.ExtensionContext) {
 
   const authenticate = (args?: any) => {
     const hasArgs = !!args && !!args.source;
-    const service = args.service;
+    const service = "slack"; // Only Slack OAuth is supported
     const urls = {
       slack: SLACK_OAUTH,
       discord: DISCORD_OAUTH
@@ -359,7 +359,6 @@ export function activate(context: vscode.ExtensionContext) {
   };
 
   const runDiagnostic = async () => {
-    // TODO: add discord support to this
     let results = [];
     results.push(`Installation id: ${!!store.installationId}`);
     results.push(`Token configured: ${!!store.token}`);
@@ -367,8 +366,10 @@ export function activate(context: vscode.ExtensionContext) {
 
     const authResult = await store.runAuthTest();
     results.push(`Authentication result: ${authResult}`);
-    // TODO: chat provider might not be defined
-    results.push(`Websocket connected: ${store.chatProvider.isConnected()}`);
+
+    if (!!store.chatProvider) {
+      results.push(`Websocket connected: ${store.chatProvider.isConnected()}`);
+    }
 
     const logs = results.join("\n");
     const body = `### Issue description\n\n### Logs\n ${logs}`;
@@ -384,7 +385,7 @@ export function activate(context: vscode.ExtensionContext) {
 
   const uriHandler = new ExtensionUriHandler();
   context.subscriptions.push(
-    vscode.commands.registerCommand(SelfCommands.OPEN, openSlackPanel),
+    vscode.commands.registerCommand(SelfCommands.OPEN, openChatPanel),
     vscode.commands.registerCommand(
       SelfCommands.CHANGE_WORKSPACE,
       changeWorkspace

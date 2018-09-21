@@ -47,9 +47,6 @@ export interface CurrentUser {
   id: string;
   name: string;
   token: string;
-  // TODO: migrate existing data
-  // teamId: string;
-  // teamName: string;
   teams: Team[];
   currentTeamId: string;
   provider: "slack" | "discord";

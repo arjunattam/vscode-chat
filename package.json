@@ -1,8 +1,8 @@
 {
   "name": "chat",
-  "displayName": "Slack Chat",
-  "description": "Send and receive Slack chat inside VSCode",
-  "version": "0.6.0-pre-3",
+  "displayName": "Team Chat – for Slack and Discord",
+  "description": "Send and receive chat messages inside VSCode",
+  "version": "0.6.0",
   "homepage": "https://github.com/karigari/vscode-chat",
   "license": "SEE LICENSE IN LICENSE",
   "repository": {
@@ -27,12 +27,15 @@
   ],
   "keywords": [
     "slack",
+    "discord",
+    "collaboration",
+    "real-time",
     "chat",
     "live"
   ],
   "activationEvents": [
     "*",
-    "onCommand:extension.chat.openSlackPanel",
+    "onCommand:extension.chat.openChatPanel",
     "onCommand:extension.chat.changeChannel",
     "onView:chat.treeView.onlineUsers.slack",
     "onView:chat.treeView.onlineUsers.discord",
@@ -45,7 +48,7 @@
   "contributes": {
     "configuration": {
       "type": "object",
-      "title": "Slack Chat",
+      "title": "Team Chat",
       "properties": {
         "chat.slack.legacyToken": {
           "type": "string",
@@ -71,12 +74,12 @@
     },
     "commands": [
       {
-        "command": "extension.chat.openSlackPanel",
-        "title": "Slack: Open"
+        "command": "extension.chat.openChatPanel",
+        "title": "Chat: Open"
       },
       {
         "command": "extension.chat.changeChannel",
-        "title": "Slack: Change Channel",
+        "title": "Chat: Change Channel",
         "icon": {
           "light": "public/icons/light/search.svg",
           "dark": "public/icons/dark/search.svg"
@@ -84,23 +87,23 @@
       },
       {
         "command": "extension.chat.changeWorkspace",
-        "title": "Slack: Change Workspace"
+        "title": "Chat: Change Workspace"
       },
       {
         "command": "extension.chat.authenticate",
-        "title": "Slack: Sign In with Slack"
+        "title": "Chat: Sign In with Slack"
       },
       {
         "command": "extension.chat.signout",
-        "title": "Slack: Sign Out"
+        "title": "Chat: Sign Out"
       },
       {
         "command": "extension.chat.configureToken",
-        "title": "Slack: Configure Access Token"
+        "title": "Chat: Configure Access Token"
       },
       {
         "command": "extension.chat.diagnostic",
-        "title": "Slack: (Debug) Export Diagnostic Logs"
+        "title": "Chat: (Debug) Export Diagnostic Logs"
       },
       {
         "command": "extension.chat.startLiveShare",

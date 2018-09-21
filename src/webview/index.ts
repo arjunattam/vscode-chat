@@ -27,8 +27,8 @@ export default class WebviewContainer {
     });
 
     this.panel = vscode.window.createWebviewPanel(
-      "slackPanel",
-      "Slack",
+      "chatPanel",
+      "Chat",
       vscode.ViewColumn.Beside,
       {
         enableScripts: true,
@@ -190,7 +190,7 @@ function getWebviewContent(staticPath) {
   <head>
       <meta charset="UTF-8">
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>Slack</title>
+      <title>Chat</title>
       <script src="${vuePath}"></script>
       <style>code { font-family: ${fontFamily} }</style>
       <style>body { font-size: ${fontSize}px; }</style>

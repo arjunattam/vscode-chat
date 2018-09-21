@@ -289,7 +289,7 @@ Vue.component("message-reaction", {
 });
 
 Vue.component("message-content", {
-  // This renders the attachment portion of the Slack message
+  // This renders the attachment portion of the message
   props: ["content"],
   computed: {
     borderColor: function() {

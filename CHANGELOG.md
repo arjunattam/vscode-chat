@@ -2,6 +2,14 @@
 
 All notable changes to the vscode-chat extension will be documented in this file. This follows the [Keep a Changelog](http://keepachangelog.com/) format.
 
+## [0.6.0] - 2018-09-211
+
+### Added
+
+- Added support for Discord as a chat provider, in addition to Slack.
+- [Breaking] Commands are now namespaced as "Chat: ...", instead of "Slack: ...".
+- Updates to extension metadata and readme: the extension is now called Team Chat.
+
 ## [0.5.11] - 2018-09-18
 
 ### Added

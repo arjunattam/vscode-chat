@@ -14,11 +14,11 @@ The goal is to move to [Discord RPC](https://discordapp.com/developers/docs/topi
 
 Once you have the token, run the following commands from the VS Code command palette:
 
-1. Run **Slack: Configure Access Token**, select "Discord", and then paste your token in the input box
+1. Run **Chat: Configure Access Token**, select "Discord", and then paste your token in the input box
 
 > Your token will be saved securely in your system's local keychain.
 
-2. Next, you will be prompted to choose your primary Discord guild. If you don't want to select now, you can run the **Slack: Change Workspace** command later.
+2. Next, you will be prompted to choose your primary Discord guild. If you don't want to select now, you can run the **Chat: Change Workspace** command later.
 
 ### Troubleshooting
 

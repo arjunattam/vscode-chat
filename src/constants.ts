@@ -1,6 +1,6 @@
 export const CONFIG_ROOT = "chat";
 export const EXTENSION_ID = "karigari.chat";
-export const OUTPUT_CHANNEL_NAME = "Slack Chat";
+export const OUTPUT_CHANNEL_NAME = "Team Chat";
 
 // Is there a way to get this url from the vsls extension?
 export const LIVE_SHARE_BASE_URL = `insiders.liveshare.vsengsaas.visualstudio.com`;
@@ -19,7 +19,7 @@ export const VSCodeCommands = {
 };
 
 export const SelfCommands = {
-  OPEN: "extension.chat.openSlackPanel",
+  OPEN: "extension.chat.openChatPanel",
   CHANGE_WORKSPACE: "extension.chat.changeWorkspace",
   CHANGE_CHANNEL: "extension.chat.changeChannel",
   SIGN_IN: "extension.chat.authenticate",

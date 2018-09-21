@@ -42,8 +42,9 @@ export class SlackChatProvider implements IChatProvider {
   }
 
   getAuthTest(): Promise<string> {
-    // TODO: this.client might be undefined
-    return this.client.getAuthTest();
+    if (!!this.client) {
+      return this.client.getAuthTest();
+    }
   }
 
   connect(): Promise<CurrentUser> {
