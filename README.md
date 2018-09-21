@@ -2,7 +2,7 @@
 
 <h3 align="center">Collaborate with your team and chat bots without context switches. Supports Slack and Discord.</h3>
 
-<p align="center"><img src="readme/preview.png" alt="Screenshot" width="800" /></p>
+<p align="center"><img src="https://raw.githubusercontent.com/karigari/vscode-chat/master/readme/preview.png" alt="Screenshot" width="800" /></p>
 
 <p align="center">
     <a href="https://travis-ci.org/karigari/vscode-chat"><img src="https://travis-ci.org/karigari/vscode-chat.svg?branch=master" alt="Build status" /></a>
