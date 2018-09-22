@@ -2,7 +2,13 @@
 
 All notable changes to the vscode-chat extension will be documented in this file. This follows the [Keep a Changelog](http://keepachangelog.com/) format.
 
-## [0.6.0] - 2018-09-211
+## [0.6.1] - 2018-09-22
+
+### Fixed
+
+- Fixed migration condition for pre-0.6.x installations.
+
+## [0.6.0] - 2018-09-21
 
 ### Added
 

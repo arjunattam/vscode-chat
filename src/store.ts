@@ -85,19 +85,13 @@ export default class Store implements IStore, vscode.Disposable {
       // There has been an upgrade. Apply data migrations if required.
       Logger.log(`Extension updated to ${currentVersion}`);
 
-      // if (!existingVersion && semver.gte(currentVersion, "0.5.6")) {
-      //   Logger.log("Migrating for 0.5.6: user names were changed");
-      //   this.updateChannels([]);
-      //   this.updateUsers({});
-      //   this.usersFetchedAt = null;
-      //   this.channelsFetchedAt = null;
-      // }
+      if (!!existingVersion) {
+        if (semver.lt(existingVersion, "0.6.0")) {
+          Logger.log("Migration for 0.6.0: add slack as default provider");
 
-      if (semver.lt(existingVersion, "0.6.0")) {
-        Logger.log("Migration for 0.6.0: add slack as default provider");
-
-        if (!!this.currentUserInfo) {
-          this.currentUserInfo.provider = "slack";
+          if (!!this.currentUserInfo) {
+            this.currentUserInfo.provider = "slack";
+          }
         }
       }
 
