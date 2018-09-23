@@ -9,7 +9,7 @@ If you want to work on something, just create a discussion thread (on PRs/issues
 The repo has three parts:
 
 1. Main extension code in TypeScript, in `src/**`
-2. Webview UI code, written with Vue.js, in `src/ui/**`
+2. Webview UI code, written with Vue.js, in `src/webview/**`
 3. OAuth service, built with the Serverless framework, in `oauth-service/**`
 
 ## Building
