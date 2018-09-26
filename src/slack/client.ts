@@ -114,7 +114,8 @@ export default class SlackAPIClient {
       let users: Users = {};
 
       if (ok) {
-        members.forEach(member => {
+        const activeMembers = members.filter(member => !member.deleted);
+        activeMembers.forEach(member => {
           const { id, profile, real_name, name } = member;
           const { display_name, image_72, image_24 } = profile;
           users[id] = {
