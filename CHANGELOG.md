@@ -2,11 +2,18 @@
 
 All notable changes to the vscode-chat extension will be documented in this file. This follows the [Keep a Changelog](http://keepachangelog.com/) format.
 
+## [0.6.2] - 2018-09-28
+
+### Fixed
+
+- Handle deactivated Slack users, and not show their direct messages and groups (thanks [Tristan Partin](https://github.com/tristan957)).
+- Private channels are now shown under the Channels view, and not Groups.
+
 ## [0.6.1] - 2018-09-22
 
 ### Fixed
 
-- Fixed migration condition for pre-0.6.x installations.
+- Fixed migration condition for pre-0.6.x installations (thanks [ACharLuk](https://github.com/acharluk)).
 
 ## [0.6.0] - 2018-09-21
 
@@ -30,7 +37,7 @@ All notable changes to the vscode-chat extension will be documented in this file
 
 ### Added
 
-- Added new configuration `chat.rejectTlsUnauthorized` for self-signed certificate users.
+- Added new configuration `chat.rejectTlsUnauthorized` for self-signed certificate users (thanks [Seth Bromberger](https://github.com/sbromberger)).
 - Load vue.js assets locally, removing dependency on the jsdelivr CDN.
 - Upgraded Slack dependency to keep up with the network library improvements upstream.
 
@@ -57,7 +64,7 @@ All notable changes to the vscode-chat extension will be documented in this file
 
 ### Fixed
 
-- Fix handling of composition start/end events while composing messages (thanks to [Yukai Huang](https://github.com/Yukaii)).
+- Fix handling of composition start/end events while composing messages (thanks [Yukai Huang](https://github.com/Yukaii)).
 - Opening Slack or changing channel without authentication now prompts users to authenticate.
 
 ## [0.5.7] - 2018-08-29

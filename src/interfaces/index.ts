@@ -36,6 +36,7 @@ export interface User {
   smallImageUrl: string;
   isOnline: boolean;
   isBot?: boolean;
+  isDeleted?: boolean;
   roleName?: string;
 }
 

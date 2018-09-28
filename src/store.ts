@@ -738,6 +738,10 @@ export default class Store implements IStore, vscode.Disposable {
   }
 
   runAuthTest(): Promise<string> {
-    return this.chatProvider.getAuthTest();
+    if (!!this.chatProvider) {
+      return this.chatProvider.getAuthTest();
+    } else {
+      return Promise.resolve("No chat provider");
+    }
   }
 }

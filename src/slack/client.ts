@@ -114,8 +114,7 @@ export default class SlackAPIClient {
       let users: Users = {};
 
       if (ok) {
-        const activeMembers = members.filter(member => !member.deleted);
-        activeMembers.forEach(member => {
+        members.forEach(member => {
           const { id, profile, real_name, name } = member;
           const { display_name, image_72, image_24 } = profile;
           users[id] = {
@@ -125,7 +124,8 @@ export default class SlackAPIClient {
             fullName: real_name,
             imageUrl: image_72,
             smallImageUrl: image_24,
-            isOnline: undefined
+            isOnline: undefined,
+            isDeleted: member.deleted
           };
         });
 
@@ -163,54 +163,79 @@ export default class SlackAPIClient {
         if (ok) {
           return channels.map(channel => ({
             id: channel.id,
-            name: `#${channel.name}`,
+            name: channel.name,
             type: "channel"
           }));
         }
       });
+
     const groups = this.client
       .apiCall("groups.list", { exclude_archived: true })
       .then((response: any) => {
         // Groups are multi-party DMs and private channels
         const { ok, groups } = response;
+
         if (ok) {
-          return groups.map(group => {
-            const { id, is_mpim } = group;
-            let { name } = group;
+          return groups
+            .map(group => {
+              const { id, is_mpim, members: memberIds } = group;
+              let { name } = group;
 
-            if (is_mpim) {
-              // Example name: mpdm-user.name--username2--user3-1
-              const matched = name.match(/mpdm-([^-]+)((--[^-]+)*)-\d+/);
-              if (matched) {
-                const first = matched[1];
-                const rest = matched[2]
-                  .split("--")
-                  .filter(element => !!element);
-                const members = [first, ...rest].map(element => `@${element}`);
-                name = members.join(", ");
+              if (is_mpim) {
+                const members = memberIds
+                  .map(
+                    memberId =>
+                      memberId in users ? users[memberId] : undefined
+                  )
+                  .filter(Boolean);
+                const hasKnownUsers = members.length === memberIds.length;
+                const hasDeletedUsers =
+                  members.filter(user => user.isDeleted).length > 0;
+
+                if (hasKnownUsers && !hasDeletedUsers) {
+                  name = members.map(user => user.name).join(", ");
+                  return {
+                    id,
+                    name,
+                    type: "group"
+                  };
+                }
+              } else {
+                return {
+                  id,
+                  name,
+                  type: "channel"
+                };
               }
-            } else {
-              name = `#${name}`;
-            }
-
-            return {
-              id,
-              name,
-              type: "group"
-            };
-          });
+            })
+            .filter(Boolean);
         }
       });
+
     const directs = this.client.apiCall("im.list", {}).then((response: any) => {
       const { ok, ims } = response;
       if (ok) {
-        return ims.map(im => ({
-          id: im.id,
-          name: `@${im.user in users ? users[im.user].name : im.user}`,
-          type: "im"
-        }));
+        return ims
+          .map(im => {
+            const { id, user: userId } = im;
+
+            if (userId in users) {
+              const user = users[userId];
+
+              if (!user.isDeleted) {
+                const name = user.name;
+                return {
+                  id,
+                  name,
+                  type: "im"
+                };
+              }
+            }
+          })
+          .filter(Boolean);
       }
     });
+
     return Promise.all([channels, groups, directs]).then(
       (values: Channel[][]) => {
         return [].concat(...values);
