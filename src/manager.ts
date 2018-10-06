@@ -34,7 +34,6 @@ import { OnboardingTreeProvider } from "./onboarding";
 import { SelfCommands } from "./constants";
 
 export default class Manager implements IManager, vscode.Disposable {
-  store: Store;
   token: string;
   channelsFetchedAt: Date;
   currentUserPrefs: UserPreferences = {};
@@ -51,13 +50,12 @@ export default class Manager implements IManager, vscode.Disposable {
 
   chatProvider: IChatProvider;
 
-  constructor(private context: vscode.ExtensionContext) {
-    this.store = new Store(context);
+  constructor(public store: Store) {
     this.statusItem = new StatusItem();
     const existingVersion: string = this.store.existingVersion;
     const currentVersion = getExtensionVersion();
 
-    if (existingVersion !== currentVersion) {
+    if (!!currentVersion && existingVersion !== currentVersion) {
       // There has been an upgrade. Apply data migrations if required.
       Logger.log(`Extension updated to ${currentVersion}`);
 
@@ -165,6 +163,7 @@ export default class Manager implements IManager, vscode.Disposable {
 
   dispose() {
     this.statusItem.dispose();
+    // TODO: tree providers can be null
     this.unreadsTreeProvider.dispose();
     this.channelsTreeProvider.dispose();
     this.groupsTreeProvider.dispose();
@@ -428,11 +427,11 @@ export default class Manager implements IManager, vscode.Disposable {
     const { users } = this.store;
     return isNotEmpty(users)
       ? new Promise(resolve => {
-          if (this.shouldFetchNew(this.usersFetchedAt)) {
-            this.fetchUsers(); // async update
-          }
-          resolve(users);
-        })
+        if (this.shouldFetchNew(this.usersFetchedAt)) {
+          this.fetchUsers(); // async update
+        }
+        resolve(users);
+      })
       : this.fetchUsers();
   }
 
@@ -441,12 +440,12 @@ export default class Manager implements IManager, vscode.Disposable {
     const { channels } = this.store;
     return !!channels
       ? new Promise(resolve => {
-          if (this.shouldFetchNew(this.channelsFetchedAt)) {
-            this.fetchChannels(); // async update
-          }
+        if (this.shouldFetchNew(this.channelsFetchedAt)) {
+          this.fetchChannels(); // async update
+        }
 
-          resolve(channels);
-        })
+        resolve(channels);
+      })
       : this.fetchChannels();
   }
 

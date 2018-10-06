@@ -3,6 +3,7 @@ import * as vsls from "vsls/vscode";
 import ViewController from "./controller";
 import Manager from "./manager";
 import Logger from "./logger";
+import { Store } from './store'
 import * as str from "./strings";
 import { Channel, ChatArgs, EventType, EventSource } from "./types";
 import {
@@ -23,6 +24,7 @@ import ConfigHelper from "./config";
 import Reporter from "./telemetry";
 import IssueReporter from "./issues";
 
+let store: Store;
 let manager: Manager | undefined = undefined;
 let controller: ViewController | undefined = undefined;
 let reporter: Reporter | undefined = undefined;
@@ -31,7 +33,8 @@ const SUPPORTED_PROVIDERS = ["slack", "discord"];
 
 export function activate(context: vscode.ExtensionContext) {
   Logger.log("Activating vscode-chat");
-  manager = new Manager(context);
+  store = new Store(context)
+  manager = new Manager(store);
   reporter = new Reporter(manager);
 
   controller = new ViewController(
@@ -492,4 +495,4 @@ export function activate(context: vscode.ExtensionContext) {
   );
 }
 
-export function deactivate() {}
+export function deactivate() { }

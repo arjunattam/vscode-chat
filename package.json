@@ -233,14 +233,15 @@
     "@types/mocha": "^2.2.42",
     "@types/node": "^8.0.0",
     "@types/semver": "^5.5.0",
+    "ts-mockito": "^2.3.1",
     "tsc-watch": "^1.0.22",
     "tslint": "^5.8.0",
     "typescript": "^3.0.1",
     "vscode": "^1.1.6"
   },
   "dependencies": {
-    "discord.js": "^11.4.2",
     "@slack/client": "^4.6.0",
+    "discord.js": "^11.4.2",
     "emoji-js": "^3.4.1",
     "https-proxy-agent": "^2.2.1",
     "markdown-it": "^8.4.1",

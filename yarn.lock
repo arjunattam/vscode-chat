@@ -1690,6 +1690,12 @@ tough-cookie@>=2.3.3, tough-cookie@~2.4.3:
     psl "^1.1.24"
     punycode "^1.4.1"
 
+ts-mockito@^2.3.1:
+  version "2.3.1"
+  resolved "https://registry.yarnpkg.com/ts-mockito/-/ts-mockito-2.3.1.tgz#4c3467a2ddeb207966000a740a0826c970125ed1"
+  dependencies:
+    lodash "^4.17.5"
+
 tsc-watch@^1.0.22:
   version "1.0.26"
   resolved "https://registry.yarnpkg.com/tsc-watch/-/tsc-watch-1.0.26.tgz#a9130775b018b46b03116840debaac6dd40fbc56"

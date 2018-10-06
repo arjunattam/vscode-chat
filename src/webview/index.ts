@@ -10,6 +10,7 @@ import {
   Channel,
   CurrentUser
 } from "../types";
+import { toDateString } from "../utils";
 
 const SAME_GROUP_TIME = 5 * 60; // seconds
 
@@ -67,22 +68,6 @@ export default class WebviewContainer {
     this.panel.reveal();
   }
 
-  getLocaleDateString(date: Date) {
-    // Returns ISO-format date string for a given date
-    let month = (date.getMonth() + 1).toString();
-    let day = date.getDate().toString();
-
-    if (month.length === 1) {
-      month = `0${month}`;
-    }
-
-    if (day.length === 1) {
-      day = `0${day}`;
-    }
-
-    return `${date.getFullYear()}-${month}-${day}`;
-  }
-
   getAnnotatedMessages(
     messages: ChannelMessages,
     channel: Channel,
@@ -108,7 +93,7 @@ export default class WebviewContainer {
     let result = {};
     Object.keys(input).forEach(ts => {
       const date = new Date(+ts * 1000);
-      const dateStr = this.getLocaleDateString(date);
+      const dateStr = toDateString(date);
       if (!(dateStr in result)) {
         result[dateStr] = {};
       }

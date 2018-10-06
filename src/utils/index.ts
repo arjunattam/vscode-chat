@@ -27,7 +27,7 @@ export interface Versions {
 
 export const getExtensionVersion = (): string => {
   const extension = getExtension(EXTENSION_ID);
-  return extension.packageJSON.version;
+  return !!extension ? extension.packageJSON.version : undefined;
 };
 
 export const getVersions = (): Versions => {
@@ -43,7 +43,7 @@ export const hasExtensionPack = (): boolean => {
 };
 
 export function uuidv4(): string {
-  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function(c) {
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function (c) {
     var r = (Math.random() * 16) | 0,
       v = c == "x" ? r : (r & 0x3) | 0x8;
     return v.toString(16);
@@ -82,7 +82,23 @@ export function equals(setA, setB) {
 }
 
 export function toTitleCase(str) {
-  return str.replace(/\w\S*/g, function(txt) {
+  return str.replace(/\w\S*/g, function (txt) {
     return txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase();
   });
+}
+
+export function toDateString(date: Date) {
+  // Returns ISO-format date string for a given date
+  let month = (date.getMonth() + 1).toString();
+  let day = date.getDate().toString();
+
+  if (month.length === 1) {
+    month = `0${month}`;
+  }
+
+  if (day.length === 1) {
+    day = `0${day}`;
+  }
+
+  return `${date.getFullYear()}-${month}-${day}`;
 }

@@ -187,6 +187,7 @@ export interface IStore {
   channels: Channel[];
   currentUserInfo: CurrentUser;
   users: Users;
+  existingVersion: string;
 }
 
 export interface IManager {
