@@ -1,6 +1,5 @@
 export interface IChatProvider {
   getToken: () => Promise<string>;
-  getAuthTest: () => Promise<string>;
   fetchUsers: () => Promise<Users>;
   fetchUserInfo: (userId: string) => Promise<User>;
   fetchChannels: (users: Users) => Promise<Channel[]>;
@@ -44,13 +43,18 @@ export interface UserPreferences {
   mutedChannels?: string[];
 }
 
+export enum Providers {
+  slack = "slack",
+  discord = "discord"
+}
+
 export interface CurrentUser {
   id: string;
   name: string;
   token: string;
   teams: Team[];
   currentTeamId: string;
-  provider: "slack" | "discord";
+  provider: Providers;
 }
 
 export interface Team {
@@ -178,12 +182,16 @@ export interface UIMessageGroup {
 }
 
 export interface IStore {
-  token: string;
   installationId: string;
   lastChannelId: string;
   channels: Channel[];
   currentUserInfo: CurrentUser;
   users: Users;
+}
+
+export interface IManager {
+  token: string;
+  store: IStore;
   messages: Messages;
   isAuthenticated: () => boolean;
   getSelectedProvider: () => string;

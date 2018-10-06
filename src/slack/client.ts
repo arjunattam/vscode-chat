@@ -8,7 +8,7 @@ import {
   User,
   Message,
   UserPreferences
-} from "../interfaces";
+} from "../types";
 
 const HISTORY_LIMIT = 50;
 
@@ -69,24 +69,6 @@ export default class SlackAPIClient {
 
     this.client = new WebClient(token, options);
   }
-
-  getAuthTest = (): Promise<string> => {
-    // Used for diagnostic logging
-    return this.client.auth
-      .test()
-      .then(response => {
-        const { ok } = response;
-
-        if (ok) {
-          return "auth.test successful";
-        } else {
-          return response.toString();
-        }
-      })
-      .catch(response => {
-        return `error: ${response.toString()}`;
-      });
-  };
 
   getConversationHistory = (channel: string): Promise<ChannelMessages> => {
     return this.client

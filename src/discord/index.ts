@@ -1,7 +1,7 @@
 import * as vscode from "vscode";
 import * as Discord from "discord.js";
 import {
-  IStore,
+  IManager,
   IChatProvider,
   CurrentUser,
   UserPreferences,
@@ -11,8 +11,9 @@ import {
   ChannelType,
   ChannelMessages,
   Message,
-  MessageContent
-} from "../interfaces";
+  MessageContent,
+  Providers
+} from "../types";
 import ConfigHelper from "../config";
 import { SelfCommands } from "../constants";
 import { toTitleCase } from "../utils";
@@ -98,16 +99,12 @@ export class DiscordChatProvider implements IChatProvider {
   mutedChannels: Set<string> = new Set([]);
   imChannels: Channel[] = [];
 
-  constructor(private store: IStore) {}
+  constructor(private manager: IManager) {}
 
   async getToken(): Promise<string> {
     // When this starts using OAuth, we need to manage refresh tokens here
     this.token = await ConfigHelper.getToken("discord");
     return Promise.resolve(this.token);
-  }
-
-  getAuthTest(): Promise<string> {
-    return Promise.resolve("not implemented");
   }
 
   connect(): Promise<CurrentUser> {
@@ -126,7 +123,7 @@ export class DiscordChatProvider implements IChatProvider {
           token: this.token,
           teams,
           currentTeamId: undefined,
-          provider: "discord"
+          provider: Providers.discord
         };
         resolve(currentUser);
       });
@@ -221,7 +218,8 @@ export class DiscordChatProvider implements IChatProvider {
   }
 
   getCurrentGuild(): Discord.Guild {
-    const { currentTeamId } = this.store.currentUserInfo;
+    const { currentUserInfo } = this.manager.store;
+    const { currentTeamId } = currentUserInfo;
     return this.client.guilds.find(guild => guild.id === currentTeamId);
   }
 
@@ -285,11 +283,12 @@ export class DiscordChatProvider implements IChatProvider {
         }
       });
 
+    const { currentUserInfo } = this.manager.store;
     const guildChannels: Channel[] = guild.channels
       .filter(channel => channel.type !== "category")
       .filter(channel => {
         return channel
-          .permissionsFor(this.store.currentUserInfo.id)
+          .permissionsFor(currentUserInfo.id)
           .has(Discord.Permissions.FLAGS.VIEW_CHANNEL);
       })
       .map(channel => {

@@ -1,7 +1,7 @@
 import * as vscode from "vscode";
 import * as str from "./strings";
 import { SelfCommands } from "./constants";
-import { EventSource } from "./interfaces";
+import { EventSource } from "./types";
 import { hasExtensionPack, openUrl } from "./utils";
 import IssueReporter from "./issues";
 

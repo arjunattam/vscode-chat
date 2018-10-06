@@ -6,8 +6,9 @@ import {
   ChannelMessages,
   CurrentUser,
   Users,
-  MessageReply
-} from "../interfaces";
+  MessageReply,
+  Providers
+} from "../types";
 import { SelfCommands } from "../constants";
 
 const RTMEvents = {
@@ -181,7 +182,7 @@ class SlackMessenger {
             name,
             teams: [{ id: teamId, name: teamName }],
             currentTeamId: teamId,
-            provider: "slack"
+            provider: Providers.slack
           });
         }
       });

@@ -9,7 +9,7 @@ import {
   Users,
   Channel,
   CurrentUser
-} from "../interfaces";
+} from "../types";
 
 const SAME_GROUP_TIME = 5 * 60; // seconds
 

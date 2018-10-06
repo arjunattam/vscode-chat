@@ -1,5 +1,5 @@
 import * as EmojiConvertor from "emoji-js";
-import { UIMessage, ChannelMessages } from "../interfaces";
+import { UIMessage, ChannelMessages } from "../types";
 import * as str from "../strings";
 const MarkdownIt = require("markdown-it");
 const markdownItSlack = require("markdown-it-slack");

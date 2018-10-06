@@ -2,7 +2,7 @@ import * as vscode from "vscode";
 import * as Mixpanel from "mixpanel";
 import { MIXPANEL_TOKEN, VSLS_EXTENSION_PACK_ID } from "./constants";
 import ConfigHelper from "./config";
-import { TelemetryEvent, IStore, EventType, EventSource } from "./interfaces";
+import { TelemetryEvent, IManager, EventType, EventSource } from "./types";
 import { getVersions, Versions, getExtension } from "./utils";
 
 const BATCH_SIZE = 10;
@@ -17,8 +17,9 @@ export default class Reporter implements vscode.Disposable {
   private pendingEvents: TelemetryEvent[] = [];
   private interval: NodeJS.Timer;
 
-  constructor(private store: IStore) {
-    this.uniqueId = this.store.installationId;
+  constructor(private manager: IManager) {
+    const { installationId } = this.manager.store;
+    this.uniqueId = installationId;
     this.versions = getVersions();
 
     if (process.env.IS_DEBUG !== "true") {
@@ -58,7 +59,7 @@ export default class Reporter implements vscode.Disposable {
     let channelType = undefined;
 
     if (!!channelId) {
-      const channel = this.store.getChannel(channelId);
+      const channel = this.manager.getChannel(channelId);
       channelType = !!channel ? channel.type : undefined;
     }
 
@@ -91,8 +92,8 @@ export default class Reporter implements vscode.Disposable {
         os_version: os,
         editor_version: editor,
         has_extension_pack: this.hasExtensionPack,
-        is_authenticated: this.store.isAuthenticated(),
-        provider: this.store.getSelectedProvider(),
+        is_authenticated: this.manager.isAuthenticated(),
+        provider: this.manager.getSelectedProvider(),
         ...properties,
         time
       }

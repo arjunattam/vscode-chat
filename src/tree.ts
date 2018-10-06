@@ -11,7 +11,7 @@ import {
   Users,
   CurrentUser,
   ChannelType
-} from "./interfaces";
+} from "./types";
 
 interface ChatTreeNode {
   label: string;

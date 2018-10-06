@@ -1,6 +1,6 @@
 import * as vscode from "vscode";
 import { SelfCommands } from "./constants";
-import { EventSource } from "./interfaces";
+import { EventSource } from "./types";
 
 const OCTICON = "$(comment-discussion)";
 const BASE_COMMAND = SelfCommands.CHANGE_CHANNEL;

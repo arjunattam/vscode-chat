@@ -12,7 +12,7 @@ import {
   ChannelMessages,
   UserPreferences,
   CurrentUser
-} from "../interfaces";
+} from "../types";
 
 const stripLinkSymbols = (text: string): string => {
   // To send out live share links and render them correctly,
@@ -39,12 +39,6 @@ export class SlackChatProvider implements IChatProvider {
     this.token = await ConfigHelper.getToken("slack");
     this.client = new SlackAPIClient(this.token);
     return this.token;
-  }
-
-  getAuthTest(): Promise<string> {
-    if (!!this.client) {
-      return this.client.getAuthTest();
-    }
   }
 
   connect(): Promise<CurrentUser> {
