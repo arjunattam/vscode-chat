@@ -1,5 +1,6 @@
 import * as vscode from "vscode";
 import * as Discord from "discord.js";
+import * as rp from "request-promise-native";
 import {
   IManager,
   IChatProvider,
@@ -105,6 +106,26 @@ export class DiscordChatProvider implements IChatProvider {
     // When this starts using OAuth, we need to manage refresh tokens here
     this.token = await ConfigHelper.getToken("discord");
     return Promise.resolve(this.token);
+  }
+
+  async validateToken(token: string): Promise<CurrentUser> {
+    const response = await rp({
+      baseUrl: `https://discordapp.com/api/v6`,
+      uri: `/users/@me`,
+      json: true,
+      headers: {
+        Authorization: `${token}`
+      }
+    });
+    const { id, username: name } = response;
+    return {
+      id,
+      name,
+      token,
+      teams: [],
+      currentTeamId: undefined,
+      provider: Providers.discord
+    };
   }
 
   connect(): Promise<CurrentUser> {

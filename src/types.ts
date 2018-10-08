@@ -1,5 +1,6 @@
 export interface IChatProvider {
   getToken: () => Promise<string>;
+  validateToken: (token: string) => Promise<CurrentUser>;
   fetchUsers: () => Promise<Users>;
   fetchUserInfo: (userId: string) => Promise<User>;
   fetchChannels: (users: Users) => Promise<Channel[]>;
@@ -24,7 +25,6 @@ export interface IChatProvider {
   subscribePresence: (users: Users) => void;
   createIMChannel: (user: User) => Promise<Channel>;
   destroy: () => Promise<void>;
-  // validateToken: (token: string) => Promise<boolean>;
 }
 
 export interface User {

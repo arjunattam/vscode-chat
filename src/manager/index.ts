@@ -16,22 +16,21 @@ import {
   MessageReply,
   MessageReplies,
   Providers
-} from "./types";
-import StatusItem from "./status";
-import Logger from "./logger";
-import { getExtensionVersion, isSuperset, difference } from "./utils";
-import { DiscordChatProvider } from "./discord";
-import { SlackChatProvider } from "./slack";
-import { Store } from "./store";
+} from "../types";
+import StatusItem from "../status";
+import Logger from "../logger";
 import {
-  UnreadsTreeProvider,
-  ChannelTreeProvider,
-  GroupTreeProvider,
-  IMsTreeProvider,
-  OnlineUsersTreeProvider
-} from "./tree";
-import { OnboardingTreeProvider } from "./onboarding";
-import { SelfCommands } from "./constants";
+  getExtensionVersion,
+  isSuperset,
+  difference,
+  setVsContext
+} from "../utils";
+import { DiscordChatProvider } from "../discord";
+import { SlackChatProvider } from "../slack";
+import { Store } from "../store";
+import { OnboardingTreeProvider } from "../onboarding";
+import { TreeViewManager } from "./tree";
+import { SelfCommands } from "../constants";
 
 export default class Manager implements IManager, vscode.Disposable {
   token: string;
@@ -39,16 +38,12 @@ export default class Manager implements IManager, vscode.Disposable {
   currentUserPrefs: UserPreferences = {};
   usersFetchedAt: Date;
   messages: Messages = {};
-  statusItem: StatusItem;
-
-  unreadsTreeProvider: UnreadsTreeProvider;
-  channelsTreeProvider: ChannelTreeProvider;
-  imsTreeProvider: IMsTreeProvider;
-  groupsTreeProvider: GroupTreeProvider;
-  usersTreeProvider: OnlineUsersTreeProvider;
-  onboardingTreeProvider: OnboardingTreeProvider;
 
   chatProvider: IChatProvider;
+
+  statusItem: StatusItem;
+  onboardingTreeProvider: OnboardingTreeProvider;
+  treeManager: TreeViewManager;
 
   constructor(public store: Store) {
     this.statusItem = new StatusItem();
@@ -80,28 +75,31 @@ export default class Manager implements IManager, vscode.Disposable {
     return !!currentUserInfo ? currentUserInfo.provider : undefined;
   }
 
+  getChatProvider(provider: string): IChatProvider {
+    switch (provider) {
+      case "discord":
+        return new DiscordChatProvider(this);
+      case "slack":
+        return new SlackChatProvider();
+    }
+  }
+
+  async validateToken(provider: string, token: string) {
+    const chatProvider = this.getChatProvider(provider);
+    const currentUser = await chatProvider.validateToken(token);
+    return currentUser;
+  }
+
   initializeToken = async (selectedProvider?: string) => {
     if (!selectedProvider) {
       selectedProvider = this.getSelectedProvider();
     }
 
     const ALL_PROVIDERS = ["slack", "discord"];
-
-    switch (selectedProvider) {
-      case "discord":
-        this.chatProvider = new DiscordChatProvider(this);
-        break;
-      case "slack":
-        this.chatProvider = new SlackChatProvider();
-        break;
-    }
+    this.chatProvider = this.getChatProvider(selectedProvider);
 
     if (!!selectedProvider) {
-      this.usersTreeProvider = new OnlineUsersTreeProvider(selectedProvider);
-      this.unreadsTreeProvider = new UnreadsTreeProvider(selectedProvider);
-      this.channelsTreeProvider = new ChannelTreeProvider(selectedProvider);
-      this.groupsTreeProvider = new GroupTreeProvider(selectedProvider);
-      this.imsTreeProvider = new IMsTreeProvider(selectedProvider);
+      this.treeManager = new TreeViewManager(selectedProvider);
 
       if (!!this.onboardingTreeProvider) {
         this.onboardingTreeProvider.dispose();
@@ -114,11 +112,7 @@ export default class Manager implements IManager, vscode.Disposable {
     }
 
     ALL_PROVIDERS.forEach(provider => {
-      vscode.commands.executeCommand(
-        "setContext",
-        `chat:${provider}`,
-        provider === selectedProvider
-      );
+      setVsContext(`chat:${provider}`, provider === selectedProvider);
     });
   };
 
@@ -163,12 +157,14 @@ export default class Manager implements IManager, vscode.Disposable {
 
   dispose() {
     this.statusItem.dispose();
-    // TODO: tree providers can be null
-    this.unreadsTreeProvider.dispose();
-    this.channelsTreeProvider.dispose();
-    this.groupsTreeProvider.dispose();
-    this.imsTreeProvider.dispose();
-    this.usersTreeProvider.dispose();
+
+    if (!!this.treeManager) {
+      this.treeManager.dispose();
+    }
+
+    if (!!this.onboardingTreeProvider) {
+      this.onboardingTreeProvider.dispose();
+    }
   }
 
   isAuthenticated() {
@@ -279,11 +275,6 @@ export default class Manager implements IManager, vscode.Disposable {
   updateTreeViews() {
     if (this.isAuthenticated()) {
       const channelLabels = this.getChannelLabels();
-      this.unreadsTreeProvider.update(channelLabels);
-      this.channelsTreeProvider.update(channelLabels);
-      this.groupsTreeProvider.update(channelLabels);
-      this.imsTreeProvider.update(channelLabels);
-
       // We could possibly split this function for channel-updates and user-updates
       // to avoid extra UI refresh calls.
       const imChannels = {};
@@ -297,7 +288,12 @@ export default class Manager implements IManager, vscode.Disposable {
         }
       });
 
-      this.usersTreeProvider.updateData(currentUserInfo, users, imChannels);
+      this.treeManager.updateData(
+        channelLabels,
+        currentUserInfo,
+        users,
+        imChannels
+      );
     }
   }
 
@@ -427,11 +423,11 @@ export default class Manager implements IManager, vscode.Disposable {
     const { users } = this.store;
     return isNotEmpty(users)
       ? new Promise(resolve => {
-        if (this.shouldFetchNew(this.usersFetchedAt)) {
-          this.fetchUsers(); // async update
-        }
-        resolve(users);
-      })
+          if (this.shouldFetchNew(this.usersFetchedAt)) {
+            this.fetchUsers(); // async update
+          }
+          resolve(users);
+        })
       : this.fetchUsers();
   }
 
@@ -440,12 +436,12 @@ export default class Manager implements IManager, vscode.Disposable {
     const { channels } = this.store;
     return !!channels
       ? new Promise(resolve => {
-        if (this.shouldFetchNew(this.channelsFetchedAt)) {
-          this.fetchChannels(); // async update
-        }
+          if (this.shouldFetchNew(this.channelsFetchedAt)) {
+            this.fetchChannels(); // async update
+          }
 
-        resolve(channels);
-      })
+          resolve(channels);
+        })
       : this.fetchChannels();
   }
 

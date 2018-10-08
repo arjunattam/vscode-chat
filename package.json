@@ -232,6 +232,7 @@
     "@types/mixpanel": "^2.14.0",
     "@types/mocha": "^2.2.42",
     "@types/node": "^8.0.0",
+    "@types/request-promise-native": "^1.0.15",
     "@types/semver": "^5.5.0",
     "ts-mockito": "^2.3.1",
     "tsc-watch": "^1.0.22",

@@ -41,6 +41,13 @@ export class SlackChatProvider implements IChatProvider {
     return this.token;
   }
 
+  validateToken(token: string): Promise<CurrentUser> {
+    // This is creating a new client, since getToken from keychain
+    // is not called before validation
+    const client = new SlackAPIClient(token);
+    return client.authTest();
+  }
+
   connect(): Promise<CurrentUser> {
     this.messenger = new SlackMessenger(this.token);
     return this.messenger.start();

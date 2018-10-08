@@ -173,6 +173,7 @@ class SlackMessenger {
     return new Promise((resolve, reject) => {
       this.rtmClient.once(RTMEvents.AUTHENTICATED, response => {
         const { ok, team, self } = response;
+
         if (ok) {
           const { id, name } = self;
           const { id: teamId, name: teamName } = team;

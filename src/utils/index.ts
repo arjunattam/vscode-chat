@@ -15,6 +15,10 @@ export const openSettings = () => {
   vscode.commands.executeCommand(VSCodeCommands.OPEN_SETTINGS);
 };
 
+export const setVsContext = (name, value) => {
+  return vscode.commands.executeCommand("setContext", name, value);
+};
+
 export const getExtension = (extensionId): vscode.Extension<any> => {
   return vscode.extensions.getExtension(extensionId);
 };
@@ -43,7 +47,7 @@ export const hasExtensionPack = (): boolean => {
 };
 
 export function uuidv4(): string {
-  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function (c) {
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function(c) {
     var r = (Math.random() * 16) | 0,
       v = c == "x" ? r : (r & 0x3) | 0x8;
     return v.toString(16);
@@ -82,7 +86,7 @@ export function equals(setA, setB) {
 }
 
 export function toTitleCase(str) {
-  return str.replace(/\w\S*/g, function (txt) {
+  return str.replace(/\w\S*/g, function(txt) {
     return txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase();
   });
 }

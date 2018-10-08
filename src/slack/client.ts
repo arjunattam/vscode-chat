@@ -7,7 +7,9 @@ import {
   ChannelType,
   User,
   Message,
-  UserPreferences
+  UserPreferences,
+  CurrentUser,
+  Providers
 } from "../types";
 
 const HISTORY_LIMIT = 50;
@@ -59,7 +61,7 @@ export const getMessage = (raw: any): ChannelMessages => {
 export default class SlackAPIClient {
   client: WebClient;
 
-  constructor(token: string) {
+  constructor(private token: string) {
     let options: WebClientOptions = { retryConfig: { retries: 1 } };
     const customAgent = ConfigHelper.getCustomAgent();
 
@@ -69,6 +71,23 @@ export default class SlackAPIClient {
 
     this.client = new WebClient(token, options);
   }
+
+  authTest = async (): Promise<CurrentUser> => {
+    const response: any = await this.client.auth.test();
+    const { ok } = response;
+
+    if (ok) {
+      const { team, user, user_id, team_id } = response;
+      return {
+        token: this.token,
+        id: user_id,
+        name: user,
+        teams: [{ id: team_id, name: team }],
+        currentTeamId: team_id,
+        provider: Providers.slack
+      };
+    }
+  };
 
   getConversationHistory = (channel: string): Promise<ChannelMessages> => {
     return this.client

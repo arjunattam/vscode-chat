@@ -3,7 +3,7 @@ import * as vsls from "vsls/vscode";
 import ViewController from "./controller";
 import Manager from "./manager";
 import Logger from "./logger";
-import { Store } from './store'
+import { Store } from "./store";
 import * as str from "./strings";
 import { Channel, ChatArgs, EventType, EventSource } from "./types";
 import {
@@ -18,7 +18,7 @@ import {
 } from "./constants";
 import travis from "./bots/travis";
 import { ExtensionUriHandler } from "./uri";
-import { openUrl, getExtension, toTitleCase } from "./utils";
+import { openUrl, getExtension, toTitleCase, setVsContext } from "./utils";
 import { askForAuth } from "./onboarding";
 import ConfigHelper from "./config";
 import Reporter from "./telemetry";
@@ -33,7 +33,7 @@ const SUPPORTED_PROVIDERS = ["slack", "discord"];
 
 export function activate(context: vscode.ExtensionContext) {
   Logger.log("Activating vscode-chat");
-  store = new Store(context)
+  store = new Store(context);
   manager = new Manager(store);
   reporter = new Reporter(manager);
 
@@ -213,6 +213,7 @@ export function activate(context: vscode.ExtensionContext) {
     const { teams } = currentUserInfo;
     const placeHolder = str.CHANGE_WORKSPACE_TITLE;
     const labels = teams.map(t => t.name);
+
     return vscode.window
       .showQuickPick([...labels], { placeHolder })
       .then(selected => {
@@ -333,32 +334,47 @@ export function activate(context: vscode.ExtensionContext) {
   const setVslsContext = () => {
     const vsls = getExtension(VSLS_EXTENSION_ID);
     const isEnabled = !!vsls;
-    vscode.commands.executeCommand("setContext", "chat:vslsEnabled", isEnabled);
+    setVsContext("chat:vslsEnabled", isEnabled);
   };
 
-  const askForProvider = () => {
-    return vscode.window
-      .showQuickPick(SUPPORTED_PROVIDERS.map(name => toTitleCase(name)), {
-        placeHolder: str.CHANGE_PROVIDER_TITLE
-      })
-      .then(selected => (!!selected ? selected.toLowerCase() : undefined));
+  const askForProvider = async () => {
+    const values = SUPPORTED_PROVIDERS.map(name => toTitleCase(name));
+    const selection = await vscode.window.showQuickPick(values, {
+      placeHolder: str.CHANGE_PROVIDER_TITLE
+    });
+    return !!selection ? selection.toLowerCase() : undefined;
   };
 
   const configureToken = async () => {
     reporter.record(EventType.tokenConfigured, EventSource.command, undefined);
-    const selectedProvider = await askForProvider();
+    const provider = await askForProvider();
 
-    if (!!selectedProvider) {
-      return vscode.window
-        .showInputBox({
-          placeHolder: str.TOKEN_PLACEHOLDER,
-          password: true
-        })
-        .then(input => {
-          if (!!input) {
-            return ConfigHelper.setToken(input, selectedProvider);
+    if (!!provider) {
+      const inputToken = await vscode.window.showInputBox({
+        placeHolder: str.TOKEN_PLACEHOLDER,
+        password: true
+      });
+
+      if (!!inputToken) {
+        try {
+          await manager.validateToken(provider, inputToken);
+        } catch (error) {
+          const actionItems = [str.REPORT_ISSUE];
+          const messageResult = await vscode.window.showErrorMessage(
+            str.INVALID_TOKEN(toTitleCase(provider)),
+            ...actionItems
+          );
+
+          if (!!messageResult && messageResult === str.REPORT_ISSUE) {
+            const issue = `[${provider}] Invalid token`;
+            IssueReporter.openNewIssue(issue, "");
           }
-        });
+
+          return;
+        }
+
+        return ConfigHelper.setToken(inputToken, provider);
+      }
     }
   };
 
@@ -495,4 +511,4 @@ export function activate(context: vscode.ExtensionContext) {
   );
 }
 
-export function deactivate() { }
+export function deactivate() {}
