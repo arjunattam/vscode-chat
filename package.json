@@ -2,7 +2,7 @@
   "name": "chat",
   "displayName": "Team Chat – for Slack and Discord",
   "description": "Send and receive chat messages inside VSCode",
-  "version": "0.6.2",
+  "version": "0.6.3",
   "homepage": "https://github.com/karigari/vscode-chat",
   "license": "SEE LICENSE IN LICENSE",
   "repository": {
