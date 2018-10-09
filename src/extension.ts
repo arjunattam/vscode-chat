@@ -117,44 +117,39 @@ export function activate(context: vscode.ExtensionContext) {
     }
   };
 
-  const askForChannel = (): Promise<Channel> => {
-    return setup({ canPromptForAuth: true, provider: undefined }).then(() => {
-      let channelList = manager
-        .getChannelLabels()
-        .sort((a, b) => b.unread - a.unread);
+  const askForChannel = async (): Promise<Channel> => {
+    await setup({ canPromptForAuth: true, provider: undefined });
+    let channelList = manager
+      .getChannelLabels()
+      .sort((a, b) => b.unread - a.unread);
 
-      const placeHolder = str.CHANGE_CHANNEL_TITLE;
-      const qpickItems: vscode.QuickPickItem[] = channelList.map(
-        channelLabel => ({
-          label: channelLabel.label,
-          description: channelLabel.channel.categoryName
-        })
+    const qpickItems: vscode.QuickPickItem[] = channelList.map(
+      channelLabel => ({
+        label: channelLabel.label,
+        description: channelLabel.channel.categoryName
+      })
+    );
+    const selected = await vscode.window.showQuickPick(
+      [...qpickItems, { label: str.RELOAD_CHANNELS }],
+      { placeHolder: str.CHANGE_CHANNEL_TITLE }
+    );
+
+    if (!!selected) {
+      if (selected.label === str.RELOAD_CHANNELS) {
+        await manager.fetchUsers();
+        await manager.fetchChannels();
+        return askForChannel();
+      }
+
+      const selectedChannelLabel = channelList.find(
+        x =>
+          x.label === selected.label &&
+          x.channel.categoryName === selected.description
       );
-
-      return vscode.window
-        .showQuickPick([...qpickItems, { label: str.RELOAD_CHANNELS }], {
-          placeHolder
-        })
-        .then(selected => {
-          if (selected) {
-            if (selected.label === str.RELOAD_CHANNELS) {
-              return manager
-                .fetchUsers()
-                .then(() => manager.fetchChannels())
-                .then(() => askForChannel());
-            }
-
-            const selectedChannelLabel = channelList.find(
-              x =>
-                x.label === selected.label &&
-                x.channel.categoryName === selected.description
-            );
-            const { channel } = selectedChannelLabel;
-            manager.store.updateLastChannelId(channel.id);
-            return channel;
-          }
-        });
-    });
+      const { channel } = selectedChannelLabel;
+      manager.store.updateLastChannelId(channel.id);
+      return channel;
+    }
   };
 
   const getChatChannelId = (args?: ChatArgs): Promise<string> => {

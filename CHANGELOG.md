@@ -2,6 +2,14 @@
 
 All notable changes to the vscode-chat extension will be documented in this file. This follows the [Keep a Changelog](http://keepachangelog.com/) format.
 
+## [0.6.3] - 2018-10-09
+
+### Added
+
+- Added token validation for manual entry for Slack and Discord tokens.
+- Keychain access operations can now be retried in case access is denied.
+- Added workspace name to the status item notification.
+
 ## [0.6.2] - 2018-09-28
 
 ### Fixed

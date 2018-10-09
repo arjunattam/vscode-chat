@@ -4,7 +4,7 @@ export const CHANGE_WORKSPACE_TITLE = "Select a workspace";
 
 export const CHANGE_PROVIDER_TITLE = "Select a provider";
 
-export const RELOAD_CHANNELS = "Reload Channels";
+export const RELOAD_CHANNELS = "Reload Channels...";
 
 export const TOKEN_NOT_FOUND = "Setup Team Chat to work for your account.";
 
@@ -13,6 +13,11 @@ export const SETUP_SLACK = "Setup Slack";
 export const SETUP_DISCORD = "Setup Discord";
 
 export const REPORT_ISSUE = "Report issue";
+
+export const RETRY = "Retry";
+
+export const KEYCHAIN_ERROR =
+  "The Team Chat extension is unable to access the system keychain.";
 
 export const TOKEN_PLACEHOLDER = "Paste token here";
 

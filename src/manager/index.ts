@@ -297,11 +297,25 @@ export default class Manager implements IManager, vscode.Disposable {
     }
   }
 
+  getCurrentWorkspaceName = () => {
+    const { currentUserInfo } = this.store;
+
+    if (!!currentUserInfo) {
+      const { teams, currentTeamId } = currentUserInfo;
+
+      if (!!currentTeamId) {
+        const team = teams.find(team => team.id === currentTeamId);
+        return team.name;
+      }
+    }
+  };
+
   updateUnreadCount() {
     const { channels } = this.store;
     const unreads = channels.map(channel => this.getUnreadCount(channel));
     const totalUnreads = unreads.reduce((a, b) => a + b, 0);
-    this.statusItem.updateCount(totalUnreads);
+    const workspaceName = this.getCurrentWorkspaceName();
+    this.statusItem.updateCount(totalUnreads, workspaceName);
   }
 
   updateUserPresence = (userId: string, isOnline: boolean) => {

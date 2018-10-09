@@ -28,9 +28,9 @@ export default class StatusItem {
     this.item.command = COMPOUND_COMMAND;
   }
 
-  updateCount(unreads: number) {
+  updateCount(unreads: number, workspaceName: string) {
     this.unreadCount = unreads;
-    this.item.text = `${OCTICON} ${unreads} new`;
+    this.item.text = `${OCTICON} ${workspaceName}: ${unreads} new`;
     return this.unreadCount > 0 ? this.show() : this.hide();
   }
 
