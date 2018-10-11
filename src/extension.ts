@@ -23,7 +23,7 @@ import { askForAuth } from "./onboarding";
 import ConfigHelper from "./config";
 import Reporter from "./telemetry";
 import IssueReporter from "./issues";
-import { VSLS_CHANNEL_ID } from "./vsls/utils";
+import { VSLS_CHANNEL } from "./vsls/utils";
 
 let store: Store;
 let manager: Manager;
@@ -392,9 +392,17 @@ export function activate(context: vscode.ExtensionContext) {
   };
 
   const startVslsChat = async () => {
-    await reset("vsls");
-    // Need to set the last channel to the default value to skip user prompt
-    manager.store.lastChannelId = VSLS_CHANNEL_ID;
+    // Resume on existing VS Live Share chat if possible
+    const isResumable =
+      manager.getSelectedProvider() === "vsls" &&
+      manager.chatProvider.isConnected();
+
+    if (!isResumable) {
+      await reset("vsls");
+      // Need to set the last channel to the default value to skip user prompt
+      manager.store.lastChannelId = VSLS_CHANNEL.id;
+    }
+
     await openChatPanel();
   };
 

@@ -1,9 +1,13 @@
 import * as vsls from "vsls/vscode";
+import * as gravatar from "gravatar-api";
 import { User, Message } from "../types";
 
 export const VSLS_SERVICE_NAME = "vsls-chat-1";
 
-export const VSLS_CHANNEL_ID = "vsls-channel-id";
+export const VSLS_CHANNEL = {
+  id: "vsls-channel-id",
+  name: "Live Share Chat"
+};
 
 export type VslsChatMessage = {
   userId: string;
@@ -17,9 +21,13 @@ export const toBaseMessage = (raw: VslsChatMessage): Message => {
 
 export const toBaseUser = (peer: vsls.Peer): User => {
   const { peerNumber } = peer;
-  const { displayName } = peer.user;
-  const avatarId = `${displayName}${peerNumber.toString()}`;
-  const avatar = `http://tinygraphs.com/squares/${avatarId}?theme=seascape&numcolors=3&size=220&fmt=svg`;
+  const { displayName, emailAddress } = peer.user;
+  const avatar = gravatar.imageUrl({
+    email: emailAddress,
+    parameters: { size: "200", d: "retro" },
+    secure: true
+  });
+
   return {
     id: peerNumber.toString(),
     name: displayName,
@@ -31,7 +39,10 @@ export const toBaseUser = (peer: vsls.Peer): User => {
 };
 
 export const REQUEST_NAME = {
-  message: "message"
+  message: "message",
+  fetchUsers: "fetch_users",
+  fetchUserInfo: "fetch_user_info",
+  fetchMessages: "fetch_messages"
 };
 
 export const NOTIFICATION_NAME = {

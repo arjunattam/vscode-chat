@@ -12,7 +12,7 @@ import {
   Providers,
   ChannelType
 } from "../types";
-import { VSLS_SERVICE_NAME, toBaseUser } from "./utils";
+import { VSLS_SERVICE_NAME, VSLS_CHANNEL } from "./utils";
 import { VslsHostService } from "./host";
 import { VslsGuestService } from "./guest";
 
@@ -25,15 +25,16 @@ export class VslsChatProvider implements IChatProvider {
 
   async connect(): Promise<CurrentUser> {
     this.liveshare = await vsls.getApiAsync();
-    console.log("session", this.liveshare.session);
     const { peerNumber, user, role, id: sessionId } = this.liveshare.session;
 
-    this.liveshare.onDidChangePeers(event => {
-      console.log("peers change", event);
+    this.liveshare.onDidChangePeers(({ added, removed }) => {
+      console.log("Peers added", added);
+      console.log("Peers removed", removed);
     });
 
-    this.liveshare.onDidChangeSession(event => {
-      console.log("session change", event);
+    this.liveshare.onDidChangeSession(({ session }) => {
+      const isActive = !!session.id;
+      console.log("session", isActive);
     });
 
     if (!!sessionId) {
@@ -74,32 +75,26 @@ export class VslsChatProvider implements IChatProvider {
   }
 
   fetchUsers(): Promise<Users> {
-    const users: Users = {};
-    const currentUser = toBaseUser(this.liveshare.session);
-    users[currentUser.id] = currentUser;
+    if (!!this.liveshare) {
+      const { role } = this.liveshare.session;
 
-    this.liveshare.peers.map(peer => {
-      const user: User = toBaseUser(peer);
-      users[user.id] = user;
-    });
-
-    return Promise.resolve(users);
+      if (role === vsls.Role.Host) {
+        return this.hostService.fetchUsers();
+      } else if (role === vsls.Role.Guest) {
+        return this.guestService.fetchUsers();
+      }
+    }
   }
 
   fetchUserInfo(userId: string): Promise<User> {
-    const peer = this.liveshare.peers.find(
-      peer => peer.peerNumber.toString() === userId
-    );
+    if (!!this.liveshare) {
+      const { role } = this.liveshare.session;
 
-    if (!!peer) {
-      return Promise.resolve({
-        id: peer.peerNumber.toString(),
-        name: peer.user.displayName,
-        fullName: peer.user.displayName,
-        imageUrl: "",
-        smallImageUrl: "",
-        isOnline: true
-      });
+      if (role === vsls.Role.Host) {
+        return this.hostService.fetchUserInfo(userId);
+      } else if (role === vsls.Role.Guest) {
+        return this.guestService.fetchUserInfo(userId);
+      }
     }
   }
 
@@ -118,8 +113,15 @@ export class VslsChatProvider implements IChatProvider {
   }
 
   loadChannelHistory(channelId: string): Promise<ChannelMessages> {
-    // TODO: host can pull out from cache, guest can request for it
-    return Promise.resolve({});
+    if (!!this.liveshare) {
+      const { role } = this.liveshare.session;
+
+      if (role === vsls.Role.Host) {
+        return this.hostService.fetchMessagesHistory();
+      } else if (role === vsls.Role.Guest) {
+        return this.guestService.fetchMessagesHistory();
+      }
+    }
   }
 
   destroy(): Promise<void> {
@@ -138,8 +140,8 @@ export class VslsChatProvider implements IChatProvider {
 
   fetchChannels(users: Users): Promise<Channel[]> {
     const defaultChannel: Channel = {
-      id: "vsls-channel-id",
-      name: "vsls-channel-name",
+      id: VSLS_CHANNEL.id,
+      name: VSLS_CHANNEL.name,
       type: ChannelType.channel,
       readTimestamp: undefined,
       unreadCount: 0

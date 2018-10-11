@@ -5,6 +5,7 @@ import {
   VslsChatMessage,
   NOTIFICATION_NAME
 } from "./utils";
+import { User, Users, ChannelMessages } from "../types";
 import { VslsBaseService } from "./base";
 
 export class VslsGuestService extends VslsBaseService {
@@ -15,10 +16,8 @@ export class VslsGuestService extends VslsBaseService {
       VSLS_SERVICE_NAME
     );
 
-    console.log("proxy", this.serviceProxy.isServiceAvailable);
-
-    this.serviceProxy.onDidChangeIsServiceAvailable(event => {
-      console.log("change proxy", event);
+    this.serviceProxy.onDidChangeIsServiceAvailable(async nowAvailable => {
+      console.log("Availability changed to ", nowAvailable);
     });
 
     this.serviceProxy.onNotify(
@@ -35,13 +34,44 @@ export class VslsGuestService extends VslsBaseService {
     return false;
   }
 
+  async fetchUsers(): Promise<Users> {
+    if (this.serviceProxy.isServiceAvailable) {
+      const response = await this.serviceProxy.request(
+        REQUEST_NAME.fetchUsers,
+        []
+      );
+      return response;
+    }
+  }
+
+  async fetchUserInfo(userId: string): Promise<User> {
+    if (this.serviceProxy.isServiceAvailable) {
+      const response = await this.serviceProxy.request(
+        REQUEST_NAME.fetchUserInfo,
+        [userId]
+      );
+      return response;
+    }
+  }
+
+  async fetchMessagesHistory(): Promise<ChannelMessages> {
+    if (this.serviceProxy.isServiceAvailable) {
+      const response = await this.serviceProxy.request(
+        REQUEST_NAME.fetchMessages,
+        []
+      );
+      return response;
+    }
+  }
+
   async sendMessage(text: string, userId: string, channelId: string) {
-    console.log("sending", text, userId);
     const payload = { text, userId };
 
     try {
-      await this.serviceProxy.request(REQUEST_NAME.message, [payload]);
-      return Promise.resolve();
+      if (this.serviceProxy.isServiceAvailable) {
+        await this.serviceProxy.request(REQUEST_NAME.message, [payload]);
+        return Promise.resolve();
+      }
     } catch (error) {
       console.log("sending error", error);
     }
