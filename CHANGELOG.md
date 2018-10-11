@@ -2,6 +2,12 @@
 
 All notable changes to the vscode-chat extension will be documented in this file. This follows the [Keep a Changelog](http://keepachangelog.com/) format.
 
+## [0.7.0] - 2018-10-11
+
+### Added
+
+- Chat with VS Live Share session participants, without relying on a chat backend like Slack/Discord. To use this, start a Live Share session and run the `Chat with VS Live Share participants` command.
+
 ## [0.6.3] - 2018-10-09
 
 ### Added

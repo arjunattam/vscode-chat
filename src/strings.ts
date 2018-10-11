@@ -35,3 +35,9 @@ export const LIVE_REQUEST_MESSAGE = "wants to start a Live Share session";
 
 export const LIVE_SHARE_INVITE = name =>
   `${name} has invited you to a Live Share collaboration session.`;
+
+export const LIVE_SHARE_CHAT_NO_SESSION =
+  "Chat requires an active VS Live Share collaboration session.";
+
+export const LIVE_SHARE_CHAT_NOT_INITIATED =
+  "The Live Share session host has not initiated chat.";

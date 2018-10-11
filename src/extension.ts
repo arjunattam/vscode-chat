@@ -392,6 +392,15 @@ export function activate(context: vscode.ExtensionContext) {
   };
 
   const startVslsChat = async () => {
+    // Verify that we have an ongoing Live Share session
+    const liveshare = await vsls.getApiAsync();
+    const hasSession = !!liveshare && !!liveshare.session.id;
+
+    if (!hasSession) {
+      vscode.window.showInformationMessage(str.LIVE_SHARE_CHAT_NO_SESSION);
+      return;
+    }
+
     // Resume on existing VS Live Share chat if possible
     const isResumable =
       manager.getSelectedProvider() === "vsls" &&

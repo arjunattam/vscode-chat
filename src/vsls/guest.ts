@@ -1,4 +1,6 @@
+import * as vscode from "vscode";
 import * as vsls from "vsls/vscode";
+import * as str from "../strings";
 import {
   VSLS_SERVICE_NAME,
   REQUEST_NAME,
@@ -15,6 +17,10 @@ export class VslsGuestService extends VslsBaseService {
     this.serviceProxy = await this.liveshare.getSharedService(
       VSLS_SERVICE_NAME
     );
+
+    if (!this.serviceProxy.isServiceAvailable) {
+      vscode.window.showWarningMessage(str.LIVE_SHARE_CHAT_NOT_INITIATED);
+    }
 
     this.serviceProxy.onDidChangeIsServiceAvailable(async nowAvailable => {
       console.log("Availability changed to ", nowAvailable);
