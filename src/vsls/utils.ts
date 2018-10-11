@@ -42,7 +42,8 @@ export const REQUEST_NAME = {
   message: "message",
   fetchUsers: "fetch_users",
   fetchUserInfo: "fetch_user_info",
-  fetchMessages: "fetch_messages"
+  fetchMessages: "fetch_messages",
+  registerGuest: "register_guest"
 };
 
 export const NOTIFICATION_NAME = {

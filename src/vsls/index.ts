@@ -28,8 +28,9 @@ export class VslsChatProvider implements IChatProvider {
     const { peerNumber, user, role, id: sessionId } = this.liveshare.session;
 
     this.liveshare.onDidChangePeers(({ added, removed }) => {
-      console.log("Peers added", added);
-      console.log("Peers removed", removed);
+      if (!!this.hostService) {
+        this.hostService.updateCachedPeers(added, removed);
+      }
     });
 
     this.liveshare.onDidChangeSession(({ session }) => {

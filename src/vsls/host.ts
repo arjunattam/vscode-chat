@@ -13,6 +13,7 @@ import { VslsBaseService } from "./base";
 export class VslsHostService extends VslsBaseService {
   messages: { [timestamp: string]: VslsChatMessage } = {};
   sharedService: vsls.SharedService;
+  cachedPeers: vsls.Peer[] = [];
 
   async initialize() {
     this.sharedService = await this.liveshare.shareService(VSLS_SERVICE_NAME);
@@ -43,6 +44,13 @@ export class VslsHostService extends VslsBaseService {
     this.sharedService.onRequest(REQUEST_NAME.fetchMessages, () => {
       return this.fetchMessagesHistory();
     });
+
+    this.sharedService.onRequest(REQUEST_NAME.registerGuest, payload => {
+      if (!!payload) {
+        const { peer } = payload[0];
+        return this.updateCachedPeers([peer], []);
+      }
+    });
   }
 
   isConnected() {
@@ -66,7 +74,7 @@ export class VslsHostService extends VslsBaseService {
     return Promise.resolve(users);
   }
 
-  fetchUserInfo(userId: string): Promise<User> {
+  async fetchUserInfo(userId: string): Promise<User> {
     // userId could be current user or one of the peers
     if (!!this.liveshare) {
       const { peerNumber } = this.liveshare.session;
@@ -81,6 +89,17 @@ export class VslsHostService extends VslsBaseService {
 
       if (!!peer) {
         return Promise.resolve(toBaseUser(peer));
+      }
+
+      // Finally, let's check cached peers
+      // In some cases, vsls seems to be returning stale data, and
+      // so we cache whatever we know locally.
+      const cachedPeer = this.cachedPeers.find(
+        peer => peer.peerNumber.toString() === userId
+      );
+
+      if (!!cachedPeer) {
+        return Promise.resolve(toBaseUser(cachedPeer));
       }
     }
   }
@@ -108,5 +127,14 @@ export class VslsHostService extends VslsBaseService {
   sendMessage(text: string, userId: string, channelId: string) {
     this.broadcastMessage(userId, text);
     return Promise.resolve();
+  }
+
+  updateCachedPeers(addedPeers: vsls.Peer[], removedPeers: vsls.Peer[]) {
+    const updated = [...this.cachedPeers, ...addedPeers, ...removedPeers];
+    const uniquePeers = updated.filter(
+      (peer, index, self) =>
+        index === self.findIndex(t => t.peerNumber === peer.peerNumber)
+    );
+    this.cachedPeers = uniquePeers;
   }
 }

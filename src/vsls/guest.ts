@@ -24,12 +24,29 @@ export class VslsGuestService extends VslsBaseService {
 
     this.serviceProxy.onDidChangeIsServiceAvailable(async nowAvailable => {
       console.log("Availability changed to ", nowAvailable);
+
+      if (nowAvailable) {
+        this.registerSelf();
+      }
     });
 
     this.serviceProxy.onNotify(
       NOTIFICATION_NAME.message,
       (msg: VslsChatMessage) => this.updateMessages(msg)
     );
+
+    if (this.serviceProxy.isServiceAvailable) {
+      this.registerSelf();
+    }
+  }
+
+  registerSelf() {
+    // The host is not able to identify peers, because liveshare.peers
+    // apparently returns stale data. Till then, we will use a registration
+    // mechanism whenever a guest connects to the shared service
+    const { peerNumber, user, role, access } = this.liveshare.session;
+    const peer: vsls.Peer = { peerNumber, user, role, access };
+    this.serviceProxy.request(REQUEST_NAME.registerGuest, [{ peer }]);
   }
 
   isConnected() {
