@@ -23,11 +23,12 @@ import { askForAuth } from "./onboarding";
 import ConfigHelper from "./config";
 import Reporter from "./telemetry";
 import IssueReporter from "./issues";
+import { VSLS_CHANNEL_ID } from "./vsls/utils";
 
 let store: Store;
-let manager: Manager | undefined = undefined;
-let controller: ViewController | undefined = undefined;
-let reporter: Reporter | undefined = undefined;
+let manager: Manager;
+let controller: ViewController;
+let reporter: Reporter;
 
 const SUPPORTED_PROVIDERS = ["slack", "discord"];
 
@@ -203,20 +204,19 @@ export function activate(context: vscode.ExtensionContext) {
       .catch(error => console.error(error));
   };
 
-  const askForWorkspace = () => {
+  const askForWorkspace = async () => {
     const { currentUserInfo } = manager.store;
     const { teams } = currentUserInfo;
-    const placeHolder = str.CHANGE_WORKSPACE_TITLE;
     const labels = teams.map(t => t.name);
 
-    return vscode.window
-      .showQuickPick([...labels], { placeHolder })
-      .then(selected => {
-        if (!!selected) {
-          const selectedTeam = teams.find(t => t.name === selected);
-          return manager.updateCurrentWorkspace(selectedTeam);
-        }
-      });
+    const selected = await vscode.window.showQuickPick([...labels], {
+      placeHolder: str.CHANGE_WORKSPACE_TITLE
+    });
+
+    if (!!selected) {
+      const selectedTeam = teams.find(t => t.name === selected);
+      return manager.updateCurrentWorkspace(selectedTeam);
+    }
   };
 
   const changeWorkspace = async () => {
@@ -391,6 +391,13 @@ export function activate(context: vscode.ExtensionContext) {
     return IssueReporter.openNewIssue(title, body);
   };
 
+  const startVslsChat = async () => {
+    await reset("vsls");
+    // Need to set the last channel to the default value to skip user prompt
+    manager.store.lastChannelId = VSLS_CHANNEL_ID;
+    await openChatPanel();
+  };
+
   // Setup real-time messenger and updated local state
   setup({ canPromptForAuth: true, provider: undefined });
 
@@ -440,6 +447,10 @@ export function activate(context: vscode.ExtensionContext) {
     vscode.commands.registerCommand(
       SelfCommands.LIVE_SHARE_JOIN_PROMPT,
       ({ senderId, messageUri }) => promptVslsJoin(senderId, messageUri)
+    ),
+    vscode.commands.registerCommand(
+      SelfCommands.LIVE_SHARE_CHAT_START,
+      startVslsChat
     ),
     vscode.commands.registerCommand(SelfCommands.FETCH_REPLIES, fetchReplies),
     vscode.commands.registerCommand(

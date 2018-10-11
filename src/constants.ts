@@ -29,6 +29,7 @@ export const SelfCommands = {
   LIVE_SHARE_FROM_MENU: "extension.chat.startLiveShare",
   LIVE_SHARE_SLASH: "extension.chat.slashLiveShare",
   LIVE_SHARE_JOIN_PROMPT: "extension.chat.promptLiveShare",
+  LIVE_SHARE_CHAT_START: "extension.chat.startVslsChat",
   RESET_STORE: "extension.chat.reset",
   FETCH_REPLIES: "extension.chat.fetchReplies",
   UPDATE_MESSAGES: "extension.chat.updateMessages",

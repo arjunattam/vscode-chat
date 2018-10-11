@@ -90,19 +90,17 @@ export class SlackChatProvider implements IChatProvider {
     return this.client.getUserPrefs();
   }
 
-  markChannel(channel: Channel, timestamp: string): Promise<Channel> {
-    return this.client
-      .markChannel({ channel, ts: timestamp })
-      .then(response => {
-        const { ok } = response;
-        if (ok) {
-          return {
-            ...channel,
-            readTimestamp: timestamp,
-            unreadCount: 0
-          };
-        }
-      });
+  async markChannel(channel: Channel, timestamp: string): Promise<Channel> {
+    let response = await this.client.markChannel({ channel, ts: timestamp });
+    const { ok } = response;
+
+    if (ok) {
+      return {
+        ...channel,
+        readTimestamp: timestamp,
+        unreadCount: 0
+      };
+    }
   }
 
   fetchThreadReplies(channelId: string, timestamp: string): Promise<Message> {
@@ -127,7 +125,7 @@ export class SlackChatProvider implements IChatProvider {
     });
   }
 
-  sendMessage(text: string, currentUserId: string, channelId: string) {
+  async sendMessage(text: string, currentUserId: string, channelId: string) {
     // The rtm gives an error while sending messages. Might be related to
     // https://github.com/slackapi/node-slack-sdk/issues/527
     // https://github.com/slackapi/node-slack-sdk/issues/550
@@ -135,31 +133,33 @@ export class SlackChatProvider implements IChatProvider {
     // So we use the webclient instead of
     // this.rtmClient.sendMessage(cleanText, id)
     const cleanText = stripLinkSymbols(text);
-    return this.client
-      .sendMessage({
+
+    try {
+      const result = await this.client.sendMessage({
         channel: channelId,
         text: cleanText,
         thread_ts: undefined
-      })
-      .then((result: any) => {
-        // TODO: this is not the correct timestamp to attach, since the
-        // API might get delayed, because of network issues
-        let newMessages: ChannelMessages = {};
-        newMessages[result.ts] = {
-          userId: currentUserId,
-          timestamp: result.ts,
-          text,
-          content: null,
-          reactions: [],
-          replies: {}
-        };
+      });
 
-        vscode.commands.executeCommand(SelfCommands.UPDATE_MESSAGES, {
-          channelId,
-          messages: newMessages
-        });
-      })
-      .catch(error => console.error(error));
+      // TODO: this is not the correct timestamp to attach, since the
+      // API might get delayed, because of network issues
+      let newMessages: ChannelMessages = {};
+      newMessages[result.ts] = {
+        userId: currentUserId,
+        timestamp: result.ts,
+        text,
+        content: null,
+        reactions: [],
+        replies: {}
+      };
+
+      vscode.commands.executeCommand(SelfCommands.UPDATE_MESSAGES, {
+        channelId,
+        messages: newMessages
+      });
+    } catch (error) {
+      return console.error(error);
+    }
   }
 
   destroy(): Promise<void> {

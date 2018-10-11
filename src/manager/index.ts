@@ -27,6 +27,7 @@ import {
 } from "../utils";
 import { DiscordChatProvider } from "../discord";
 import { SlackChatProvider } from "../slack";
+import { VslsChatProvider } from "../vsls";
 import { Store } from "../store";
 import { OnboardingTreeProvider } from "../onboarding";
 import { TreeViewManager } from "./tree";
@@ -81,6 +82,8 @@ export default class Manager implements IManager, vscode.Disposable {
         return new DiscordChatProvider(this);
       case "slack":
         return new SlackChatProvider();
+      case "vsls":
+        return new VslsChatProvider();
     }
   }
 
@@ -99,7 +102,10 @@ export default class Manager implements IManager, vscode.Disposable {
     this.chatProvider = this.getChatProvider(selectedProvider);
 
     if (!!selectedProvider) {
-      this.treeManager = new TreeViewManager(selectedProvider);
+      if (selectedProvider !== "vsls") {
+        // vsls does not support tree views
+        this.treeManager = new TreeViewManager(selectedProvider);
+      }
 
       if (!!this.onboardingTreeProvider) {
         this.onboardingTreeProvider.dispose();
@@ -273,7 +279,7 @@ export default class Manager implements IManager, vscode.Disposable {
   }
 
   updateTreeViews() {
-    if (this.isAuthenticated()) {
+    if (this.isAuthenticated() && !!this.treeManager) {
       const channelLabels = this.getChannelLabels();
       // We could possibly split this function for channel-updates and user-updates
       // to avoid extra UI refresh calls.
@@ -515,19 +521,20 @@ export default class Manager implements IManager, vscode.Disposable {
     });
   }
 
-  loadChannelHistory(channelId: string): Promise<void> {
-    return this.chatProvider
-      .loadChannelHistory(channelId)
-      .then(messages => this.updateMessages(channelId, messages))
-      .catch(error => console.error(error));
+  async loadChannelHistory(channelId: string): Promise<void> {
+    try {
+      const messages = await this.chatProvider.loadChannelHistory(channelId);
+      return this.updateMessages(channelId, messages);
+    } catch (error) {
+      return console.error(error);
+    }
   }
 
-  updateUserPrefs() {
-    return this.chatProvider.getUserPrefs().then(response => {
-      // We could also save the muted channels to local storage
-      this.currentUserPrefs = response;
-      this.updateUnreadCount();
-    });
+  async updateUserPrefs() {
+    const response = await this.chatProvider.getUserPrefs();
+    // We could also save the muted channels to local storage
+    this.currentUserPrefs = response;
+    this.updateUnreadCount();
   }
 
   getLastTimestamp(): string {

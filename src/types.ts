@@ -45,7 +45,8 @@ export interface UserPreferences {
 
 export enum Providers {
   slack = "slack",
-  discord = "discord"
+  discord = "discord",
+  vsls = "vsls"
 }
 
 export interface CurrentUser {
