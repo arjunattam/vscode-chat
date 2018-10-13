@@ -1,9 +1,9 @@
 import * as vscode from "vscode";
 import * as Mixpanel from "mixpanel";
-import { MIXPANEL_TOKEN, VSLS_EXTENSION_PACK_ID } from "./constants";
+import { MIXPANEL_TOKEN } from "./constants";
 import ConfigHelper from "./config";
 import { TelemetryEvent, IManager, EventType, EventSource } from "./types";
-import { getVersions, Versions, getExtension } from "./utils";
+import { getVersions, Versions, hasVslsExtensionPack } from "./utils";
 
 const BATCH_SIZE = 10;
 const INTERVAL_TIMEOUT = 30 * 60 * 1000; // 30 mins in ms
@@ -36,7 +36,7 @@ export default class Reporter implements vscode.Disposable {
       }, INTERVAL_TIMEOUT);
     }
 
-    this.hasExtensionPack = !!getExtension(VSLS_EXTENSION_PACK_ID);
+    this.hasExtensionPack = hasVslsExtensionPack();
   }
 
   setUniqueId(uniqueId: string) {

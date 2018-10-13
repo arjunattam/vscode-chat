@@ -1,6 +1,5 @@
 import * as vscode from "vscode";
 import * as path from "path";
-import * as str from "./strings";
 import { SelfCommands } from "./constants";
 import { equals } from "./utils";
 import {
@@ -165,7 +164,7 @@ class BaseTreeProvider
       .map(channelLabel => channelLabel.channel.categoryName)
       .filter(name => !!name);
     const uniqueCategories = categories
-      .filter((item, pos) => categories.indexOf(item) == pos)
+      .filter((item, pos) => categories.indexOf(item) === pos)
       .map(this.getItemForCategory);
     return Promise.resolve([...channelsWithoutCategories, ...uniqueCategories]);
   }
@@ -339,7 +338,7 @@ export class OnlineUsersTreeProvider extends BaseTreeProvider {
       .filter(user => !!user.roleName)
       .map(user => user.roleName);
     const uniqueRoles = roles
-      .filter((item, pos) => roles.indexOf(item) == pos)
+      .filter((item, pos) => roles.indexOf(item) === pos)
       .map(this.getItemForCategory);
 
     if (uniqueRoles.length > 0) {

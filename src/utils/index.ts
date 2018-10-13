@@ -3,7 +3,8 @@ import * as os from "os";
 import {
   VSCodeCommands,
   EXTENSION_ID,
-  VSLS_EXTENSION_PACK_ID
+  VSLS_EXTENSION_PACK_ID,
+  VSLS_EXTENSION_ID
 } from "../constants";
 
 export const openUrl = (url: string) => {
@@ -42,8 +43,12 @@ export const getVersions = (): Versions => {
   };
 };
 
-export const hasExtensionPack = (): boolean => {
+export const hasVslsExtensionPack = (): boolean => {
   return !!getExtension(VSLS_EXTENSION_PACK_ID);
+};
+
+export const hasVslsExtension = (): boolean => {
+  return !!getExtension(VSLS_EXTENSION_ID);
 };
 
 export function uuidv4(): string {

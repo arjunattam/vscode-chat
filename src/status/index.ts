@@ -1,14 +1,19 @@
 import * as vscode from "vscode";
-import { SelfCommands } from "./constants";
-import { EventSource } from "./types";
+import { SelfCommands } from "../constants";
+import { EventSource } from "../types";
 
-const OCTICON = "$(comment-discussion)";
-const BASE_COMMAND = SelfCommands.CHANGE_CHANNEL;
-const COMPOUND_COMMAND = `${BASE_COMMAND}.status`;
+const CHAT_ICON = "$(comment-discussion)";
 
-export default class StatusItem {
+export interface IStatusItem {
+  updateCount(unreads: number, workspaceName: string): void;
+  show(): void;
+  hide(): void;
+  dispose(): void;
+}
+
+export class UnreadsStatusItem implements IStatusItem {
   item: vscode.StatusBarItem;
-  disposable: vscode.Disposable;
+  disposableCommand: vscode.Disposable;
   unreadCount: number = 0;
   isVisible: Boolean = false;
 
@@ -19,18 +24,20 @@ export default class StatusItem {
 
     // We construct a new command to send args with base command
     // From: https://github.com/Microsoft/vscode/issues/22353#issuecomment-325293438
-    this.disposable = vscode.commands.registerCommand(COMPOUND_COMMAND, () =>
-      vscode.commands.executeCommand(BASE_COMMAND, {
+    const baseCommand = SelfCommands.CHANGE_CHANNEL;
+    const compound = `${baseCommand}.status`;
+    this.disposableCommand = vscode.commands.registerCommand(compound, () =>
+      vscode.commands.executeCommand(baseCommand, {
         source: EventSource.status
       })
     );
 
-    this.item.command = COMPOUND_COMMAND;
+    this.item.command = compound;
   }
 
   updateCount(unreads: number, workspaceName: string) {
     this.unreadCount = unreads;
-    this.item.text = `${OCTICON} ${workspaceName}: ${unreads} new`;
+    this.item.text = `${CHAT_ICON} ${workspaceName}: ${unreads} new`;
     return this.unreadCount > 0 ? this.show() : this.hide();
   }
 
@@ -50,6 +57,6 @@ export default class StatusItem {
 
   dispose() {
     this.item.dispose();
-    this.disposable.dispose();
+    this.disposableCommand.dispose();
   }
 }

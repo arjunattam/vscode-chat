@@ -12,13 +12,18 @@ import {
   SLACK_OAUTH,
   DISCORD_OAUTH,
   LIVE_SHARE_BASE_URL,
-  VSLS_EXTENSION_ID,
   CONFIG_ROOT,
   TRAVIS_SCHEME
 } from "./constants";
 import travis from "./bots/travis";
 import { ExtensionUriHandler } from "./uri";
-import { openUrl, getExtension, toTitleCase, setVsContext } from "./utils";
+import {
+  openUrl,
+  toTitleCase,
+  setVsContext,
+  hasVslsExtension,
+  hasVslsExtensionPack
+} from "./utils";
 import { askForAuth } from "./onboarding";
 import ConfigHelper from "./config";
 import Reporter from "./telemetry";
@@ -191,7 +196,7 @@ export function activate(context: vscode.ExtensionContext) {
     setup({ canPromptForAuth: true, provider: undefined })
       .then(() => getChatChannelId(args))
       .then(() => {
-        manager.updateWebviewUI();
+        manager.viewsManager.updateWebview();
         const { lastChannelId } = manager.store;
         const hasArgs = !!args && !!args.source;
         reporter.record(
@@ -229,7 +234,7 @@ export function activate(context: vscode.ExtensionContext) {
     }
   };
 
-  const changeChannel = (args?: any) => {
+  const changeChannel = async (args?: any) => {
     // TODO: when triggered from the search icon in the tree view,
     // this should be filtered to the `type` of the tree view section
     const hasArgs = !!args && !!args.source;
@@ -239,17 +244,18 @@ export function activate(context: vscode.ExtensionContext) {
       undefined
     );
 
-    return askForChannel().then(
-      result => (!!result ? openChatPanel(args) : null)
-    );
+    const selectedChannel = await askForChannel();
+    return !!selectedChannel ? openChatPanel(args) : null;
   };
 
   const shareVslsLink = async (args?: ChatArgs) => {
     const liveshare = await vsls.getApiAsync();
+
     // liveshare.share() creates a new session if required
     const vslsUri = await liveshare.share({ suppressNotification: true });
     let channelId: string = await getChatChannelId(args);
     reporter.record(EventType.vslsShared, EventSource.activity, channelId);
+
     const { currentUserInfo } = manager.store;
     manager.chatProvider.sendMessage(
       vslsUri.toString(),
@@ -327,8 +333,7 @@ export function activate(context: vscode.ExtensionContext) {
   };
 
   const setVslsContext = () => {
-    const vsls = getExtension(VSLS_EXTENSION_ID);
-    const isEnabled = !!vsls;
+    const isEnabled = hasVslsExtension();
     setVsContext("chat:vslsEnabled", isEnabled);
   };
 
@@ -408,10 +413,10 @@ export function activate(context: vscode.ExtensionContext) {
 
     if (!isResumable) {
       await reset("vsls");
-      // Need to set the last channel to the default value to skip user prompt
-      manager.store.lastChannelId = VSLS_CHANNEL.id;
     }
 
+    // Need to set the last channel to the default value to skip user prompt
+    manager.store.lastChannelId = VSLS_CHANNEL.id;
     await openChatPanel();
   };
 

@@ -140,11 +140,12 @@ export class VslsChatProvider implements IChatProvider {
   }
 
   fetchChannels(users: Users): Promise<Channel[]> {
+    const readTimestamp = (+new Date() / 1000.0).toString();
     const defaultChannel: Channel = {
       id: VSLS_CHANNEL.id,
       name: VSLS_CHANNEL.name,
       type: ChannelType.channel,
-      readTimestamp: undefined,
+      readTimestamp,
       unreadCount: 0
     };
     return Promise.resolve([defaultChannel]);
@@ -157,7 +158,7 @@ export class VslsChatProvider implements IChatProvider {
   subscribePresence(users: Users) {}
 
   markChannel(channel: Channel, ts: string): Promise<Channel> {
-    return Promise.resolve({ ...channel });
+    return Promise.resolve({ ...channel, readTimestamp: ts, unreadCount: 0 });
   }
 
   validateToken: (token: string) => Promise<CurrentUser>;
