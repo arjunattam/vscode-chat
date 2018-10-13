@@ -1,19 +1,27 @@
 import * as vscode from "vscode";
-import { IManager } from "../types";
+import { IManager, Providers } from "../types";
 import { TreeViewManager } from "./treeView";
-import { IStatusItem, UnreadsStatusItem } from "../status";
+import {
+  BaseStatusItem,
+  UnreadsStatusItem,
+  VslsChatStatusItem
+} from "../status";
 import { OnboardingTreeProvider } from "../onboarding";
 import { SelfCommands } from "../constants";
 
 const PROVIDERS_WITH_TREE = ["slack", "discord"];
 
 export class ViewsManager implements vscode.Disposable {
-  statusItem: IStatusItem;
+  statusItem: BaseStatusItem;
   treeViews: TreeViewManager;
   onboardingTree: OnboardingTreeProvider;
 
   constructor(provider: string, private parent: IManager) {
-    this.statusItem = new UnreadsStatusItem();
+    if (provider === Providers.vsls) {
+      this.statusItem = new VslsChatStatusItem();
+    } else {
+      this.statusItem = new UnreadsStatusItem();
+    }
 
     if (PROVIDERS_WITH_TREE.indexOf(provider) >= 0) {
       // vsls does not support tree views
@@ -75,6 +83,14 @@ export class ViewsManager implements vscode.Disposable {
       }
     });
   }
+
+  updateVslsStatus = (isActive: boolean) => {
+    if (isActive) {
+      this.statusItem.show();
+    } else {
+      this.statusItem.hide();
+    }
+  };
 
   dispose() {
     if (!!this.statusItem) {

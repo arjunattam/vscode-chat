@@ -41,3 +41,9 @@ export const LIVE_SHARE_CHAT_NO_SESSION =
 
 export const LIVE_SHARE_CHAT_NOT_INITIATED =
   "The Live Share session host has not initiated chat.";
+
+export const LIVE_SHARE_INFO_MESSAGES = {
+  started: "_has started the Live Share session_",
+  joined: "_has joined the Live Share session_",
+  left: "_has left the Live Share session_"
+};

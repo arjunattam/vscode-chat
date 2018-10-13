@@ -17,13 +17,7 @@ import {
 } from "./constants";
 import travis from "./bots/travis";
 import { ExtensionUriHandler } from "./uri";
-import {
-  openUrl,
-  toTitleCase,
-  setVsContext,
-  hasVslsExtension,
-  hasVslsExtensionPack
-} from "./utils";
+import { openUrl, toTitleCase, setVsContext, hasVslsExtension } from "./utils";
 import { askForAuth } from "./onboarding";
 import ConfigHelper from "./config";
 import Reporter from "./telemetry";
@@ -397,6 +391,8 @@ export function activate(context: vscode.ExtensionContext) {
   };
 
   const startVslsChat = async () => {
+    // TODO: redo this like the new status item
+
     // Verify that we have an ongoing Live Share session
     const liveshare = await vsls.getApiAsync();
     const hasSession = !!liveshare && !!liveshare.session.id;
@@ -428,7 +424,7 @@ export function activate(context: vscode.ExtensionContext) {
 
   const uriHandler = new ExtensionUriHandler();
   context.subscriptions.push(
-    vscode.commands.registerCommand(SelfCommands.OPEN, openChatPanel),
+    vscode.commands.registerCommand(SelfCommands.OPEN_WEBVIEW, openChatPanel),
     vscode.commands.registerCommand(
       SelfCommands.CHANGE_WORKSPACE,
       changeWorkspace
@@ -473,6 +469,17 @@ export function activate(context: vscode.ExtensionContext) {
     vscode.commands.registerCommand(
       SelfCommands.LIVE_SHARE_CHAT_START,
       startVslsChat
+    ),
+    vscode.commands.registerCommand(
+      SelfCommands.LIVE_SHARE_SESSION_CHANGED,
+      ({ isActive, currentUser }) => {
+        const provider = manager.getSelectedProvider();
+
+        if (provider === "vsls") {
+          manager.store.updateCurrentUser(currentUser);
+          manager.viewsManager.updateVslsStatus(isActive);
+        }
+      }
     ),
     vscode.commands.registerCommand(SelfCommands.FETCH_REPLIES, fetchReplies),
     vscode.commands.registerCommand(

@@ -30,6 +30,7 @@ import { SlackChatProvider } from "../slack";
 import { VslsChatProvider } from "../vsls";
 import { Store } from "../store";
 import { ViewsManager } from "./views";
+import { VSLS_CHANNEL } from "../vsls/utils";
 
 export default class Manager implements IManager, vscode.Disposable {
   token: string;
@@ -128,6 +129,10 @@ export default class Manager implements IManager, vscode.Disposable {
     if (!(isConnected && isAuthenticated)) {
       currentUser = await this.chatProvider.connect();
       this.store.updateCurrentUser(currentUser);
+    }
+
+    if (this.getSelectedProvider() === "vsls") {
+      this.store.updateLastChannelId(VSLS_CHANNEL.id);
     }
 
     return currentUser;
@@ -356,6 +361,7 @@ export default class Manager implements IManager, vscode.Disposable {
       // TODO: only update when we have a different unread
       return this.updateChannel(newChannel);
     });
+
     await Promise.all(promises);
     this.viewsManager.updateStatusItem();
   };
@@ -364,6 +370,7 @@ export default class Manager implements IManager, vscode.Disposable {
     const { users } = this.store;
     const channels = await this.chatProvider.fetchChannels(users);
     await this.store.updateChannels(channels);
+
     this.updateChannelsFetchedAt();
     this.viewsManager.updateTreeViews();
     this.fetchUnreadCounts(channels);

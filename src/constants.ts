@@ -19,7 +19,7 @@ export const VSCodeCommands = {
 };
 
 export const SelfCommands = {
-  OPEN: "extension.chat.openChatPanel",
+  OPEN_WEBVIEW: "extension.chat.openChatPanel",
   CHANGE_WORKSPACE: "extension.chat.changeWorkspace",
   CHANGE_CHANNEL: "extension.chat.changeChannel",
   SIGN_IN: "extension.chat.authenticate",
@@ -30,6 +30,7 @@ export const SelfCommands = {
   LIVE_SHARE_SLASH: "extension.chat.slashLiveShare",
   LIVE_SHARE_JOIN_PROMPT: "extension.chat.promptLiveShare",
   LIVE_SHARE_CHAT_START: "extension.chat.startVslsChat",
+  LIVE_SHARE_SESSION_CHANGED: "extension.chat.vslsSessionChanged",
   RESET_STORE: "extension.chat.reset",
   FETCH_REPLIES: "extension.chat.fetchReplies",
   UPDATE_MESSAGES: "extension.chat.updateMessages",

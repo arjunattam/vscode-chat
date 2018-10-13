@@ -4,27 +4,19 @@ import { EventSource } from "../types";
 
 const CHAT_ICON = "$(comment-discussion)";
 
-export interface IStatusItem {
-  updateCount(unreads: number, workspaceName: string): void;
-  show(): void;
-  hide(): void;
-  dispose(): void;
-}
-
-export class UnreadsStatusItem implements IStatusItem {
+export abstract class BaseStatusItem {
   item: vscode.StatusBarItem;
   disposableCommand: vscode.Disposable;
   unreadCount: number = 0;
-  isVisible: Boolean = false;
+  isVisible: boolean = false;
 
-  constructor() {
+  constructor(baseCommand: string) {
     this.item = vscode.window.createStatusBarItem(
       vscode.StatusBarAlignment.Left
     );
 
     // We construct a new command to send args with base command
     // From: https://github.com/Microsoft/vscode/issues/22353#issuecomment-325293438
-    const baseCommand = SelfCommands.CHANGE_CHANNEL;
     const compound = `${baseCommand}.status`;
     this.disposableCommand = vscode.commands.registerCommand(compound, () =>
       vscode.commands.executeCommand(baseCommand, {
@@ -35,11 +27,7 @@ export class UnreadsStatusItem implements IStatusItem {
     this.item.command = compound;
   }
 
-  updateCount(unreads: number, workspaceName: string) {
-    this.unreadCount = unreads;
-    this.item.text = `${CHAT_ICON} ${workspaceName}: ${unreads} new`;
-    return this.unreadCount > 0 ? this.show() : this.hide();
-  }
+  abstract updateCount(unreads: number, workspaceName: string): void;
 
   show() {
     if (!this.isVisible) {
@@ -58,5 +46,36 @@ export class UnreadsStatusItem implements IStatusItem {
   dispose() {
     this.item.dispose();
     this.disposableCommand.dispose();
+  }
+}
+
+export class UnreadsStatusItem extends BaseStatusItem {
+  constructor() {
+    super(SelfCommands.CHANGE_CHANNEL);
+  }
+
+  updateCount(unreads: number, workspaceName: string) {
+    this.unreadCount = unreads;
+    this.item.text = `${CHAT_ICON} ${workspaceName}: ${unreads} new`;
+    return this.unreadCount > 0 ? this.show() : this.hide();
+  }
+}
+
+export class VslsChatStatusItem extends BaseStatusItem {
+  defaultText: string = `${CHAT_ICON} Chat`;
+
+  constructor() {
+    super(SelfCommands.OPEN_WEBVIEW);
+    this.item.text = this.defaultText;
+  }
+
+  updateCount(unreads: number, workspaceName: string): void {
+    this.unreadCount = unreads;
+
+    if (unreads > 0) {
+      this.item.text = `${CHAT_ICON} Chat: ${unreads} new`;
+    } else {
+      this.item.text = this.defaultText;
+    }
   }
 }

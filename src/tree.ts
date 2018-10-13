@@ -43,7 +43,7 @@ class CustomChatTreeItem extends vscode.TreeItem {
       // This is a channel item
       this.contextValue = "channel";
       this.command = {
-        command: SelfCommands.OPEN,
+        command: SelfCommands.OPEN_WEBVIEW,
         title: "",
         arguments: [{ channel, user, source: EventSource.activity }]
       };

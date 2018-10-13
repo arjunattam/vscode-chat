@@ -1,3 +1,4 @@
+import * as vscode from "vscode";
 import * as vsls from "vsls/vscode";
 import {
   IChatProvider,
@@ -15,6 +16,7 @@ import {
 import { VSLS_SERVICE_NAME, VSLS_CHANNEL } from "./utils";
 import { VslsHostService } from "./host";
 import { VslsGuestService } from "./guest";
+import { SelfCommands } from "../constants";
 
 const VSLS_TOKEN_STRING = "vsls-placeholder-token";
 
@@ -25,42 +27,71 @@ export class VslsChatProvider implements IChatProvider {
 
   async connect(): Promise<CurrentUser> {
     this.liveshare = await vsls.getApiAsync();
-    const { peerNumber, user, role, id: sessionId } = this.liveshare.session;
+    const { id: sessionId } = this.liveshare.session;
 
     this.liveshare.onDidChangePeers(({ added, removed }) => {
       if (!!this.hostService) {
         this.hostService.updateCachedPeers(added, removed);
       }
+
+      const { role } = this.liveshare.session;
+
+      if (role === vsls.Role.Host) {
+        this.hostService.sendJoinedMessages(added);
+        this.hostService.sendLeavingMessages(removed);
+      }
     });
 
-    this.liveshare.onDidChangeSession(({ session }) => {
+    this.liveshare.onDidChangeSession(async ({ session }) => {
       const isActive = !!session.id;
-      console.log("session", isActive);
+      let currentUser;
+
+      if (isActive) {
+        currentUser = await this.initialize();
+        const { role } = session;
+
+        if (role === vsls.Role.Host) {
+          this.hostService.sendStartedMessage();
+        }
+      }
+
+      vscode.commands.executeCommand(SelfCommands.LIVE_SHARE_SESSION_CHANGED, {
+        isActive,
+        currentUser
+      });
     });
 
     if (!!sessionId) {
-      if (role === vsls.Role.Host) {
-        this.hostService = new VslsHostService(this.liveshare);
-        await this.hostService.initialize();
-      } else if (role === vsls.Role.Guest) {
-        this.guestService = new VslsGuestService(this.liveshare);
-        await this.guestService.initialize();
-      }
-
-      const sessionTeam: Team = {
-        id: sessionId,
-        name: sessionId
-      };
-
-      return {
-        id: peerNumber.toString(),
-        name: user.displayName,
-        token: VSLS_TOKEN_STRING,
-        teams: [{ ...sessionTeam }],
-        currentTeamId: sessionTeam.id,
-        provider: Providers.vsls
-      };
+      // TODO: do we need this?
+      return this.initialize();
     }
+  }
+
+  async initialize(): Promise<CurrentUser> {
+    // This assumes live share session is available
+    const { role, id: sessionId, peerNumber, user } = this.liveshare.session;
+
+    if (role === vsls.Role.Host) {
+      this.hostService = new VslsHostService(this.liveshare);
+      await this.hostService.initialize();
+    } else if (role === vsls.Role.Guest) {
+      this.guestService = new VslsGuestService(this.liveshare);
+      await this.guestService.initialize();
+    }
+
+    const sessionTeam: Team = {
+      id: sessionId,
+      name: sessionId
+    };
+
+    return {
+      id: peerNumber.toString(),
+      name: user.displayName,
+      token: VSLS_TOKEN_STRING,
+      teams: [{ ...sessionTeam }],
+      currentTeamId: sessionTeam.id,
+      provider: Providers.vsls
+    };
   }
 
   isConnected(): boolean {

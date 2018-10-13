@@ -9,6 +9,7 @@ import {
 } from "./utils";
 import { User, Users, ChannelMessages } from "../types";
 import { VslsBaseService } from "./base";
+import { LIVE_SHARE_INFO_MESSAGES } from "../strings";
 
 export class VslsHostService extends VslsBaseService {
   messages: { [timestamp: string]: VslsChatMessage } = {};
@@ -59,6 +60,32 @@ export class VslsHostService extends VslsBaseService {
     }
 
     return false;
+  }
+
+  sendStartedMessage() {
+    const { peerNumber } = this.liveshare.session;
+    return this.broadcastMessage(
+      peerNumber.toString(),
+      LIVE_SHARE_INFO_MESSAGES.started
+    );
+  }
+
+  sendJoinedMessages(peers: vsls.Peer[]) {
+    peers.forEach(({ peerNumber }) => {
+      this.broadcastMessage(
+        peerNumber.toString(),
+        LIVE_SHARE_INFO_MESSAGES.joined
+      );
+    });
+  }
+
+  sendLeavingMessages(peers: vsls.Peer[]) {
+    peers.forEach(({ peerNumber }) => {
+      this.broadcastMessage(
+        peerNumber.toString(),
+        LIVE_SHARE_INFO_MESSAGES.left
+      );
+    });
   }
 
   fetchUsers(): Promise<Users> {
