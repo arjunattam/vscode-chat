@@ -2,6 +2,14 @@
 
 All notable changes to the vscode-chat extension will be documented in this file. This follows the [Keep a Changelog](http://keepachangelog.com/) format.
 
+## [0.7.1] - unreleased
+
+### Added
+
+- Chat over VS Live Share RPC is the default backend for users that have the Live Share extension. Users can optionally upgrade to Slack or Discord.
+- New status bar item to open the chat window during a VS Live Share session.
+- Unread message notification and user joined/left info messages for Live Share chat.
+
 ## [0.7.0] - 2018-10-11
 
 ### Added

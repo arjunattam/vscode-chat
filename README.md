@@ -1,6 +1,6 @@
 <h1 align="center">Team Chat for VS Code</h1>
 
-<h3 align="center">Collaborate with your team and chat bots without context switches. Supports Slack and Discord.</h3>
+<h3 align="center">Collaborate with your team and chat bots without context switches. Supports Slack, Discord and VS Live Share.</h3>
 
 <p align="center"><img src="https://raw.githubusercontent.com/karigari/vscode-chat/master/readme/preview.png" alt="Screenshot" width="800" /></p>
 
@@ -16,6 +16,7 @@
 1.  Install the extension from the [VS Marketplace](https://marketplace.visualstudio.com/items?itemName=karigari.chat)
 2.  **For Slack**, run "Sign In with Slack" from the VS Code command palette
 3.  **For Discord**, configure your token with instructions [given here](docs/DISCORD.md)
+4.  To chat with **VS Live Share participants**, start a collaboration session and click the `Chat` status bar item. [See more](#vs-live-share).
 
 Are you a Slack workspace admin? [Approve this app](https://slack.com/apps/ACB4LQKN1-slack-chat-for-vs-code) for your team.
 
@@ -33,7 +34,19 @@ Are you a Slack workspace admin? [Approve this app](https://slack.com/apps/ACB4L
 
 # VS Live Share
 
-Start a [VS Live Share](https://aka.ms/vsls) collaboration session with your online team members, with just a click. You can also use slash commands `/live share` and `/live end` to start or end sessions.
+## Companion chat
+
+Team Chat is a light-weight companion chat for [VS Live Share](https://aka.ms/vsls), without any dependency on an existing backend like Slack or Discord.
+
+To chat with your session peers, start a new session, and click the `Chat` status bar item. Optionally, you can also run the `Chat with VS Live Share participants` command.
+
+The [VS Live Share Extension Pack](https://marketplace.visualstudio.com/items?itemName=MS-vsliveshare.vsliveshare-pack) includes the VS Live Share and Team Chat extensions for an easy one-click installation.
+
+## with Slack and Discord
+
+Optionally, you can also setup your Slack or Discord account to continuing using the same chat provider during a Live Share session.
+
+With Slack/Discord, you can also start a new session with online team members easily. You can also use the slash commands `/live share` and `/live end` to start or end sessions in a chat window.
 
 <p align="center"><img src="https://raw.githubusercontent.com/karigari/vscode-chat/master/readme/vsls-magnifier.png" alt="VS Live Share" width="800" /></p>
 

@@ -18,6 +18,7 @@ export class VslsHostService extends VslsBaseService {
 
   async initialize() {
     this.sharedService = await this.liveshare.shareService(VSLS_SERVICE_NAME);
+    // sharedService can be null when experimental flag is off
 
     this.sharedService.onDidChangeIsServiceAvailable(nowAvailable => {
       console.log("change service", nowAvailable);

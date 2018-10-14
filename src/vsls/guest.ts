@@ -18,10 +18,6 @@ export class VslsGuestService extends VslsBaseService {
       VSLS_SERVICE_NAME
     );
 
-    if (!this.serviceProxy.isServiceAvailable) {
-      vscode.window.showWarningMessage(str.LIVE_SHARE_CHAT_NOT_INITIATED);
-    }
-
     this.serviceProxy.onDidChangeIsServiceAvailable(async nowAvailable => {
       console.log("Availability changed to ", nowAvailable);
 

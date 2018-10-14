@@ -62,7 +62,10 @@ export class VslsChatProvider implements IChatProvider {
     });
 
     if (!!sessionId) {
-      // TODO: do we need this?
+      // TODO: this is called when we are on slack/discord
+      // but the `chat with...` command is run
+      // user signs out, and then we initialize the vsls provider
+      // BUT, the chat status bar item is not shown in this scenario
       return this.initialize();
     }
   }

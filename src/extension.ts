@@ -22,7 +22,6 @@ import { askForAuth } from "./onboarding";
 import ConfigHelper from "./config";
 import Reporter from "./telemetry";
 import IssueReporter from "./issues";
-import { VSLS_CHANNEL } from "./vsls/utils";
 
 let store: Store;
 let manager: Manager;
@@ -391,8 +390,6 @@ export function activate(context: vscode.ExtensionContext) {
   };
 
   const startVslsChat = async () => {
-    // TODO: redo this like the new status item
-
     // Verify that we have an ongoing Live Share session
     const liveshare = await vsls.getApiAsync();
     const hasSession = !!liveshare && !!liveshare.session.id;
@@ -403,16 +400,25 @@ export function activate(context: vscode.ExtensionContext) {
     }
 
     // Resume on existing VS Live Share chat if possible
-    const isResumable =
-      manager.getSelectedProvider() === "vsls" &&
-      manager.chatProvider.isConnected();
+    const currentProvider = manager.getSelectedProvider();
+    const hasOtherProvider =
+      currentProvider !== "vsls" || manager.chatProvider.isConnected();
 
-    if (!isResumable) {
-      await reset("vsls");
+    if (hasOtherProvider) {
+      // Logged in with Slack/Discord, ask for confirmation to sign out
+      const msg = str.LIVE_SHARE_CONFIRM_SIGN_OUT(toTitleCase(currentProvider));
+      const response = await vscode.window.showInformationMessage(
+        msg,
+        str.SIGN_OUT
+      );
+
+      if (!!response && response === str.SIGN_OUT) {
+        await reset("vsls");
+      } else {
+        return;
+      }
     }
 
-    // Need to set the last channel to the default value to skip user prompt
-    manager.store.lastChannelId = VSLS_CHANNEL.id;
     await openChatPanel();
   };
 
