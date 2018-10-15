@@ -197,6 +197,10 @@ class SlackMessenger {
     });
   };
 
+  sendMessage = ({ channel, text }) => {
+    return this.rtmClient.sendMessage(text, channel);
+  };
+
   handleMessageLinks = (incoming: ChannelMessages) => {
     const messageTs = Object.keys(incoming)[0];
     const message = incoming[messageTs];

@@ -5,6 +5,7 @@ import * as str from "./strings";
 import { CONFIG_ROOT, SelfCommands } from "./constants";
 import { keychain } from "./utils/keychain";
 import IssueReporter from "./issues";
+import Logger from "./logger";
 
 const TOKEN_CONFIG_KEY = "slack.legacyToken";
 const TELEMETRY_CONFIG_ROOT = "telemetry";
@@ -14,6 +15,7 @@ const CREDENTIAL_SERVICE_NAME = "vscode-chat";
 class KeychainHelper {
   // Adds retry to keychain operations if we are denied access
   static async handleException(error, retryCall) {
+    Logger.log(`Keychain access: ${error}`);
     const actionItems = [str.RETRY, str.REPORT_ISSUE];
     const action = await vscode.window.showInformationMessage(
       str.KEYCHAIN_ERROR,
@@ -25,7 +27,7 @@ class KeychainHelper {
         return retryCall();
       case str.REPORT_ISSUE:
         const title = "Unable to access keychain";
-        return IssueReporter.openNewIssue(title, "");
+        return IssueReporter.openNewIssue(title, `${error}`);
     }
   }
 

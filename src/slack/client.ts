@@ -1,5 +1,6 @@
 import { WebClient, WebClientOptions } from "@slack/client";
 import ConfigHelper from "../config";
+import Logger from "../logger";
 import {
   Users,
   Channel,
@@ -12,7 +13,9 @@ import {
   Providers
 } from "../types";
 
-const HISTORY_LIMIT = 50;
+const CHANNEL_HISTORY_LIMIT = 500;
+
+const USER_LIST_LIMIT = 200;
 
 const getFile = rawFile => {
   return { name: rawFile.name, permalink: rawFile.permalink };
@@ -36,6 +39,23 @@ const getReaction = reaction => ({
   count: reaction.count,
   userIds: reaction.users
 });
+
+const getUser = (member): User => {
+  const { id, profile, real_name, name, deleted } = member;
+  const { display_name, image_72, image_24 } = profile;
+
+  return {
+    id,
+    // Conditional required for bots like @paperbot
+    name: display_name ? display_name : name,
+    fullName: real_name,
+    internalName: name,
+    imageUrl: image_72,
+    smallImageUrl: image_24,
+    isOnline: undefined,
+    isDeleted: deleted
+  };
+};
 
 export const getMessage = (raw: any): ChannelMessages => {
   const { files, ts, user, text, edited, bot_id } = raw;
@@ -70,6 +90,10 @@ export default class SlackAPIClient {
     }
 
     this.client = new WebClient(token, options);
+
+    this.client.on("rate_limited", retryAfter => {
+      Logger.log(`Slack client rate limited: paused for ${retryAfter} seconds`);
+    });
   }
 
   authTest = async (): Promise<CurrentUser> => {
@@ -89,136 +113,141 @@ export default class SlackAPIClient {
     }
   };
 
-  getConversationHistory = (channel: string): Promise<ChannelMessages> => {
-    return this.client
-      .apiCall("conversations.history", { channel, limit: HISTORY_LIMIT })
-      .then((response: any) => {
-        const { messages, ok } = response;
-        let result = {};
+  getConversationHistory = async (
+    channel: string
+  ): Promise<ChannelMessages> => {
+    const response: any = await this.client.apiCall("conversations.history", {
+      channel,
+      limit: CHANNEL_HISTORY_LIMIT
+    });
+    const { messages, ok } = response;
+    let result = {};
 
-        if (ok) {
-          messages.forEach(message => {
-            result = {
-              ...result,
-              ...getMessage(message)
-            };
-          });
-        }
-
-        return result;
+    if (ok) {
+      messages.forEach(message => {
+        result = {
+          ...result,
+          ...getMessage(message)
+        };
       });
+    }
+
+    return result;
   };
 
-  getUsers(): Promise<Users> {
-    return this.client.apiCall("users.list", {}).then((response: any) => {
-      const { members, ok } = response;
-      let users: Users = {};
-
-      if (ok) {
-        members.forEach(member => {
-          const { id, profile, real_name, name } = member;
-          const { display_name, image_72, image_24 } = profile;
-          users[id] = {
-            id,
-            // Conditional required for bots like @paperbot
-            name: display_name ? display_name : name,
-            fullName: real_name,
-            imageUrl: image_72,
-            smallImageUrl: image_24,
-            isOnline: undefined,
-            isDeleted: member.deleted
-          };
-        });
-
-        return users;
-      }
+  async getUsers(): Promise<Users> {
+    const response: any = await this.client.apiCall("users.list", {
+      limit: USER_LIST_LIMIT
     });
-  }
+    const { members, ok } = response;
+    let users: Users = {};
 
-  getBotInfo(botId: string): Promise<User> {
-    return this.client
-      .apiCall("bots.info", { bot: botId })
-      .then((response: any) => {
-        const { bot, ok } = response;
-
-        if (ok) {
-          const { id, name, icons } = bot;
-          return {
-            id,
-            name,
-            fullName: name,
-            imageUrl: icons.image_72,
-            smallImageUrl: icons.image_24,
-            isOnline: false,
-            isBot: true
-          };
-        }
-      });
-  }
-
-  getChannels(users: Users): Promise<Channel[]> {
-    const channels = this.client
-      .apiCall("channels.list", { exclude_archived: true })
-      .then((response: any) => {
-        const { ok, channels } = response;
-        if (ok) {
-          return channels.map(channel => ({
-            id: channel.id,
-            name: channel.name,
-            type: "channel"
-          }));
-        }
+    if (ok) {
+      members.forEach(member => {
+        const user = getUser(member);
+        const { id } = user;
+        users[id] = user;
       });
 
-    const groups = this.client
-      .apiCall("groups.list", { exclude_archived: true })
-      .then((response: any) => {
-        // Groups are multi-party DMs and private channels
-        const { ok, groups } = response;
+      return users;
+    }
+  }
 
-        if (ok) {
-          return groups
-            .map(group => {
-              const { id, is_mpim, members: memberIds } = group;
-              let { name } = group;
+  async getBotInfo(botId: string): Promise<User> {
+    const response: any = await this.client.bots.info({
+      bot: botId
+    });
+    const { bot, ok } = response;
 
-              if (is_mpim) {
-                const members = memberIds
-                  .map(
-                    memberId =>
-                      memberId in users ? users[memberId] : undefined
-                  )
-                  .filter(Boolean);
-                const hasKnownUsers = members.length === memberIds.length;
-                const hasDeletedUsers =
-                  members.filter(user => user.isDeleted).length > 0;
+    if (ok) {
+      const { id, name, icons } = bot;
+      return {
+        id,
+        name,
+        fullName: name,
+        imageUrl: icons.image_72,
+        smallImageUrl: icons.image_24,
+        isOnline: false,
+        isBot: true
+      };
+    }
+  }
 
-                if (hasKnownUsers && !hasDeletedUsers) {
-                  name = members.map(user => user.name).join(", ");
-                  return {
-                    id,
-                    name,
-                    type: "group"
-                  };
-                }
+  async getUserInfo(userId: string): Promise<User> {
+    const response: any = await this.client.users.info({ user: userId });
+    const { ok, user } = response;
+
+    if (ok) {
+      return getUser(user);
+    }
+  }
+
+  async getChannels(users: Users): Promise<Channel[]> {
+    const response: any = await this.client.conversations.list({
+      exclude_archived: true,
+      types: "public_channel, private_channel, mpim, im"
+    });
+    const { ok, channels } = response;
+    const userValues = Object.keys(users).map(key => users[key]);
+
+    if (ok) {
+      return channels
+        .map(channel => {
+          const { is_channel, is_mpim, is_im, is_group } = channel;
+
+          if (is_channel) {
+            // Public channels
+            return {
+              id: channel.id,
+              name: channel.name,
+              type: ChannelType.channel
+            };
+          }
+
+          if (is_group && !is_mpim) {
+            // Private channels
+            return {
+              id: channel.id,
+              name: channel.name,
+              type: ChannelType.channel
+            };
+          }
+
+          if (is_group && is_mpim) {
+            // Groups (multi-party direct messages)
+            // Example name: mpdm-user.name--username2--user3-1
+            let { id, name } = channel;
+            const matched = name.match(/mpdm-([^-]+)((--[^-]+)*)-\d+/);
+
+            if (matched) {
+              const first = matched[1];
+              const rest = matched[2].split("--").filter(element => !!element);
+              const members = [first, ...rest];
+              const memberUsers = members.map(memberName =>
+                userValues.find(
+                  ({ internalName }) => internalName === memberName
+                )
+              );
+              const isAnyUserDeleted = memberUsers.filter(
+                ({ isDeleted }) => isDeleted
+              );
+
+              if (isAnyUserDeleted.length > 0) {
+                return null;
               } else {
+                name = memberUsers.map(({ name }) => name).join(", ");
                 return {
-                  id,
-                  name,
-                  type: "channel"
+                  id: id,
+                  name: name,
+                  type: ChannelType.group
                 };
               }
-            })
-            .filter(Boolean);
-        }
-      });
+            }
+          }
 
-    const directs = this.client.apiCall("im.list", {}).then((response: any) => {
-      const { ok, ims } = response;
-      if (ok) {
-        return ims
-          .map(im => {
-            const { id, user: userId } = im;
+          if (is_im) {
+            // Direct messages
+            const { id, user: userId } = channel;
 
             if (userId in users) {
               const user = users[userId];
@@ -228,24 +257,21 @@ export default class SlackAPIClient {
                 return {
                   id,
                   name,
-                  type: "im"
+                  type: ChannelType.im
                 };
               }
             }
-          })
-          .filter(Boolean);
-      }
-    });
-
-    return Promise.all([channels, groups, directs]).then(
-      (values: Channel[][]) => {
-        return [].concat(...values);
-      }
-    );
+          }
+        })
+        .filter(Boolean);
+    }
   }
 
-  getChannelInfo = (originalChannel: Channel): Promise<Channel> => {
+  getChannelInfo = async (originalChannel: Channel): Promise<Channel> => {
     const { id, type } = originalChannel;
+    let channel;
+    let response;
+
     const getChannel = response => {
       const { unread_count_display, last_read } = response;
       return {
@@ -257,27 +283,22 @@ export default class SlackAPIClient {
 
     switch (type) {
       case "group":
-        return this.client.groups
-          .info({ channel: id })
-          .then((response: any) => {
-            const { group } = response;
-            return getChannel(group);
-          });
+        response = await this.client.groups.info({ channel: id });
+        channel = response.group;
+        break;
       case "channel":
-        return this.client.channels
-          .info({ channel: id })
-          .then((response: any) => {
-            const { channel } = response;
-            return getChannel(channel);
-          });
+        response = await this.client.channels.info({ channel: id });
+        channel = response.channel;
+        break;
       case "im":
-        return this.client.conversations
-          .info({ channel: id })
-          .then((response: any) => {
-            const { channel } = response;
-            return getChannel(channel);
-          });
+        response = await this.client.conversations.info({
+          channel: id
+        });
+        channel = response.channel;
+        break;
     }
+
+    return getChannel(channel);
   };
 
   sendMessage = ({ channel, text, thread_ts }): Promise<any> => {

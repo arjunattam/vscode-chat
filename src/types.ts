@@ -31,6 +31,7 @@ export interface User {
   id: string;
   name: string;
   fullName: string;
+  internalName?: string; // Used by slack provider to associate DMs
   imageUrl: string;
   smallImageUrl: string;
   isOnline: boolean;

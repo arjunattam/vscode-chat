@@ -75,10 +75,12 @@ export class SlackChatProvider implements IChatProvider {
     return this.client.getChannels(users);
   }
 
-  fetchUserInfo(botId: string): Promise<User> {
+  fetchUserInfo(userId: string): Promise<User> {
     // Works for bots only, since workspace users are fetched already
-    if (botId.startsWith("B")) {
-      return this.client.getBotInfo(botId);
+    if (userId.startsWith("B")) {
+      return this.client.getBotInfo(userId);
+    } else {
+      return this.client.getUserInfo(userId);
     }
   }
 
@@ -126,19 +128,12 @@ export class SlackChatProvider implements IChatProvider {
   }
 
   async sendMessage(text: string, currentUserId: string, channelId: string) {
-    // The rtm gives an error while sending messages. Might be related to
-    // https://github.com/slackapi/node-slack-sdk/issues/527
-    // https://github.com/slackapi/node-slack-sdk/issues/550
-    //
-    // So we use the webclient instead of
-    // this.rtmClient.sendMessage(cleanText, id)
     const cleanText = stripLinkSymbols(text);
 
     try {
-      const result = await this.client.sendMessage({
+      const result = await this.messenger.sendMessage({
         channel: channelId,
-        text: cleanText,
-        thread_ts: undefined
+        text: cleanText
       });
 
       // TODO: this is not the correct timestamp to attach, since the
