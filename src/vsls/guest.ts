@@ -1,37 +1,20 @@
-import * as vscode from "vscode";
 import * as vsls from "vsls/vscode";
-import * as str from "../strings";
-import {
-  VSLS_SERVICE_NAME,
-  REQUEST_NAME,
-  VslsChatMessage,
-  NOTIFICATION_NAME
-} from "./utils";
+import { REQUEST_NAME, VslsChatMessage, NOTIFICATION_NAME } from "./utils";
 import { User, Users, ChannelMessages } from "../types";
 import { VslsBaseService } from "./base";
 
 export class VslsGuestService extends VslsBaseService {
-  serviceProxy: vsls.SharedServiceProxy;
+  constructor(
+    protected liveshare: vsls.LiveShare,
+    private serviceProxy: vsls.SharedServiceProxy
+  ) {
+    super(liveshare);
 
-  async initialize() {
-    this.serviceProxy = await this.liveshare.getSharedService(
-      VSLS_SERVICE_NAME
+    serviceProxy.onNotify(NOTIFICATION_NAME.message, (msg: VslsChatMessage) =>
+      this.updateMessages(msg)
     );
 
-    this.serviceProxy.onDidChangeIsServiceAvailable(async nowAvailable => {
-      console.log("Availability changed to ", nowAvailable);
-
-      if (nowAvailable) {
-        this.registerSelf();
-      }
-    });
-
-    this.serviceProxy.onNotify(
-      NOTIFICATION_NAME.message,
-      (msg: VslsChatMessage) => this.updateMessages(msg)
-    );
-
-    if (this.serviceProxy.isServiceAvailable) {
+    if (serviceProxy.isServiceAvailable) {
       this.registerSelf();
     }
   }
@@ -46,11 +29,7 @@ export class VslsGuestService extends VslsBaseService {
   }
 
   isConnected() {
-    if (!!this.serviceProxy) {
-      return this.serviceProxy.isServiceAvailable;
-    }
-
-    return false;
+    return !!this.serviceProxy ? this.serviceProxy.isServiceAvailable : false;
   }
 
   async fetchUsers(): Promise<Users> {

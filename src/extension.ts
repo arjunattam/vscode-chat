@@ -75,7 +75,7 @@ export function activate(context: vscode.ExtensionContext) {
       .then(() => {
         const { currentUserInfo } = manager.store;
 
-        if (!currentUserInfo.currentTeamId) {
+        if (!!currentUserInfo && !currentUserInfo.currentTeamId) {
           // If no current team is available, we need to ask
           return askForWorkspace();
         }
@@ -88,8 +88,7 @@ export function activate(context: vscode.ExtensionContext) {
         const { users } = manager.store;
         manager.chatProvider.subscribePresence(users);
         return manager.getChannelsPromise();
-      })
-      .catch(error => Logger.log("Initialize error:" + error));
+      });
   };
 
   const sendMessage = (

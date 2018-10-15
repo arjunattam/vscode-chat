@@ -2,8 +2,6 @@ import * as vsls from "vsls/vscode";
 import * as gravatar from "gravatar-api";
 import { User, Message } from "../types";
 
-export const VSLS_SERVICE_NAME = "vsls-chat-1";
-
 export const VSLS_CHANNEL = {
   id: "vsls-channel-id",
   name: "Live Share Chat"

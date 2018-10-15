@@ -18,11 +18,11 @@ export abstract class BaseStatusItem {
     // We construct a new command to send args with base command
     // From: https://github.com/Microsoft/vscode/issues/22353#issuecomment-325293438
     const compound = `${baseCommand}.status`;
-    this.disposableCommand = vscode.commands.registerCommand(compound, () =>
-      vscode.commands.executeCommand(baseCommand, {
+    this.disposableCommand = vscode.commands.registerCommand(compound, () => {
+      return vscode.commands.executeCommand(baseCommand, {
         source: EventSource.status
-      })
-    );
+      });
+    });
 
     this.item.command = compound;
   }

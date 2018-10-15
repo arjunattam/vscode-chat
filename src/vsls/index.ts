@@ -13,15 +13,19 @@ import {
   Providers,
   ChannelType
 } from "../types";
-import { VSLS_SERVICE_NAME, VSLS_CHANNEL } from "./utils";
+import { VSLS_CHANNEL } from "./utils";
 import { VslsHostService } from "./host";
 import { VslsGuestService } from "./guest";
 import { SelfCommands } from "../constants";
 
 const VSLS_TOKEN_STRING = "vsls-placeholder-token";
 
+const VSLS_SERVICE_NAME = "vsls-chat";
+
 export class VslsChatProvider implements IChatProvider {
   liveshare: vsls.LiveShare;
+  sharedService: vsls.SharedService;
+  serviceProxy: vsls.SharedServiceProxy;
   hostService: VslsHostService;
   guestService: VslsGuestService;
 
@@ -62,11 +66,14 @@ export class VslsChatProvider implements IChatProvider {
     });
 
     if (!!sessionId) {
-      // TODO: this is called when we are on slack/discord
-      // but the `chat with...` command is run
-      // user signs out, and then we initialize the vsls provider
-      // BUT, the chat status bar item is not shown in this scenario
-      return this.initialize();
+      // This is called when we are on slack/discord, and the
+      // `Chat with VS Live Share participants` command is executed
+      const currentUser = await this.initialize();
+      vscode.commands.executeCommand(SelfCommands.LIVE_SHARE_SESSION_CHANGED, {
+        isActive: true,
+        currentUser
+      });
+      return currentUser;
     }
   }
 
@@ -75,11 +82,40 @@ export class VslsChatProvider implements IChatProvider {
     const { role, id: sessionId, peerNumber, user } = this.liveshare.session;
 
     if (role === vsls.Role.Host) {
-      this.hostService = new VslsHostService(this.liveshare);
-      await this.hostService.initialize();
+      if (!this.sharedService) {
+        this.sharedService = await this.liveshare.shareService(
+          VSLS_SERVICE_NAME
+        );
+
+        if (!this.sharedService) {
+          // sharedService can be null when experimental flag is off
+          return;
+        }
+
+        this.sharedService.onDidChangeIsServiceAvailable(nowAvailable => {
+          console.log("change service", nowAvailable);
+        });
+
+        this.hostService = new VslsHostService(
+          this.liveshare,
+          this.sharedService
+        );
+      }
     } else if (role === vsls.Role.Guest) {
-      this.guestService = new VslsGuestService(this.liveshare);
-      await this.guestService.initialize();
+      if (!this.serviceProxy) {
+        this.serviceProxy = await this.liveshare.getSharedService(
+          VSLS_SERVICE_NAME
+        );
+
+        this.serviceProxy.onDidChangeIsServiceAvailable(async nowAvailable => {
+          console.log("Availability changed to", nowAvailable);
+        });
+
+        this.guestService = new VslsGuestService(
+          this.liveshare,
+          this.serviceProxy
+        );
+      }
     }
 
     const sessionTeam: Team = {
@@ -119,6 +155,8 @@ export class VslsChatProvider implements IChatProvider {
         return this.guestService.fetchUsers();
       }
     }
+
+    return Promise.resolve({});
   }
 
   fetchUserInfo(userId: string): Promise<User> {
@@ -160,9 +198,7 @@ export class VslsChatProvider implements IChatProvider {
   }
 
   destroy(): Promise<void> {
-    // TODO: Move to host?
-    // return this.liveshare.unshareService(VSLS_SERVICE_NAME);
-    return Promise.resolve();
+    return this.liveshare.unshareService(VSLS_SERVICE_NAME);
   }
 
   getToken(): Promise<string> {

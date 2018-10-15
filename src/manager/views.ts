@@ -33,9 +33,9 @@ export class ViewsManager implements vscode.Disposable {
 
   updateStatusItem() {
     const { channels } = this.parent.store;
-    const unreads = channels.map(channel =>
-      this.parent.getUnreadCount(channel)
-    );
+    const unreads = channels.map(channel => {
+      return this.parent.getUnreadCount(channel);
+    });
     const totalUnreads = unreads.reduce((a, b) => a + b, 0);
     const workspaceName = this.parent.getCurrentWorkspaceName();
     this.statusItem.updateCount(totalUnreads, workspaceName);

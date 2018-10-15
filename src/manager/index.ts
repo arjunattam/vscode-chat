@@ -247,6 +247,12 @@ export default class Manager implements IManager, vscode.Disposable {
     }
 
     const { currentUserInfo } = this.store;
+
+    if (!currentUserInfo) {
+      // Can be undefined during async update on vsls chat
+      return 0;
+    }
+
     const messages = id in this.messages ? this.messages[id] : {};
 
     const unreadMessages = Object.keys(messages).filter(ts => {

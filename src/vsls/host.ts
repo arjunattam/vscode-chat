@@ -1,6 +1,5 @@
 import * as vsls from "vsls/vscode";
 import {
-  VSLS_SERVICE_NAME,
   VslsChatMessage,
   REQUEST_NAME,
   NOTIFICATION_NAME,
@@ -11,20 +10,20 @@ import { User, Users, ChannelMessages } from "../types";
 import { VslsBaseService } from "./base";
 import { LIVE_SHARE_INFO_MESSAGES } from "../strings";
 
+interface VslsMessages {
+  [timestamp: string]: VslsChatMessage;
+}
+
 export class VslsHostService extends VslsBaseService {
-  messages: { [timestamp: string]: VslsChatMessage } = {};
-  sharedService: vsls.SharedService;
+  messages: VslsMessages = {};
   cachedPeers: vsls.Peer[] = [];
 
-  async initialize() {
-    this.sharedService = await this.liveshare.shareService(VSLS_SERVICE_NAME);
-    // sharedService can be null when experimental flag is off
-
-    this.sharedService.onDidChangeIsServiceAvailable(nowAvailable => {
-      console.log("change service", nowAvailable);
-    });
-
-    this.sharedService.onRequest(REQUEST_NAME.message, payload => {
+  constructor(
+    protected liveshare: vsls.LiveShare,
+    private sharedService: vsls.SharedService
+  ) {
+    super(liveshare);
+    sharedService.onRequest(REQUEST_NAME.message, payload => {
       if (!!payload) {
         const message = payload[0];
         const { userId, text } = message;
@@ -32,22 +31,22 @@ export class VslsHostService extends VslsBaseService {
       }
     });
 
-    this.sharedService.onRequest(REQUEST_NAME.fetchUsers, () => {
+    sharedService.onRequest(REQUEST_NAME.fetchUsers, () => {
       return this.fetchUsers();
     });
 
-    this.sharedService.onRequest(REQUEST_NAME.fetchUserInfo, payload => {
+    sharedService.onRequest(REQUEST_NAME.fetchUserInfo, payload => {
       if (!!payload) {
         const userId = payload[0];
         return this.fetchUserInfo(userId);
       }
     });
 
-    this.sharedService.onRequest(REQUEST_NAME.fetchMessages, () => {
+    sharedService.onRequest(REQUEST_NAME.fetchMessages, () => {
       return this.fetchMessagesHistory();
     });
 
-    this.sharedService.onRequest(REQUEST_NAME.registerGuest, payload => {
+    sharedService.onRequest(REQUEST_NAME.registerGuest, payload => {
       if (!!payload) {
         const { peer } = payload[0];
         return this.updateCachedPeers([peer], []);
@@ -56,11 +55,7 @@ export class VslsHostService extends VslsBaseService {
   }
 
   isConnected() {
-    if (!!this.sharedService) {
-      return this.sharedService.isServiceAvailable;
-    }
-
-    return false;
+    return !!this.sharedService ? this.sharedService.isServiceAvailable : false;
   }
 
   sendStartedMessage() {
