@@ -62,7 +62,7 @@ export function activate(context: vscode.ExtensionContext) {
       await manager.initializeToken(provider);
 
       if (!manager.token) {
-        if (canPromptForAuth) {
+        if (canPromptForAuth && !hasVslsExtension()) {
           askForAuth();
         }
 
