@@ -15,7 +15,7 @@ import {
 
 const CHANNEL_HISTORY_LIMIT = 500;
 
-const USER_LIST_LIMIT = 200;
+const USER_LIST_LIMIT = 1000;
 
 const getFile = rawFile => {
   return { name: rawFile.name, permalink: rawFile.permalink };
@@ -223,11 +223,13 @@ export default class SlackAPIClient {
               const first = matched[1];
               const rest = matched[2].split("--").filter(element => !!element);
               const members = [first, ...rest];
-              const memberUsers = members.map(memberName =>
-                userValues.find(
-                  ({ internalName }) => internalName === memberName
+              const memberUsers = members
+                .map(memberName =>
+                  userValues.find(
+                    ({ internalName }) => internalName === memberName
+                  )
                 )
-              );
+                .filter(Boolean);
               const isAnyUserDeleted = memberUsers.filter(
                 ({ isDeleted }) => isDeleted
               );

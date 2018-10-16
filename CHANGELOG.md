@@ -2,6 +2,12 @@
 
 All notable changes to the vscode-chat extension will be documented in this file. This follows the [Keep a Changelog](http://keepachangelog.com/) format.
 
+## [0.7.3] - 2018-10-16
+
+### Fixed
+
+- Fixed channel loading for Slack workspaces that cross the user limit.
+
 ## [0.7.2] - 2018-10-15
 
 ### Fixed
