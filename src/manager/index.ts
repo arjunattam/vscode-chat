@@ -15,7 +15,8 @@ import {
   IChatProvider,
   MessageReply,
   MessageReplies,
-  Providers
+  Providers,
+  InitializeState
 } from "../types";
 import Logger from "../logger";
 import {
@@ -56,7 +57,7 @@ export default class Manager implements IManager, vscode.Disposable {
 
           if (!!currentUserInfo) {
             const userInfo = { ...currentUserInfo, provider: Providers.slack };
-            this.store.updateCurrentUser(userInfo);
+            this.updateCurrentUser(userInfo);
           }
         }
       }
@@ -65,23 +66,28 @@ export default class Manager implements IManager, vscode.Disposable {
     }
   }
 
-  getSelectedProvider() {
+  getInitialState() {
     // First check if we have a saved user profile
     // Else return default (vsls, if extension exists)
     const { currentUserInfo } = this.store;
+    let provider;
+    let currentTeamId;
 
     if (!!currentUserInfo) {
-      return currentUserInfo.provider;
+      provider = currentUserInfo.provider;
+      currentTeamId = currentUserInfo.currentTeamId;
+    } else {
+      const hasVsls = hasVslsExtension();
+      provider = hasVsls ? Providers.vsls : undefined;
     }
 
-    const hasVsls = hasVslsExtension();
-
-    if (hasVsls) {
-      return Providers.vsls;
-    }
+    return {
+      provider,
+      currentTeamId
+    };
   }
 
-  getChatProvider(provider: string): IChatProvider {
+  instantiateChatProvider(provider: string): IChatProvider {
     switch (provider) {
       case "discord":
         return new DiscordChatProvider(this);
@@ -93,30 +99,33 @@ export default class Manager implements IManager, vscode.Disposable {
   }
 
   async validateToken(provider: string, token: string) {
-    const chatProvider = this.getChatProvider(provider);
+    const chatProvider = this.instantiateChatProvider(provider);
     const currentUser = await chatProvider.validateToken(token);
     return currentUser;
   }
 
-  initializeToken = async (selectedProvider?: string) => {
-    if (!selectedProvider) {
-      selectedProvider = this.getSelectedProvider();
+  initializeToken = async (initialState?: InitializeState) => {
+    if (!initialState) {
+      initialState = this.getInitialState();
     }
 
     if (!!this.viewsManager) {
       this.viewsManager.dispose();
     }
 
-    this.viewsManager = new ViewsManager(selectedProvider, this);
+    this.viewsManager = new ViewsManager(initialState.provider, this);
 
-    if (!!selectedProvider) {
-      this.chatProvider = this.getChatProvider(selectedProvider);
-      const token = await this.chatProvider.getToken();
-      this.token = token;
+    if (!!initialState.provider) {
+      // TODO: it is possible that the current team is null at this point
+      this.chatProvider = this.instantiateChatProvider(initialState.provider);
+      this.token = await this.chatProvider.getToken(initialState.currentTeamId);
 
-      const ALL_PROVIDERS = ["slack", "discord"];
-      ALL_PROVIDERS.forEach(provider => {
-        setVsContext(`chat:${provider}`, provider === selectedProvider);
+      const ALL_PROVIDERS = ["slack", "discord"]; // All providers with views
+      ALL_PROVIDERS.forEach(providerName => {
+        setVsContext(
+          `chat:${providerName}`,
+          providerName === initialState.provider
+        );
       });
     }
   };
@@ -125,13 +134,14 @@ export default class Manager implements IManager, vscode.Disposable {
     const isConnected = this.chatProvider.isConnected();
     const isAuthenticated = this.isAuthenticated();
     let currentUser = this.store.currentUserInfo;
+    const { provider } = this.getInitialState();
 
     if (!(isConnected && isAuthenticated)) {
       currentUser = await this.chatProvider.connect();
-      this.store.updateCurrentUser(currentUser);
+      this.updateCurrentUser(currentUser);
     }
 
-    if (this.getSelectedProvider() === "vsls") {
+    if (provider === "vsls") {
       this.store.updateLastChannelId(VSLS_CHANNEL.id);
     }
 
@@ -139,7 +149,7 @@ export default class Manager implements IManager, vscode.Disposable {
   };
 
   clearAll() {
-    this.store.updateCurrentUser(undefined);
+    this.updateCurrentUser(undefined);
     this.clearOldWorkspace();
   }
 
@@ -277,6 +287,39 @@ export default class Manager implements IManager, vscode.Disposable {
     }
   };
 
+  updateCurrentUser = (userInfo: CurrentUser): Thenable<void> => {
+    const { currentUserInfo: existingUserInfo } = this.store;
+
+    if (!!userInfo) {
+      if (!userInfo.currentTeamId) {
+        // In discord, if the store knows the currentTeamId, we need to use that
+        if (!!existingUserInfo) {
+          const { currentTeamId: existingTeamId } = existingUserInfo;
+          userInfo.currentTeamId = existingTeamId;
+        }
+      }
+
+      if (userInfo.provider === Providers.slack) {
+        // With slack, our store might know about other workspaces that
+        // userInfo does not know about. Hence, we need to merge the two.
+        if (!!existingUserInfo) {
+          let mergedTeams = {};
+          const { teams: newTeams } = userInfo;
+          const { teams: existingTeams } = existingUserInfo;
+          existingTeams.forEach(team => (mergedTeams[team.id] = team));
+          newTeams.forEach(team => (mergedTeams[team.id] = team));
+          const teams = Object.keys(mergedTeams).map(key => mergedTeams[key]);
+          userInfo = {
+            ...userInfo,
+            teams
+          };
+        }
+      }
+    }
+
+    return this.store.updateCurrentUser(userInfo);
+  };
+
   updateUserPresence = (userId: string, isOnline: boolean) => {
     const { users } = this.store;
 
@@ -363,9 +406,14 @@ export default class Manager implements IManager, vscode.Disposable {
     // We have to fetch twice here because Slack does not return the
     // historical unread counts for channels in the list API.
     const promises = channels.map(async channel => {
-      const newChannel = await this.chatProvider.fetchChannelInfo(channel);
-      // TODO: only update when we have a different unread
-      return this.updateChannel(newChannel);
+      try {
+        const newChannel = await this.chatProvider.fetchChannelInfo(channel);
+        // TODO: only update when we have a different unread
+        return this.updateChannel(newChannel);
+      } catch (error) {
+        //
+        console.log(error);
+      }
     });
 
     await Promise.all(promises);
@@ -379,7 +427,8 @@ export default class Manager implements IManager, vscode.Disposable {
 
     this.updateChannelsFetchedAt();
     this.viewsManager.updateTreeViews();
-    this.fetchUnreadCounts(channels);
+    // TODO: re-enable fetch unread counts
+    // this.fetchUnreadCounts(channels);
     return channels;
   };
 
@@ -430,7 +479,25 @@ export default class Manager implements IManager, vscode.Disposable {
       ...currentUserInfo,
       currentTeamId: team.id
     };
-    return this.store.updateCurrentUser(newCurrentUser);
+    return this.updateCurrentUser(newCurrentUser);
+  };
+
+  addWorkspaceById = (teamId: string): Thenable<void> => {
+    const { currentUserInfo } = this.store;
+    const { teams } = currentUserInfo;
+    const filtered = teams.find(({ id }) => id === teamId);
+
+    if (!filtered) {
+      teams.push({ id: teamId, name: "" });
+    }
+
+    const newCurrentUser = {
+      ...currentUserInfo,
+      teams,
+      currentTeamId: teamId
+    };
+
+    return this.updateCurrentUser(newCurrentUser);
   };
 
   updateMessages = (channelId: string, newMessages: ChannelMessages) => {

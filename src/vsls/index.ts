@@ -201,7 +201,7 @@ export class VslsChatProvider implements IChatProvider {
     return this.liveshare.unshareService(VSLS_SERVICE_NAME);
   }
 
-  getToken(): Promise<string> {
+  getToken(currentTeamId: string): Promise<string> {
     return Promise.resolve(VSLS_TOKEN_STRING);
   }
 

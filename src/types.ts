@@ -1,5 +1,5 @@
 export interface IChatProvider {
-  getToken: () => Promise<string>;
+  getToken: (currentTeamId: string) => Promise<string>;
   validateToken: (token: string) => Promise<CurrentUser>;
   fetchUsers: () => Promise<Users>;
   fetchUserInfo: (userId: string) => Promise<User>;
@@ -192,12 +192,17 @@ export interface IStore {
   existingVersion: string;
 }
 
+export type InitializeState = {
+  provider: string;
+  currentTeamId: string;
+};
+
 export interface IManager {
   token: string;
   store: IStore;
   messages: Messages;
   isAuthenticated: () => boolean;
-  getSelectedProvider: () => string;
+  getInitialState: () => InitializeState;
   getChannel: (channelId: string) => Channel | undefined;
   getIMChannel: (user: User) => Channel | undefined;
   getChannelLabels: () => any;

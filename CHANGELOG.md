@@ -2,6 +2,14 @@
 
 All notable changes to the vscode-chat extension will be documented in this file. This follows the [Keep a Changelog](http://keepachangelog.com/) format.
 
+## [0.7.4] - tbd
+
+### Added
+
+- Slack: Multiple workspaces
+- Discord: Handle file attachments in Discord messages
+- Discord: Token string is sanitised to remove whitespaces and quotation characters
+
 ## [0.7.3] - 2018-10-16
 
 ### Fixed

@@ -70,23 +70,7 @@ export class Store implements IStore {
   };
 
   updateCurrentUser = (userInfo: CurrentUser): Thenable<void> => {
-    // In the case of discord, we need to know the current team (guild)
-    // If that is available in the store, we should use that
-    if (!userInfo) {
-      // Resetting userInfo
-      this.currentUserInfo = userInfo;
-    } else {
-      let currentTeamId: string = !!this.currentUserInfo
-        ? this.currentUserInfo.currentTeamId
-        : undefined;
-
-      if (!!userInfo.currentTeamId) {
-        currentTeamId = userInfo.currentTeamId;
-      }
-
-      this.currentUserInfo = { ...userInfo, currentTeamId };
-    }
-
+    this.currentUserInfo = userInfo;
     return this.context.globalState.update(
       stateKeys.USER_INFO,
       this.currentUserInfo

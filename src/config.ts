@@ -81,10 +81,19 @@ class ConfigHelper {
     });
   }
 
-  static async getToken(service: string): Promise<string> {
+  static getAccountName(provider: string, team?: string): string {
+    if (!!team) {
+      return `${provider} (${team})`;
+    } else {
+      return provider;
+    }
+  }
+
+  static async getToken(provider: string, team?: string): Promise<string> {
+    const accountName = this.getAccountName(provider, team);
     const keychainToken = await KeychainHelper.get(
       CREDENTIAL_SERVICE_NAME,
-      service
+      accountName
     );
     return keychainToken;
   }
@@ -93,20 +102,26 @@ class ConfigHelper {
     this.updateRootConfig(TOKEN_CONFIG_KEY, undefined);
   }
 
-  static async setToken(token: string, providerName: string): Promise<void> {
-    // TODO: There is no token validation. We need to add one.
+  static async setToken(
+    token: string,
+    provider: string,
+    team?: string
+  ): Promise<void> {
     // TODO: it is possible that the keychain will fail
     // See https://github.com/Microsoft/vscode-pull-request-github/commit/306dc5d27460599f3402f4b9e01d97bf638c639f
-    await KeychainHelper.set(CREDENTIAL_SERVICE_NAME, providerName, token);
+    const accountName = this.getAccountName(provider, team);
+    await KeychainHelper.set(CREDENTIAL_SERVICE_NAME, accountName, token);
 
     // When token is set, we need to call reset
     vscode.commands.executeCommand(SelfCommands.RESET_STORE, {
-      newProvider: providerName
+      provider,
+      currentTeamId: team
     });
   }
 
-  static async clearToken(provider: string): Promise<void> {
-    await KeychainHelper.clear(CREDENTIAL_SERVICE_NAME, provider);
+  static async clearToken(provider: string, team?: string): Promise<void> {
+    const accountName = this.getAccountName(provider, team);
+    await KeychainHelper.clear(CREDENTIAL_SERVICE_NAME, accountName);
 
     // When token state is cleared, we need to call reset
     vscode.commands.executeCommand(SelfCommands.RESET_STORE, {

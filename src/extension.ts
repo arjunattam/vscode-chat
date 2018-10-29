@@ -5,7 +5,14 @@ import Manager from "./manager";
 import Logger from "./logger";
 import { Store } from "./store";
 import * as str from "./strings";
-import { Channel, ChatArgs, EventType, EventSource } from "./types";
+import {
+  Channel,
+  ChatArgs,
+  EventType,
+  EventSource,
+  InitializeState,
+  Providers
+} from "./types";
 import {
   SelfCommands,
   LiveShareCommands,
@@ -16,7 +23,7 @@ import {
   TRAVIS_SCHEME
 } from "./constants";
 import travis from "./bots/travis";
-import { ExtensionUriHandler } from "./uri";
+import { ExtensionUriHandler } from "./uriHandler";
 import {
   openUrl,
   toTitleCase,
@@ -59,13 +66,13 @@ export function activate(context: vscode.ExtensionContext) {
     }
   };
 
-  const setup = async ({ canPromptForAuth, provider }): Promise<any> => {
+  const setup = async ({ canPromptForAuth, initialState }): Promise<any> => {
     if (!manager.store.installationId) {
       setupFreshInstall();
     }
 
     if (!manager.token) {
-      await manager.initializeToken(provider);
+      await manager.initializeToken(initialState);
 
       if (!manager.token) {
         if (canPromptForAuth && !hasVslsExtension()) {
@@ -76,25 +83,20 @@ export function activate(context: vscode.ExtensionContext) {
       }
     }
 
-    return manager
-      .initializeProvider()
-      .then(() => {
-        const { currentUserInfo } = manager.store;
+    await manager.initializeProvider();
+    const { currentUserInfo } = manager.store;
 
-        if (!!currentUserInfo && !currentUserInfo.currentTeamId) {
-          // If no current team is available, we need to ask
-          return askForWorkspace();
-        }
-      })
-      .then(() => {
-        manager.updateUserPrefs(); // TODO: for discord, this needs to happen after channels are fetched
-        return manager.getUsersPromise();
-      })
-      .then(() => {
-        const { users } = manager.store;
-        manager.chatProvider.subscribePresence(users);
-        return manager.getChannelsPromise();
-      });
+    if (!!currentUserInfo && !currentUserInfo.currentTeamId) {
+      // If no current team is available, we need to ask
+      await askForWorkspace();
+    }
+
+    manager.updateUserPrefs(); // async update
+    // TODO: for discord, user prefs can only be updated after channels are fetched
+    await manager.getUsersPromise();
+    const { users } = manager.store;
+    manager.chatProvider.subscribePresence(users);
+    return manager.getChannelsPromise();
   };
 
   const sendMessage = (
@@ -122,7 +124,7 @@ export function activate(context: vscode.ExtensionContext) {
   };
 
   const askForChannel = async (): Promise<Channel> => {
-    await setup({ canPromptForAuth: true, provider: undefined });
+    await setup({ canPromptForAuth: true, initialState: undefined });
     let channelList = manager
       .getChannelLabels()
       .sort((a, b) => b.unread - a.unread);
@@ -191,7 +193,7 @@ export function activate(context: vscode.ExtensionContext) {
       controller.loadUi();
     }
 
-    setup({ canPromptForAuth: true, provider: undefined })
+    setup({ canPromptForAuth: true, initialState: undefined })
       .then(() => getChatChannelId(args))
       .then(() => {
         manager.viewsManager.updateWebview();
@@ -228,7 +230,7 @@ export function activate(context: vscode.ExtensionContext) {
       await askForWorkspace();
       manager.clearOldWorkspace();
       manager.updateAllUI();
-      await setup({ canPromptForAuth: false, provider: undefined });
+      await setup({ canPromptForAuth: false, initialState: undefined });
     }
   };
 
@@ -304,21 +306,39 @@ export function activate(context: vscode.ExtensionContext) {
     return openUrl(urls[service]);
   };
 
-  const reset = async (newProvider?: string) => {
-    manager.clearAll();
+  const reset = async (initialState?: InitializeState) => {
+    const managerState = manager.getInitialState();
+
+    if (managerState.provider === initialState.provider) {
+      // Assume we are adding a new workspace
+      manager.clearOldWorkspace();
+      const { currentTeamId } = initialState;
+      await manager.addWorkspaceById(currentTeamId);
+
+      // TODO:
+      // since we are now aware of another slack workspace,
+      // we need to add that to the currentUserInfo of manager.store
+
+      // Also, when we fetch currentUser from slack, we need
+      // to make sure that the other team (workspaces) on currentUser
+      // are not over written
+    } else {
+      manager.clearAll();
+    }
+
     manager.updateAllUI();
-    await setup({ canPromptForAuth: false, provider: newProvider });
+    await setup({ canPromptForAuth: false, initialState });
   };
 
   const signout = async () => {
-    const provider = manager.getSelectedProvider();
+    const { provider } = manager.getInitialState();
 
     if (!!provider) {
       await ConfigHelper.clearToken(provider);
     }
   };
 
-  const fetchReplies = parentTimestamp => {
+  const fetchReplies = (parentTimestamp: string) => {
     manager.fetchThreadReplies(parentTimestamp);
   };
 
@@ -407,7 +427,7 @@ export function activate(context: vscode.ExtensionContext) {
     }
 
     // Resume on existing VS Live Share chat if possible
-    const currentProvider = manager.getSelectedProvider();
+    const { provider: currentProvider } = manager.getInitialState();
     const hasOtherProvider =
       currentProvider !== "vsls" || manager.chatProvider.isConnected();
 
@@ -420,7 +440,7 @@ export function activate(context: vscode.ExtensionContext) {
       );
 
       if (!!response && response === str.SIGN_OUT) {
-        await reset("vsls");
+        await reset({ provider: "vsls", currentTeamId: undefined });
       } else {
         return;
       }
@@ -430,7 +450,7 @@ export function activate(context: vscode.ExtensionContext) {
   };
 
   // Setup real-time messenger and updated local state
-  setup({ canPromptForAuth: true, provider: undefined });
+  setup({ canPromptForAuth: true, initialState: undefined });
 
   // Setup context for conditional views
   setVslsContext();
@@ -445,9 +465,8 @@ export function activate(context: vscode.ExtensionContext) {
     vscode.commands.registerCommand(SelfCommands.CHANGE_CHANNEL, changeChannel),
     vscode.commands.registerCommand(SelfCommands.SIGN_IN, authenticate),
     vscode.commands.registerCommand(SelfCommands.SIGN_OUT, signout),
-    vscode.commands.registerCommand(
-      SelfCommands.RESET_STORE,
-      ({ newProvider }) => reset(newProvider)
+    vscode.commands.registerCommand(SelfCommands.RESET_STORE, initialState =>
+      reset(initialState)
     ),
     vscode.commands.registerCommand(
       SelfCommands.CONFIGURE_TOKEN,
@@ -486,10 +505,10 @@ export function activate(context: vscode.ExtensionContext) {
     vscode.commands.registerCommand(
       SelfCommands.LIVE_SHARE_SESSION_CHANGED,
       ({ isActive, currentUser }) => {
-        const provider = manager.getSelectedProvider();
+        const { provider } = manager.getInitialState();
 
-        if (provider === "vsls") {
-          manager.store.updateCurrentUser(currentUser);
+        if (provider === Providers.vsls) {
+          manager.updateCurrentUser(currentUser);
           manager.viewsManager.updateVslsStatus(isActive);
         }
       }

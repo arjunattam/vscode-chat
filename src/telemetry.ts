@@ -84,6 +84,7 @@ export default class Reporter implements vscode.Disposable {
   getMxEvent(event: TelemetryEvent): Mixpanel.Event {
     const { os, extension, editor } = this.versions;
     const { type: name, properties, time } = event;
+    const { provider } = this.manager.getInitialState();
     return {
       event: name,
       properties: {
@@ -93,7 +94,7 @@ export default class Reporter implements vscode.Disposable {
         editor_version: editor,
         has_extension_pack: this.hasExtensionPack,
         is_authenticated: this.manager.isAuthenticated(),
-        provider: this.manager.getSelectedProvider(),
+        provider,
         ...properties,
         time
       }

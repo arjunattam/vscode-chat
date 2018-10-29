@@ -13,7 +13,8 @@ import {
   ChannelMessages,
   Message,
   MessageContent,
-  Providers
+  Providers,
+  Team
 } from "../types";
 import ConfigHelper from "../config";
 import { SelfCommands } from "../constants";
@@ -46,6 +47,18 @@ const getMessageContent = (raw: Discord.Message): MessageContent => {
 const getMessage = (raw: Discord.Message): Message => {
   const { author, createdTimestamp, content, reactions, editedTimestamp } = raw;
   const timestamp = (createdTimestamp / 1000).toString();
+  let attachment = undefined;
+  const attachments = raw.attachments.array();
+
+  if (attachments.length > 0) {
+    // This only shows the first attachment
+    const selected = attachments[0];
+    attachment = {
+      name: selected.filename,
+      permalink: selected.url
+    };
+  }
+
   return {
     timestamp,
     userId: author.id,
@@ -53,6 +66,7 @@ const getMessage = (raw: Discord.Message): Message => {
     isEdited: !!editedTimestamp,
     content: getMessageContent(raw),
     replies: {},
+    attachment,
     reactions: reactions.map(rxn => ({
       name: rxn.emoji.name,
       count: rxn.count,
@@ -102,7 +116,7 @@ export class DiscordChatProvider implements IChatProvider {
 
   constructor(private manager: IManager) {}
 
-  async getToken(): Promise<string> {
+  async getToken(currentTeamId: string): Promise<string> {
     // When this starts using OAuth, we need to manage refresh tokens here
     this.token = await ConfigHelper.getToken("discord");
     return Promise.resolve(this.token);
@@ -344,22 +358,21 @@ export class DiscordChatProvider implements IChatProvider {
     ]);
   }
 
-  loadChannelHistory(channelId: string): Promise<ChannelMessages> {
+  async loadChannelHistory(channelId: string): Promise<ChannelMessages> {
     const channel: any = this.client.channels.find(
       channel => channel.id === channelId
     );
     // channel.fetchMessages will break for voice channels
-    return channel
-      .fetchMessages({ limit: HISTORY_LIMIT })
-      .then((messages: Discord.Message[]) => {
-        let result: ChannelMessages = {};
-        messages.forEach(message => {
-          const parsed = getMessage(message);
-          const { timestamp } = parsed;
-          result[timestamp] = parsed;
-        });
-        return result;
-      });
+    const messages: Discord.Message[] = await channel.fetchMessages({
+      limit: HISTORY_LIMIT
+    });
+    let result: ChannelMessages = {};
+    messages.forEach(message => {
+      const parsed = getMessage(message);
+      const { timestamp } = parsed;
+      result[timestamp] = parsed;
+    });
+    return result;
   }
 
   sendMessage(

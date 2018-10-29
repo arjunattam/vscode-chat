@@ -8,11 +8,11 @@ export class ExtensionUriHandler implements vscode.UriHandler {
     // vscode://karigari.chat/redirect?url=foobar
     const { path, query } = uri;
     const parsed = this.parseQuery(query);
-    const { token, msg, service } = parsed;
+    const { token, msg, service, team } = parsed;
 
     switch (path) {
       case "/redirect":
-        return ConfigHelper.setToken(token, service);
+        return ConfigHelper.setToken(token, service, team);
       case "/error":
         return this.showIssuePrompt(msg, service);
     }
@@ -31,7 +31,7 @@ export class ExtensionUriHandler implements vscode.UriHandler {
       });
   }
 
-  parseQuery(queryString): any {
+  parseQuery(queryString: string): any {
     // From https://stackoverflow.com/a/13419367
     var query = {};
     var pairs = (queryString[0] === "?"
