@@ -17,7 +17,13 @@ import {
 } from "./constants";
 import travis from "./bots/travis";
 import { ExtensionUriHandler } from "./uri";
-import { openUrl, toTitleCase, setVsContext, hasVslsExtension } from "./utils";
+import {
+  openUrl,
+  toTitleCase,
+  setVsContext,
+  hasVslsExtension,
+  sanitiseTokenString
+} from "./utils";
 import { askForAuth } from "./onboarding";
 import ConfigHelper from "./config";
 import Reporter from "./telemetry";
@@ -348,8 +354,10 @@ export function activate(context: vscode.ExtensionContext) {
       });
 
       if (!!inputToken) {
+        const sanitisedToken = sanitiseTokenString(inputToken);
+
         try {
-          await manager.validateToken(provider, inputToken);
+          await manager.validateToken(provider, sanitisedToken);
         } catch (error) {
           const actionItems = [str.REPORT_ISSUE];
           const messageResult = await vscode.window.showErrorMessage(
@@ -365,7 +373,7 @@ export function activate(context: vscode.ExtensionContext) {
           return;
         }
 
-        return ConfigHelper.setToken(inputToken, provider);
+        return ConfigHelper.setToken(sanitisedToken, provider);
       }
     }
   };
