@@ -82,11 +82,7 @@ class ConfigHelper {
   }
 
   static getAccountName(provider: string, team?: string): string {
-    if (!!team) {
-      return `${provider} (${team})`;
-    } else {
-      return provider;
-    }
+    return !!team ? `${provider} (${team})` : provider;
   }
 
   static async getToken(provider: string, team?: string): Promise<string> {

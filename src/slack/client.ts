@@ -192,9 +192,9 @@ export default class SlackAPIClient {
     if (ok) {
       return channels
         .map(channel => {
-          const { is_channel, is_mpim, is_im, is_group } = channel;
+          const { is_channel, is_mpim, is_im, is_group, is_member } = channel;
 
-          if (is_channel) {
+          if (is_channel && is_member) {
             // Public channels
             return {
               id: channel.id,

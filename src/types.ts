@@ -54,7 +54,7 @@ export enum Providers {
 export interface CurrentUser {
   id: string;
   name: string;
-  token: string;
+  token: string; // deprecated
   teams: Team[];
   currentTeamId: string;
   provider: Providers;

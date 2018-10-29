@@ -314,14 +314,6 @@ export function activate(context: vscode.ExtensionContext) {
       manager.clearOldWorkspace();
       const { currentTeamId } = initialState;
       await manager.addWorkspaceById(currentTeamId);
-
-      // TODO:
-      // since we are now aware of another slack workspace,
-      // we need to add that to the currentUserInfo of manager.store
-
-      // Also, when we fetch currentUser from slack, we need
-      // to make sure that the other team (workspaces) on currentUser
-      // are not over written
     } else {
       manager.clearAll();
     }
