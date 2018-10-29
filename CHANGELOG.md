@@ -6,7 +6,7 @@ All notable changes to the vscode-chat extension will be documented in this file
 
 ### Added
 
-- Slack: Multiple workspaces
+- Slack: Support for multiple workspaces is available for preview. Run the `Sign In with Slack` command to sign into another workspace, and `Change Workspace` to switch between Slack workspaces.
 - Discord: Handle file attachments in Discord messages
 - Discord: Token string is sanitised to remove whitespaces and quotation characters
 

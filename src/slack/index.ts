@@ -39,9 +39,11 @@ export class SlackChatProvider implements IChatProvider {
     this.token = await ConfigHelper.getToken("slack", currentTeamId);
 
     if (!this.token) {
-      // Migration for 0.7.4: the token might be inside `slack`
       this.token = await ConfigHelper.getToken("slack");
-      // await ConfigHelper.migrateToken("slack", accountName);
+
+      // Migration for 0.7.4: the token might be inside `slack`
+      await ConfigHelper.setToken(this.token, "slack", currentTeamId);
+      await ConfigHelper.clearToken("slack");
     }
 
     this.client = new SlackAPIClient(this.token);
