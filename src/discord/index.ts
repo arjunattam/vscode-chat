@@ -13,8 +13,7 @@ import {
   ChannelMessages,
   Message,
   MessageContent,
-  Providers,
-  Team
+  Providers
 } from "../types";
 import ConfigHelper from "../config";
 import { SelfCommands } from "../constants";
@@ -120,6 +119,10 @@ export class DiscordChatProvider implements IChatProvider {
     // When this starts using OAuth, we need to manage refresh tokens here
     this.token = await ConfigHelper.getToken("discord");
     return Promise.resolve(this.token);
+  }
+
+  async signout(): Promise<void> {
+    await ConfigHelper.clearToken("discord");
   }
 
   async validateToken(token: string): Promise<CurrentUser> {

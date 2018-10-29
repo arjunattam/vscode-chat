@@ -26,6 +26,7 @@ import {
   setVsContext,
   hasVslsExtension
 } from "../utils";
+import { SelfCommands } from "../constants";
 import { DiscordChatProvider } from "../discord";
 import { SlackChatProvider } from "../slack";
 import { VslsChatProvider } from "../vsls";
@@ -165,6 +166,18 @@ export default class Manager implements IManager, vscode.Disposable {
 
     if (!!this.chatProvider) {
       this.chatProvider.destroy();
+    }
+  }
+
+  async signout() {
+    if (!!this.chatProvider) {
+      await this.chatProvider.signout(this.store.currentUserInfo);
+
+      // When token is cleared, we need to call reset
+      vscode.commands.executeCommand(SelfCommands.RESET_STORE, {
+        provider: undefined,
+        currentTeamId: undefined
+      });
     }
   }
 

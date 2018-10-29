@@ -25,6 +25,7 @@ export interface IChatProvider {
   subscribePresence: (users: Users) => void;
   createIMChannel: (user: User) => Promise<Channel>;
   destroy: () => Promise<void>;
+  signout: (userInfo: CurrentUser) => Promise<void>;
 }
 
 export interface User {

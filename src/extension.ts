@@ -331,11 +331,7 @@ export function activate(context: vscode.ExtensionContext) {
   };
 
   const signout = async () => {
-    const { provider } = manager.getInitialState();
-
-    if (!!provider) {
-      await ConfigHelper.clearToken(provider);
-    }
+    await manager.signout();
   };
 
   const fetchReplies = (parentTimestamp: string) => {

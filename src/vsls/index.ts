@@ -205,6 +205,10 @@ export class VslsChatProvider implements IChatProvider {
     return Promise.resolve(VSLS_TOKEN_STRING);
   }
 
+  async signout(): Promise<void> {
+    // no-op
+  }
+
   getUserPrefs(): Promise<UserPreferences> {
     return Promise.resolve({});
   }

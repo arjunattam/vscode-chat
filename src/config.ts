@@ -122,11 +122,6 @@ class ConfigHelper {
   static async clearToken(provider: string, team?: string): Promise<void> {
     const accountName = this.getAccountName(provider, team);
     await KeychainHelper.clear(CREDENTIAL_SERVICE_NAME, accountName);
-
-    // When token state is cleared, we need to call reset
-    vscode.commands.executeCommand(SelfCommands.RESET_STORE, {
-      newProvider: undefined
-    });
   }
 
   static getProxyUrl() {

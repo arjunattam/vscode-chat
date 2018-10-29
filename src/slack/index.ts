@@ -11,8 +11,7 @@ import {
   Message,
   ChannelMessages,
   UserPreferences,
-  CurrentUser,
-  Team
+  CurrentUser
 } from "../types";
 
 const stripLinkSymbols = (text: string): string => {
@@ -47,6 +46,14 @@ export class SlackChatProvider implements IChatProvider {
 
     this.client = new SlackAPIClient(this.token);
     return this.token;
+  }
+
+  async signout(userInfo: CurrentUser): Promise<void> {
+    const teamIds = userInfo.teams.map(({ id }) => id);
+    const promises = teamIds.map(teamId =>
+      ConfigHelper.clearToken("slack", teamId)
+    );
+    await Promise.all(promises);
   }
 
   validateToken(token: string): Promise<CurrentUser> {
