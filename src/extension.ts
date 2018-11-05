@@ -22,7 +22,6 @@ import { askForAuth } from "./onboarding";
 import ConfigHelper from "./config";
 import TelemetryReporter from "./telemetry";
 import IssueReporter from "./issues";
-import { SlackClientProvider } from "./slackContactService";
 
 let store: Store;
 let manager: Manager;
@@ -30,19 +29,6 @@ let controller: ViewController;
 let reporter: TelemetryReporter;
 
 const SUPPORTED_PROVIDERS = ["slack", "discord"];
-
-// test
-// class Test implements vslsContact.ContactServiceProvider {
-//   requestAsync(
-//     type: string,
-//     parameters: Object,
-//     cancellationToken?: vscode.CancellationToken
-//   ): Promise<Object> {
-//     throw new Error("Method not implemented.");
-//   }
-
-//   onNotified: vscode.Event<vslsContact.NotifyContactServiceEventArgs>;
-// }
 
 export function activate(context: vscode.ExtensionContext) {
   Logger.log("Activating vscode-chat");
@@ -87,8 +73,6 @@ export function activate(context: vscode.ExtensionContext) {
       }
     }
 
-    const liveshare = await vsls.getApiAsync();
-
     return manager
       .initializeProvider()
       .then(() => {
@@ -107,11 +91,6 @@ export function activate(context: vscode.ExtensionContext) {
         const { users } = manager.store;
         manager.chatProvider.subscribePresence(users);
         return manager.getChannelsPromise();
-      })
-      .then(() => {
-        // test presence provider here
-        const slackClientProvider = new SlackClientProvider(manager.token);
-        liveshare.registerContactServiceProvider("slack", slackClientProvider);
       });
   };
 

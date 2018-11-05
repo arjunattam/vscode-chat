@@ -27,9 +27,20 @@ export interface IChatProvider {
   destroy: () => Promise<void>;
 }
 
+export enum UserPresence {
+  unknown = "unknown",
+  available = "available",
+  busy = "busy",
+  away = "away",
+  doNotDisturb = "doNotDisturb",
+  invisible = "invisible",
+  offline = "offline"
+}
+
 export interface User {
   id: string;
   name: string;
+  email?: string;
   fullName: string;
   internalName?: string; // Used by slack provider to associate DMs
   imageUrl: string;

@@ -32,6 +32,7 @@ import { VslsChatProvider } from "../vsls";
 import { Store } from "../store";
 import { ViewsManager } from "./views";
 import { VSLS_CHAT_CHANNEL } from "../vsls/utils";
+import { VslsContactProvider } from "./vslsContactProvider";
 
 export default class Manager implements IManager, vscode.Disposable {
   token: string | undefined;
@@ -41,6 +42,7 @@ export default class Manager implements IManager, vscode.Disposable {
   messages: Messages = {};
   chatProvider: IChatProvider;
   viewsManager: ViewsManager;
+  vslsContactProvider: VslsContactProvider | undefined;
 
   constructor(public store: Store) {
     const existingVersion = this.store.existingVersion;
@@ -128,14 +130,24 @@ export default class Manager implements IManager, vscode.Disposable {
     const isConnected = this.chatProvider.isConnected();
     const isAuthenticated = this.isAuthenticated();
     let currentUser = this.store.currentUserInfo;
+    const provider = this.getSelectedProvider();
 
     if (!(isConnected && isAuthenticated)) {
       currentUser = await this.chatProvider.connect();
       this.store.updateCurrentUser(currentUser);
     }
 
-    if (this.getSelectedProvider() === "vsls") {
+    if (provider === "vsls") {
       this.store.updateLastChannelId(VSLS_CHAT_CHANNEL.id);
+    } else {
+      // We can setup the vsls contact provider to
+      // integrate non-vsls chat provider with vsls.
+
+      if (hasVslsExtension()) {
+        // Can we have a more appropriate condition here?
+        this.vslsContactProvider = new VslsContactProvider(provider);
+        await this.vslsContactProvider.register();
+      }
     }
 
     return currentUser;
@@ -295,6 +307,12 @@ export default class Manager implements IManager, vscode.Disposable {
       if (isOnline !== existingIsOnline) {
         this.viewsManager.updateTreeViews();
       }
+
+      if (!!this.vslsContactProvider) {
+        this.vslsContactProvider.notifyPresenceChanged(
+          this.store.users[userId]
+        );
+      }
     }
   };
 
@@ -360,6 +378,17 @@ export default class Manager implements IManager, vscode.Disposable {
     });
 
     this.store.updateUsers(usersWithPresence);
+
+    if (!!this.vslsContactProvider) {
+      const { currentUserInfo } = this.store;
+      const userId = currentUserInfo.id;
+      const currentUser = usersWithPresence[userId];
+      // TODO: can we move the self contact notification
+      // to the intiailize provider method?
+      this.vslsContactProvider.notifySelfContact(currentUser);
+      this.vslsContactProvider.notifyAvailableUsers(userId, usersWithPresence);
+    }
+
     this.updateUsersFetchedAt();
     return usersWithPresence;
   };
