@@ -104,6 +104,11 @@ export function activate(context: vscode.ExtensionContext) {
     reporter.record(EventType.messageSent, undefined, lastChannelId);
     manager.updateReadMarker();
 
+    if (!currentUserInfo || !lastChannelId) {
+      // TODO: this needs to be handled and shown to the user
+      return Promise.resolve();
+    }
+
     if (!!parentTimestamp) {
       return manager.chatProvider.sendThreadReply(
         text,
@@ -158,7 +163,7 @@ export function activate(context: vscode.ExtensionContext) {
     }
   };
 
-  const getChatChannelId = (args?: ChatArgs): Promise<string> => {
+  const getChatChannelId = (args?: ChatArgs): Promise<string | undefined> => {
     const { lastChannelId } = manager.store;
     let channelIdPromise: Promise<string> | undefined;
 
@@ -185,7 +190,7 @@ export function activate(context: vscode.ExtensionContext) {
 
     return !!channelIdPromise
       ? channelIdPromise
-      : askForChannel().then(channel => channel.id);
+      : askForChannel().then(channel => (channel ? channel.id : undefined));
   };
 
   const openChatPanel = (args?: ChatArgs) => {
@@ -198,29 +203,37 @@ export function activate(context: vscode.ExtensionContext) {
       .then(() => {
         manager.viewsManager.updateWebview();
         const { lastChannelId } = manager.store;
-        const hasArgs = !!args && !!args.source;
-        reporter.record(
-          EventType.viewOpened,
-          hasArgs ? args.source : EventSource.command,
-          lastChannelId
-        );
-        manager.loadChannelHistory(lastChannelId);
+
+        if (lastChannelId) {
+          reporter.record(
+            EventType.viewOpened,
+            !!args ? args.source : EventSource.command,
+            lastChannelId
+          );
+          manager.loadChannelHistory(lastChannelId);
+        }
       })
       .catch(error => console.error(error));
   };
 
   const askForWorkspace = async () => {
     const { currentUserInfo } = manager.store;
-    const { teams } = currentUserInfo;
-    const labels = teams.map(team => team.name);
 
-    const selected = await vscode.window.showQuickPick([...labels], {
-      placeHolder: str.CHANGE_WORKSPACE_TITLE
-    });
+    if (!!currentUserInfo) {
+      const { teams } = currentUserInfo;
+      const labels = teams.map(team => team.name);
 
-    if (!!selected) {
-      const selectedTeam = teams.find(t => t.name === selected);
-      return manager.updateCurrentWorkspace(selectedTeam);
+      const selected = await vscode.window.showQuickPick([...labels], {
+        placeHolder: str.CHANGE_WORKSPACE_TITLE
+      });
+
+      if (!!selected) {
+        const selectedTeam = teams.find(team => team.name === selected);
+
+        if (!!selectedTeam) {
+          return manager.updateCurrentWorkspace(selectedTeam);
+        }
+      }
     }
   };
 
@@ -251,21 +264,27 @@ export function activate(context: vscode.ExtensionContext) {
   const shareVslsLink = async (args?: ChatArgs) => {
     const liveshare = await vsls.getApiAsync();
 
-    // liveshare.share() creates a new session if required
-    const vslsUri = await liveshare.share({ suppressNotification: true });
-    let channelId: string = await getChatChannelId(args);
-    reporter.record(EventType.vslsShared, EventSource.activity, channelId);
+    if (!!liveshare) {
+      // liveshare.share() creates a new session if required
+      const vslsUri = await liveshare.share({ suppressNotification: true });
+      let channelId = await getChatChannelId(args);
+      reporter.record(EventType.vslsShared, EventSource.activity, channelId);
+      const { currentUserInfo } = manager.store;
 
-    const { currentUserInfo } = manager.store;
-    manager.chatProvider.sendMessage(
-      vslsUri.toString(),
-      currentUserInfo.id,
-      channelId
-    );
+      if (vslsUri && currentUserInfo && channelId) {
+        manager.chatProvider.sendMessage(
+          vslsUri.toString(),
+          currentUserInfo.id,
+          channelId
+        );
+      }
+    }
   };
 
   const promptVslsJoin = (senderId: string, messageUri: vscode.Uri) => {
-    if (senderId === manager.store.currentUserInfo.id) {
+    const { currentUserInfo } = manager.store;
+
+    if (!!currentUserInfo && senderId === currentUserInfo.id) {
       // This is our own message, ignore it
       return;
     }
