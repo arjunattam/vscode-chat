@@ -123,7 +123,7 @@ export class DiscordChatProvider implements IChatProvider {
     return {
       id,
       name,
-      token,
+      // token,
       teams: [],
       currentTeamId: undefined,
       provider: Providers.discord
@@ -143,7 +143,7 @@ export class DiscordChatProvider implements IChatProvider {
         const currentUser: CurrentUser = {
           id,
           name,
-          token: this.token,
+          // token: this.token,
           teams,
           currentTeamId: undefined,
           provider: Providers.discord
@@ -240,16 +240,20 @@ export class DiscordChatProvider implements IChatProvider {
     return Promise.resolve({ mutedChannels });
   }
 
-  getCurrentGuild(): Discord.Guild {
+  getCurrentGuild(): Discord.Guild | undefined {
     const { currentUserInfo } = this.manager.store;
-    const { currentTeamId } = currentUserInfo;
-    return this.client.guilds.find(guild => guild.id === currentTeamId);
+
+    if (!!currentUserInfo) {
+      const { currentTeamId } = currentUserInfo;
+      return this.client.guilds.find(guild => guild.id === currentTeamId);
+    }
   }
 
   fetchUsers(): Promise<Users> {
     const guild = this.getCurrentGuild();
     const readyTimestamp = (this.client.readyTimestamp / 1000.0).toString();
     let users: Users = {};
+
     // We first build users from IM channels, and then from the guild members
     this.imChannels = this.client.channels
       .filter(channel => channel.type === "dm")
@@ -295,6 +299,7 @@ export class DiscordChatProvider implements IChatProvider {
     const readyTimestamp = (this.client.readyTimestamp / 1000.0).toString();
     const guild = this.getCurrentGuild();
     let categories = {};
+
     guild.channels
       .filter(channel => channel.type === "category")
       .forEach(channel => {
@@ -408,7 +413,7 @@ export class DiscordChatProvider implements IChatProvider {
     return Promise.resolve();
   }
 
-  createIMChannel(user: User): Promise<Channel> {
+  createIMChannel(user: User): Promise<Channel | undefined> {
     // This is required to share vsls links with users that
     // do not have corresponding DM channels
     return Promise.resolve(undefined);

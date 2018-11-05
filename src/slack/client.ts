@@ -17,6 +17,12 @@ const CHANNEL_HISTORY_LIMIT = 500;
 
 const USER_LIST_LIMIT = 1000;
 
+// User-defined type guard
+// https://github.com/Microsoft/TypeScript/issues/20707#issuecomment-351874491
+function notUndefined<T>(x: T | undefined): x is T {
+  return x !== undefined;
+}
+
 const getFile = (rawFile: any) => {
   return { name: rawFile.name, permalink: rawFile.permalink };
 };
@@ -68,10 +74,15 @@ export const getMessage = (raw: any): ChannelMessages => {
     isEdited: !!edited,
     text: text,
     attachment: files ? getFile(files[0]) : null,
-    reactions: reactions ? reactions.map(r => getReaction(r)) : [],
+    reactions: reactions
+      ? reactions.map((reaction: any) => getReaction(reaction))
+      : [],
     content: attachments ? getContent(attachments[0]) : null,
     replies: replies
-      ? replies.map(({ user, ts }) => ({ userId: user, timestamp: ts }))
+      ? replies.map((reply: any) => ({
+          userId: reply.user,
+          timestamp: reply.ts
+        }))
       : []
   };
 
@@ -103,7 +114,7 @@ export default class SlackAPIClient {
     if (ok) {
       const { team, user, user_id, team_id } = response;
       return {
-        token: this.token,
+        // token: this.token,
         id: user_id,
         name: user,
         teams: [{ id: team_id, name: team }],
@@ -143,7 +154,7 @@ export default class SlackAPIClient {
     let users: Users = {};
 
     if (ok) {
-      members.forEach(member => {
+      members.forEach((member: any) => {
         const user = getUser(member);
         const { id } = user;
         users[id] = user;
@@ -192,7 +203,7 @@ export default class SlackAPIClient {
 
     if (ok) {
       return channels
-        .map(channel => {
+        .map((channel: any) => {
           const { is_channel, is_mpim, is_im, is_group } = channel;
 
           if (is_channel) {
@@ -221,7 +232,9 @@ export default class SlackAPIClient {
 
             if (matched) {
               const first = matched[1];
-              const rest = matched[2].split("--").filter(element => !!element);
+              const rest = matched[2]
+                .split("--")
+                .filter((element: string) => !!element);
               const members = [first, ...rest];
               const memberUsers = members
                 .map(memberName =>
@@ -229,7 +242,7 @@ export default class SlackAPIClient {
                     ({ internalName }) => internalName === memberName
                   )
                 )
-                .filter(Boolean);
+                .filter(notUndefined);
               const isAnyUserDeleted = memberUsers.filter(
                 ({ isDeleted }) => isDeleted
               );
@@ -303,24 +316,43 @@ export default class SlackAPIClient {
     return getChannel(channel);
   };
 
-  sendMessage = ({ channel, text, thread_ts }): Promise<any> => {
+  sendMessage = (
+    channelId: string,
+    text: string,
+    threadTs: string
+  ): Promise<any> => {
     return this.client.chat.postMessage({
-      channel,
+      channel: channelId,
       text,
-      thread_ts,
+      thread_ts: threadTs,
       as_user: true
     });
   };
 
-  markChannel = ({ channel, ts }): Promise<any> => {
+  markChannel = async (channel: Channel, ts: string): Promise<Channel> => {
     const { id, type } = channel;
+    let response: any;
+
     switch (type) {
-      case "channel":
-        return this.client.channels.mark({ channel: id, ts });
-      case "group":
-        return this.client.groups.mark({ channel: id, ts });
-      case "im":
-        return this.client.im.mark({ channel: id, ts });
+      case ChannelType.channel:
+        response = await this.client.channels.mark({ channel: id, ts });
+        break;
+      case ChannelType.group:
+        response = await this.client.groups.mark({ channel: id, ts });
+        break;
+      case ChannelType.im:
+        response = await this.client.im.mark({ channel: id, ts });
+        break;
+    }
+
+    const { ok } = response;
+
+    if (ok) {
+      return {
+        ...channel,
+        readTimestamp: ts,
+        unreadCount: 0
+      };
     }
   };
 
@@ -338,51 +370,51 @@ export default class SlackAPIClient {
         name: `@${name}`,
         type: ChannelType.im,
         unreadCount: 0,
-        readTimestamp: null
+        readTimestamp: undefined
       };
     }
   };
 
-  getUserPrefs = (): Promise<UserPreferences> => {
+  getUserPrefs = async (): Promise<UserPreferences> => {
     // Undocumented API: https://github.com/ErikKalkoken/slackApiDoc/blob/master/users.prefs.get.md
-    return this.client.apiCall("users.prefs.get").then((response: any) => {
-      const { ok, prefs } = response;
+    let response: any = await this.client.apiCall("users.prefs.get");
+    const { ok, prefs } = response;
 
-      if (ok) {
-        const { muted_channels } = prefs;
-        return {
-          mutedChannels: muted_channels.split(",")
-        };
-      }
-    });
+    if (ok) {
+      const { muted_channels } = prefs;
+      return {
+        mutedChannels: muted_channels.split(",")
+      };
+    }
   };
 
-  getReplies = (
+  getReplies = async (
     channelId: string,
     messageTimestamp: string
   ): Promise<Message> => {
     // https://api.slack.com/methods/conversations.replies
-    return this.client.conversations
-      .replies({ channel: channelId, ts: messageTimestamp })
-      .then((response: any) => {
-        // Does not handle has_more in the response yet, could break
-        // for large threads
-        const { ok, messages } = response;
+    let response: any = await this.client.conversations.replies({
+      channel: channelId,
+      ts: messageTimestamp
+    });
+    // Does not handle has_more in the response yet, could break
+    // for large threads
+    const { ok, messages } = response;
 
-        if (ok) {
-          const parent = messages.find(msg => msg.thread_ts === msg.ts);
-          const replies = messages.filter(msg => msg.thread_ts !== msg.ts);
-          const parentMessage = getMessage(parent);
-          return {
-            ...parentMessage[messageTimestamp],
-            replies: replies.map(reply => ({
-              userId: reply.user,
-              timestamp: reply.ts,
-              text: reply.text,
-              attachment: !!reply.files ? getFile(reply.files[0]) : null
-            }))
-          };
-        }
-      });
+    if (ok) {
+      const parent = messages.find((msg: any) => msg.thread_ts === msg.ts);
+      const replies = messages.filter((msg: any) => msg.thread_ts !== msg.ts);
+      const parentMessage = getMessage(parent);
+
+      return {
+        ...parentMessage[messageTimestamp],
+        replies: replies.map((reply: any) => ({
+          userId: reply.user,
+          timestamp: reply.ts,
+          text: reply.text,
+          attachment: !!reply.files ? getFile(reply.files[0]) : null
+        }))
+      };
+    }
   };
 }

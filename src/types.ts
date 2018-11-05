@@ -23,7 +23,7 @@ export interface IChatProvider {
   connect: () => Promise<CurrentUser>;
   isConnected: () => boolean;
   subscribePresence: (users: Users) => void;
-  createIMChannel: (user: User) => Promise<Channel>;
+  createIMChannel: (user: User) => Promise<Channel | undefined>;
   destroy: () => Promise<void>;
 }
 
@@ -53,7 +53,7 @@ export enum Providers {
 export interface CurrentUser {
   id: string;
   name: string;
-  token: string;
+  // token: string;
   teams: Team[];
   currentTeamId: string | undefined;
   provider: Providers;
@@ -123,6 +123,10 @@ export interface ChannelMessages {
   [timestamp: string]: Message;
 }
 
+export interface ChannelMessagesWithUndefined {
+  [timestamp: string]: Message | undefined;
+}
+
 export interface Messages {
   [channelId: string]: ChannelMessages;
 }
@@ -137,7 +141,7 @@ export interface Channel {
   id: string;
   name: string;
   type: ChannelType;
-  readTimestamp: string;
+  readTimestamp: string | undefined;
   unreadCount: number;
   categoryName?: string; // for Discord
 }
@@ -202,7 +206,7 @@ export interface IManager {
   getIMChannel: (user: User) => Channel | undefined;
   getChannelLabels: () => any;
   getUnreadCount: (channel: Channel) => number;
-  getCurrentWorkspaceName: () => string;
+  getCurrentWorkspaceName: () => string | undefined;
   updateMessages: (channelId: string, newMessages: ChannelMessages) => void;
   loadChannelHistory: (channelId: string) => Promise<void>;
   updateReadMarker: () => void;

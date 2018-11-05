@@ -126,7 +126,7 @@ export class VslsChatProvider implements IChatProvider {
     return {
       id: peerNumber.toString(),
       name: user.displayName,
-      token: VSLS_TOKEN_STRING,
+      // token: VSLS_TOKEN_STRING,
       teams: [{ ...sessionTeam }],
       currentTeamId: sessionTeam.id,
       provider: Providers.vsls

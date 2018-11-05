@@ -13,7 +13,7 @@ suite("Manager tests", function() {
     store.currentUserInfo = {
       id: "user-id",
       name: "user-name",
-      token: "user-token",
+      // token: "user-token",
       teams: [],
       currentTeamId: "team-id",
       provider: Providers.slack

@@ -231,7 +231,7 @@ export function activate(context: vscode.ExtensionContext) {
         const selectedTeam = teams.find(team => team.name === selected);
 
         if (!!selectedTeam) {
-          return manager.updateCurrentWorkspace(selectedTeam);
+          return manager.updateCurrentWorkspace(selectedTeam, currentUserInfo);
         }
       }
     }

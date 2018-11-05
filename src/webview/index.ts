@@ -86,7 +86,9 @@ export default class WebviewContainer {
       Object.keys(messages).forEach(ts => {
         const message = messages[ts];
         const isDifferentUser = message.userId !== currentUser.id;
-        const isUnread = isDifferentUser && +ts > +readTimestamp;
+        const isUnread =
+          !!readTimestamp && isDifferentUser && +ts > +readTimestamp;
+
         result[ts] = { ...message, isUnread };
       });
       return result;

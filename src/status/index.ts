@@ -27,7 +27,10 @@ export abstract class BaseStatusItem {
     this.item.command = compound;
   }
 
-  abstract updateCount(unreads: number, workspaceName: string): void;
+  abstract updateCount(
+    unreads: number,
+    workspaceName: string | undefined
+  ): void;
 
   show() {
     if (!this.isVisible) {
@@ -54,7 +57,7 @@ export class UnreadsStatusItem extends BaseStatusItem {
     super(SelfCommands.CHANGE_CHANNEL);
   }
 
-  updateCount(unreads: number, workspaceName: string) {
+  updateCount(unreads: number, workspaceName: string | undefined) {
     this.unreadCount = unreads;
     this.item.text = `${CHAT_ICON} ${workspaceName}: ${unreads} new`;
     return this.unreadCount > 0 ? this.show() : this.hide();
