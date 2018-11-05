@@ -13,7 +13,7 @@ import {
   Providers,
   ChannelType
 } from "../types";
-import { VSLS_CHANNEL } from "./utils";
+import { VSLS_CHAT_CHANNEL } from "./utils";
 import { VslsHostService } from "./host";
 import { VslsGuestService } from "./guest";
 import { SelfCommands } from "../constants";
@@ -212,8 +212,8 @@ export class VslsChatProvider implements IChatProvider {
   fetchChannels(users: Users): Promise<Channel[]> {
     const readTimestamp = (+new Date() / 1000.0).toString();
     const defaultChannel: Channel = {
-      id: VSLS_CHANNEL.id,
-      name: VSLS_CHANNEL.name,
+      id: VSLS_CHAT_CHANNEL.id,
+      name: VSLS_CHAT_CHANNEL.name,
       type: ChannelType.channel,
       readTimestamp,
       unreadCount: 0

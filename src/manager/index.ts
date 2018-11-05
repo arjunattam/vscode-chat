@@ -30,10 +30,10 @@ import { SlackChatProvider } from "../slack";
 import { VslsChatProvider } from "../vsls";
 import { Store } from "../store";
 import { ViewsManager } from "./views";
-import { VSLS_CHANNEL } from "../vsls/utils";
+import { VSLS_CHAT_CHANNEL } from "../vsls/utils";
 
 export default class Manager implements IManager, vscode.Disposable {
-  token: string;
+  token: string | undefined;
   channelsFetchedAt: Date;
   currentUserPrefs: UserPreferences = {};
   usersFetchedAt: Date;
@@ -89,6 +89,8 @@ export default class Manager implements IManager, vscode.Disposable {
         return new SlackChatProvider();
       case "vsls":
         return new VslsChatProvider();
+      default:
+        throw new Error(`unsupport chat provider: ${provider}`);
     }
   }
 
@@ -114,8 +116,8 @@ export default class Manager implements IManager, vscode.Disposable {
       const token = await this.chatProvider.getToken();
       this.token = token;
 
-      const ALL_PROVIDERS = ["slack", "discord"];
-      ALL_PROVIDERS.forEach(provider => {
+      const TREE_VIEW_PROVIDERS = ["slack", "discord"];
+      TREE_VIEW_PROVIDERS.forEach(provider => {
         setVsContext(`chat:${provider}`, provider === selectedProvider);
       });
     }
@@ -132,7 +134,7 @@ export default class Manager implements IManager, vscode.Disposable {
     }
 
     if (this.getSelectedProvider() === "vsls") {
-      this.store.updateLastChannelId(VSLS_CHANNEL.id);
+      this.store.updateLastChannelId(VSLS_CHAT_CHANNEL.id);
     }
 
     return currentUser;
@@ -395,7 +397,7 @@ export default class Manager implements IManager, vscode.Disposable {
   };
 
   getUsersPromise(): Promise<Users> {
-    function isNotEmpty(obj) {
+    function isNotEmpty(obj: any) {
       return Object.keys(obj).length !== 0;
     }
 
@@ -444,7 +446,7 @@ export default class Manager implements IManager, vscode.Disposable {
       }
     });
 
-    // Check if we have all users. Since there is not bots.list API
+    // Check if we have all users. Since there is no `bots.list` Slack API
     // method, it is possible that a bot user is not in our store
     const { users } = this.store;
     const userIds = new Set(

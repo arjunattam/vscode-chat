@@ -184,16 +184,16 @@ export interface UIMessageGroup {
 }
 
 export interface IStore {
-  installationId: string;
-  lastChannelId: string;
+  installationId: string | undefined;
+  lastChannelId: string | undefined;
   channels: Channel[];
-  currentUserInfo: CurrentUser;
+  currentUserInfo: CurrentUser | undefined;
   users: Users;
-  existingVersion: string;
+  existingVersion: string | undefined;
 }
 
 export interface IManager {
-  token: string;
+  token: string | undefined;
   store: IStore;
   messages: Messages;
   isAuthenticated: () => boolean;

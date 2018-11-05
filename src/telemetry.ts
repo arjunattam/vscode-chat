@@ -11,11 +11,11 @@ const INTERVAL_TIMEOUT = 30 * 60 * 1000; // 30 mins in ms
 export default class Reporter implements vscode.Disposable {
   private hasUserOptIn: boolean = false;
   private uniqueId: string;
-  private mixpanel: Mixpanel.Mixpanel;
+  private mixpanel: Mixpanel.Mixpanel | undefined;
   private versions: Versions;
   private hasExtensionPack: boolean;
   private pendingEvents: TelemetryEvent[] = [];
-  private interval: NodeJS.Timer;
+  private interval: NodeJS.Timer | undefined;
 
   constructor(private manager: IManager) {
     const { installationId } = this.manager.store;
@@ -44,11 +44,15 @@ export default class Reporter implements vscode.Disposable {
   }
 
   dispose(): Promise<any> {
-    clearInterval(this.interval);
+    if (!!this.interval) {
+      clearInterval(this.interval);
+    }
 
     if (this.pendingEvents.length > 0) {
       return this.flushBatch();
     }
+
+    return Promise.resolve();
   }
 
   record(
@@ -106,14 +110,18 @@ export default class Reporter implements vscode.Disposable {
     this.pendingEvents = [];
 
     return new Promise((resolve, reject) => {
-      this.mixpanel.track_batch(events, error => {
-        if (!error) {
-          resolve();
-        } else {
-          // We are not going to retry with `copy`
-          reject();
-        }
-      });
+      if (!this.mixpanel) {
+        resolve();
+      } else {
+        this.mixpanel.track_batch(events, error => {
+          if (!error) {
+            resolve();
+          } else {
+            // We are not going to retry with `copy`
+            reject();
+          }
+        });
+      }
     });
   }
 }

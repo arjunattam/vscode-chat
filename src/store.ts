@@ -16,18 +16,18 @@ const stateKeys = {
 };
 
 export class Store implements IStore {
-  currentUserInfo: CurrentUser;
+  currentUserInfo: CurrentUser | undefined;
   channels: Channel[] = [];
   users: Users = {};
-  lastChannelId: string;
-  installationId: string;
-  existingVersion: string;
+  lastChannelId: string | undefined;
+  installationId: string | undefined;
+  existingVersion: string | undefined;
 
   constructor(private context: vscode.ExtensionContext) {
     const { globalState } = context;
-    this.channels = globalState.get(stateKeys.CHANNELS);
+    this.channels = globalState.get(stateKeys.CHANNELS) || [];
     this.currentUserInfo = globalState.get(stateKeys.USER_INFO);
-    this.users = globalState.get(stateKeys.USERS);
+    this.users = globalState.get(stateKeys.USERS) || {};
     this.lastChannelId = globalState.get(stateKeys.LAST_CHANNEL_ID);
     this.installationId = globalState.get(stateKeys.INSTALLATION_ID);
     this.existingVersion = globalState.get(stateKeys.EXTENSION_VERSION);
@@ -40,7 +40,7 @@ export class Store implements IStore {
     this.installationId = uuidStr;
   }
 
-  updateExtensionVersion(version) {
+  updateExtensionVersion(version: string) {
     const { globalState } = this.context;
     globalState.update(stateKeys.EXTENSION_VERSION, version);
   }

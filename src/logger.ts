@@ -28,7 +28,7 @@ export default class Logger {
     }
   }
 
-  static log(message): void {
+  static log(message: any): void {
     const logLine = `[${this.timestamp}]: ${message}`;
     return process.env.IS_DEBUG === "true"
       ? this.logOnConsole(logLine)

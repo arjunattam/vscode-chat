@@ -17,13 +17,7 @@ import {
 } from "./constants";
 import travis from "./bots/travis";
 import { ExtensionUriHandler } from "./uri";
-import {
-  openUrl,
-  toTitleCase,
-  setVsContext,
-  hasVslsExtension,
-  sanitiseTokenString
-} from "./utils";
+import * as utils from "./utils";
 import { askForAuth } from "./onboarding";
 import ConfigHelper from "./config";
 import Reporter from "./telemetry";
@@ -52,11 +46,7 @@ export function activate(context: vscode.ExtensionContext) {
     manager.store.generateInstallationId();
     const { installationId } = manager.store;
     reporter.setUniqueId(installationId);
-    const hasUser = manager.isAuthenticated();
-
-    if (!hasUser) {
-      reporter.record(EventType.extensionInstalled, undefined, undefined);
-    }
+    reporter.record(EventType.extensionInstalled, undefined, undefined);
   };
 
   const setup = async ({ canPromptForAuth, provider }): Promise<any> => {
@@ -68,7 +58,7 @@ export function activate(context: vscode.ExtensionContext) {
       await manager.initializeToken(provider);
 
       if (!manager.token) {
-        if (canPromptForAuth && !hasVslsExtension()) {
+        if (canPromptForAuth && !utils.hasVslsExtension()) {
           askForAuth();
         }
 
@@ -89,11 +79,13 @@ export function activate(context: vscode.ExtensionContext) {
       .then(() => {
         manager.updateUserPrefs(); // TODO: for discord, this needs to happen after channels are fetched
         return manager.getUsersPromise();
+        // return Promise.resolve();
       })
       .then(() => {
         const { users } = manager.store;
         manager.chatProvider.subscribePresence(users);
         return manager.getChannelsPromise();
+        // return Promise.resolve();
       });
   };
 
@@ -301,7 +293,7 @@ export function activate(context: vscode.ExtensionContext) {
       hasArgs ? args.source : EventSource.command,
       undefined
     );
-    return openUrl(urls[service]);
+    return utils.openUrl(urls[service]);
   };
 
   const reset = async (newProvider?: string) => {
@@ -318,7 +310,7 @@ export function activate(context: vscode.ExtensionContext) {
     }
   };
 
-  const fetchReplies = parentTimestamp => {
+  const fetchReplies = (parentTimestamp: string) => {
     manager.fetchThreadReplies(parentTimestamp);
   };
 
@@ -331,12 +323,12 @@ export function activate(context: vscode.ExtensionContext) {
   };
 
   const setVslsContext = () => {
-    const isEnabled = hasVslsExtension();
-    setVsContext("chat:vslsEnabled", isEnabled);
+    const isEnabled = utils.hasVslsExtension();
+    utils.setVsContext("chat:vslsEnabled", isEnabled);
   };
 
   const askForProvider = async () => {
-    const values = SUPPORTED_PROVIDERS.map(name => toTitleCase(name));
+    const values = SUPPORTED_PROVIDERS.map(name => utils.toTitleCase(name));
     const selection = await vscode.window.showQuickPick(values, {
       placeHolder: str.CHANGE_PROVIDER_TITLE
     });
@@ -354,14 +346,14 @@ export function activate(context: vscode.ExtensionContext) {
       });
 
       if (!!inputToken) {
-        const sanitisedToken = sanitiseTokenString(inputToken);
+        const sanitisedToken = utils.sanitiseTokenString(inputToken);
 
         try {
           await manager.validateToken(provider, sanitisedToken);
         } catch (error) {
           const actionItems = [str.REPORT_ISSUE];
           const messageResult = await vscode.window.showErrorMessage(
-            str.INVALID_TOKEN(toTitleCase(provider)),
+            str.INVALID_TOKEN(utils.toTitleCase(provider)),
             ...actionItems
           );
 
@@ -413,7 +405,9 @@ export function activate(context: vscode.ExtensionContext) {
 
     if (hasOtherProvider) {
       // Logged in with Slack/Discord, ask for confirmation to sign out
-      const msg = str.LIVE_SHARE_CONFIRM_SIGN_OUT(toTitleCase(currentProvider));
+      const msg = str.LIVE_SHARE_CONFIRM_SIGN_OUT(
+        utils.toTitleCase(currentProvider)
+      );
       const response = await vscode.window.showInformationMessage(
         msg,
         str.SIGN_OUT
