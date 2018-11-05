@@ -1,5 +1,10 @@
 import * as EmojiConvertor from "emoji-js";
-import { UIMessage, ChannelMessages, MessageReply } from "../types";
+import {
+  UIMessage,
+  ChannelMessages,
+  MessageReply,
+  MessageContent
+} from "../types";
 import * as str from "../strings";
 import * as MarkdownIt from "markdown-it";
 import * as markdownItSlack from "markdown-it-slack";
@@ -69,12 +74,29 @@ export const parseLinks = (messages: ChannelMessages): ChannelMessages => {
 
   Object.keys(messages).forEach(key => {
     const { content, text } = messages[key];
+    let newContent: MessageContent | undefined = undefined;
     const URL_REGEX = /https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-z]{2,6}\b([-a-zA-Z0-9@:%_\+.~#?&//=;\^]*)/;
     const SLACK_MODIFIER = /(|.[^><]+)/;
     const re = new RegExp(
       `<(${URL_REGEX.source})(${SLACK_MODIFIER.source})>`,
       "g"
     );
+
+    if (!!content) {
+      newContent = {
+        ...content,
+        text: content.text
+          ? content.text.replace(re, function(a, b, c, d, e) {
+              return e ? `[${e.substr(1)}](${b})` : `[${b}](${b})`;
+            })
+          : "",
+        footer: content.footer
+          ? content.footer.replace(re, function(a, b, c, d, e) {
+              return e ? `[${e.substr(1)}](${b})` : `[${b}](${b})`;
+            })
+          : ""
+      };
+    }
 
     parsed[key] = {
       ...messages[key],
@@ -83,21 +105,7 @@ export const parseLinks = (messages: ChannelMessages): ChannelMessages => {
             return e ? `[${e.substr(1)}](${b})` : `[${b}](${b})`;
           })
         : "",
-      content: {
-        ...content,
-        text:
-          content && content.text
-            ? content.text.replace(re, function(a, b, c, d, e) {
-                return e ? `[${e.substr(1)}](${b})` : `[${b}](${b})`;
-              })
-            : "",
-        footer:
-          content && content.footer
-            ? content.footer.replace(re, function(a, b, c, d, e) {
-                return e ? `[${e.substr(1)}](${b})` : `[${b}](${b})`;
-              })
-            : ""
-      }
+      content: newContent
     };
   });
   return parsed;
@@ -149,6 +157,7 @@ export const markdownify = (messages: ChannelMessages): ChannelMessages => {
     const { content, attachment, text, replies } = messages[key];
     let parsedReplies: { [ts: string]: MessageReply } = {};
     let link = "";
+    let newContent: MessageContent | undefined = undefined;
 
     Object.keys(replies).forEach(replyTs => {
       const reply = replies[replyTs];
@@ -160,18 +169,21 @@ export const markdownify = (messages: ChannelMessages): ChannelMessages => {
       link = getAttachmentLink(name, permalink);
     }
 
+    if (!!content) {
+      newContent = {
+        ...content,
+        textHTML: content.text ? md.render(content.text) : ``,
+        footerHTML: content.footer ? md.renderInline(content.footer) : ``
+      };
+    }
+
     markdowned[key] = {
       ...messages[key],
       replies: parsedReplies,
       textHTML: attachment
         ? md.render(str.UPLOADED_FILE(link))
         : md.render(text),
-      content: {
-        ...content,
-        textHTML: content && content.text ? md.render(content.text) : ``,
-        footerHTML:
-          content && content.footer ? md.renderInline(content.footer) : ``
-      }
+      content: newContent
     };
   });
 

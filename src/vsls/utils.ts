@@ -17,8 +17,7 @@ export const toBaseMessage = (raw: VslsChatMessage): Message => {
   return { ...raw, content: undefined, reactions: [], replies: {} };
 };
 
-export const toBaseUser = (peer: vsls.Peer): User => {
-  const { peerNumber, user } = peer;
+export const toBaseUser = (peerNumber: number, user: vsls.UserInfo): User => {
   const { displayName, emailAddress } = user;
   const avatar = gravatar.imageUrl({
     email: emailAddress,

@@ -1,6 +1,6 @@
 export interface IChatProvider {
   getToken: () => Promise<string>;
-  validateToken: (token: string) => Promise<CurrentUser>;
+  validateToken: (token: string) => Promise<CurrentUser | undefined>;
   fetchUsers: () => Promise<Users>;
   fetchUserInfo: (userId: string) => Promise<User>;
   fetchChannels: (users: Users) => Promise<Channel[]>;
@@ -112,7 +112,7 @@ export interface Message {
   textHTML?: string;
   isEdited?: Boolean;
   attachment?: MessageAttachment;
-  content: MessageContent;
+  content: MessageContent | undefined;
   reactions: MessageReaction[];
   replies: MessageReplies;
   // TODO - add

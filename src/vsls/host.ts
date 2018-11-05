@@ -86,11 +86,13 @@ export class VslsHostService extends VslsBaseService {
 
   fetchUsers(): Promise<Users> {
     const users: Users = {};
-    const currentUser = toBaseUser(this.liveshare.session);
+    const { peerNumber: userId, user } = this.liveshare.session;
+    const currentUser = toBaseUser(userId, user);
     users[currentUser.id] = currentUser;
 
     this.liveshare.peers.map(peer => {
-      const user: User = toBaseUser(peer);
+      const { peerNumber: peerId, user: peerUser } = peer;
+      const user: User = toBaseUser(peerId, peerUser);
       users[user.id] = user;
     });
 
@@ -103,7 +105,8 @@ export class VslsHostService extends VslsBaseService {
       const { peerNumber } = this.liveshare.session;
 
       if (peerNumber.toString() === userId) {
-        return Promise.resolve(toBaseUser(this.liveshare.session));
+        const { user } = this.liveshare.session;
+        return Promise.resolve(toBaseUser(peerNumber, user));
       }
 
       const peer = this.liveshare.peers.find(
@@ -111,7 +114,8 @@ export class VslsHostService extends VslsBaseService {
       );
 
       if (!!peer) {
-        return Promise.resolve(toBaseUser(peer));
+        const { peerNumber: peerId, user: peerUser } = peer;
+        return Promise.resolve(toBaseUser(peerId, peerUser));
       }
 
       // Finally, let's check cached peers
@@ -122,7 +126,8 @@ export class VslsHostService extends VslsBaseService {
       );
 
       if (!!cachedPeer) {
-        return Promise.resolve(toBaseUser(cachedPeer));
+        const { peerNumber: peerId, user: peerUser } = cachedPeer;
+        return Promise.resolve(toBaseUser(peerId, peerUser));
       }
     }
   }

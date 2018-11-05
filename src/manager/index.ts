@@ -540,9 +540,9 @@ export default class Manager implements IManager, vscode.Disposable {
 
     if (channel && lastTs) {
       const { readTimestamp } = channel;
-      const hasNewerMsgs = +readTimestamp < +lastTs;
+      const hasNewerMsgs = !!readTimestamp ? +readTimestamp < +lastTs : true;
 
-      if (!readTimestamp || hasNewerMsgs) {
+      if (hasNewerMsgs) {
         const incremented = (+lastTs + 1).toString(); // Slack API workaround
         const updatedChannel = await this.chatProvider.markChannel(
           channel,

@@ -73,11 +73,11 @@ export const getMessage = (raw: any): ChannelMessages => {
     timestamp: ts,
     isEdited: !!edited,
     text: text,
-    attachment: files ? getFile(files[0]) : null,
+    attachment: files ? getFile(files[0]) : undefined,
     reactions: reactions
       ? reactions.map((reaction: any) => getReaction(reaction))
       : [],
-    content: attachments ? getContent(attachments[0]) : null,
+    content: attachments ? getContent(attachments[0]) : undefined,
     replies: replies
       ? replies.map((reply: any) => ({
           userId: reply.user,
@@ -107,7 +107,7 @@ export default class SlackAPIClient {
     });
   }
 
-  authTest = async (): Promise<CurrentUser> => {
+  authTest = async (): Promise<CurrentUser | undefined> => {
     const response: any = await this.client.auth.test();
     const { ok } = response;
 
@@ -146,7 +146,7 @@ export default class SlackAPIClient {
     return result;
   };
 
-  async getUsers(): Promise<Users> {
+  async getUsers(): Promise<Users | undefined> {
     const response: any = await this.client.apiCall("users.list", {
       limit: USER_LIST_LIMIT
     });
@@ -164,7 +164,7 @@ export default class SlackAPIClient {
     }
   }
 
-  async getBotInfo(botId: string): Promise<User> {
+  async getBotInfo(botId: string): Promise<User | undefined> {
     const response: any = await this.client.bots.info({
       bot: botId
     });
@@ -184,7 +184,7 @@ export default class SlackAPIClient {
     }
   }
 
-  async getUserInfo(userId: string): Promise<User> {
+  async getUserInfo(userId: string): Promise<User | undefined> {
     const response: any = await this.client.users.info({ user: userId });
     const { ok, user } = response;
 
@@ -193,7 +193,7 @@ export default class SlackAPIClient {
     }
   }
 
-  async getChannels(users: Users): Promise<Channel[]> {
+  async getChannels(users: Users): Promise<Channel[] | undefined> {
     const response: any = await this.client.conversations.list({
       exclude_archived: true,
       types: "public_channel, private_channel, mpim, im"
@@ -329,7 +329,10 @@ export default class SlackAPIClient {
     });
   };
 
-  markChannel = async (channel: Channel, ts: string): Promise<Channel> => {
+  markChannel = async (
+    channel: Channel,
+    ts: string
+  ): Promise<Channel | undefined> => {
     const { id, type } = channel;
     let response: any;
 
@@ -356,7 +359,7 @@ export default class SlackAPIClient {
     }
   };
 
-  openIMChannel = async (user: User): Promise<Channel> => {
+  openIMChannel = async (user: User): Promise<Channel | undefined> => {
     const { id, name } = user;
     let response: any = await this.client.im.open({
       user: id,
@@ -375,7 +378,7 @@ export default class SlackAPIClient {
     }
   };
 
-  getUserPrefs = async (): Promise<UserPreferences> => {
+  getUserPrefs = async (): Promise<UserPreferences | undefined> => {
     // Undocumented API: https://github.com/ErikKalkoken/slackApiDoc/blob/master/users.prefs.get.md
     let response: any = await this.client.apiCall("users.prefs.get");
     const { ok, prefs } = response;
@@ -391,7 +394,7 @@ export default class SlackAPIClient {
   getReplies = async (
     channelId: string,
     messageTimestamp: string
-  ): Promise<Message> => {
+  ): Promise<Message | undefined> => {
     // https://api.slack.com/methods/conversations.replies
     let response: any = await this.client.conversations.replies({
       channel: channelId,

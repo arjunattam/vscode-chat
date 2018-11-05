@@ -41,7 +41,7 @@ export class SlackChatProvider implements IChatProvider {
     return this.token;
   }
 
-  validateToken(token: string): Promise<CurrentUser> {
+  validateToken(token: string): Promise<CurrentUser | undefined> {
     // This is creating a new client, since getToken from keychain
     // is not called before validation
     const client = new SlackAPIClient(token);
@@ -127,7 +127,7 @@ export class SlackChatProvider implements IChatProvider {
         userId: currentUserId,
         timestamp: result.ts,
         text,
-        content: null,
+        content: undefined,
         reactions: [],
         replies: {}
       };

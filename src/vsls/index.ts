@@ -77,21 +77,26 @@ export class VslsChatProvider implements IChatProvider {
     }
   }
 
-  async initialize(): Promise<CurrentUser> {
+  async initialize(): Promise<CurrentUser | undefined> {
     // This assumes live share session is available
     const { role, id: sessionId, peerNumber, user } = this.liveshare.session;
 
+    if (!user || !sessionId) {
+      return;
+    }
+
     if (role === vsls.Role.Host) {
       if (!this.sharedService) {
-        this.sharedService = await this.liveshare.shareService(
+        const sharedService = await this.liveshare.shareService(
           VSLS_SERVICE_NAME
         );
 
-        if (!this.sharedService) {
+        if (!sharedService) {
           // sharedService can be null when experimental flag is off
-          return;
+          return undefined;
         }
 
+        this.sharedService = sharedService;
         this.sharedService.onDidChangeIsServiceAvailable(nowAvailable => {
           console.log("change service", nowAvailable);
         });
@@ -103,10 +108,15 @@ export class VslsChatProvider implements IChatProvider {
       }
     } else if (role === vsls.Role.Guest) {
       if (!this.serviceProxy) {
-        this.serviceProxy = await this.liveshare.getSharedService(
+        const serviceProxy = await this.liveshare.getSharedService(
           VSLS_SERVICE_NAME
         );
 
+        if (!serviceProxy) {
+          return undefined;
+        }
+
+        this.serviceProxy = serviceProxy;
         this.serviceProxy.onDidChangeIsServiceAvailable(async nowAvailable => {
           console.log("Availability changed to", nowAvailable);
         });
@@ -126,7 +136,6 @@ export class VslsChatProvider implements IChatProvider {
     return {
       id: peerNumber.toString(),
       name: user.displayName,
-      // token: VSLS_TOKEN_STRING,
       teams: [{ ...sessionTeam }],
       currentTeamId: sessionTeam.id,
       provider: Providers.vsls
@@ -143,6 +152,8 @@ export class VslsChatProvider implements IChatProvider {
         return this.guestService.isConnected();
       }
     }
+
+    return false;
   }
 
   fetchUsers(): Promise<Users> {
@@ -183,6 +194,8 @@ export class VslsChatProvider implements IChatProvider {
     } else if (role === vsls.Role.Guest) {
       return this.guestService.sendMessage(text, currentUserId, channelId);
     }
+
+    return Promise.resolve();
   }
 
   loadChannelHistory(channelId: string): Promise<ChannelMessages> {
@@ -195,6 +208,8 @@ export class VslsChatProvider implements IChatProvider {
         return this.guestService.fetchMessagesHistory();
       }
     }
+
+    return Promise.resolve({});
   }
 
   destroy(): Promise<void> {
@@ -231,13 +246,32 @@ export class VslsChatProvider implements IChatProvider {
     return Promise.resolve({ ...channel, readTimestamp: ts, unreadCount: 0 });
   }
 
-  validateToken: (token: string) => Promise<CurrentUser>;
-  fetchThreadReplies: (channelId: string, ts: string) => Promise<Message>;
-  sendThreadReply: (
+  async validateToken(token: string): Promise<CurrentUser | undefined> {
+    // This will never be called, since vsls does not have a token configuration step
+    return undefined;
+  }
+
+  async fetchThreadReplies(channelId: string, ts: string): Promise<Message> {
+    return {
+      timestamp: ts,
+      userId: "",
+      text: "",
+      content: undefined,
+      reactions: [],
+      replies: {}
+    };
+  }
+
+  sendThreadReply(
     text: string,
     currentUserId: string,
     channelId: string,
     parentTimestamp: string
-  ) => Promise<void>;
-  createIMChannel: (user: User) => Promise<Channel>;
+  ): Promise<void> {
+    return Promise.resolve();
+  }
+
+  async createIMChannel(user: User): Promise<Channel | undefined> {
+    return undefined;
+  }
 }
