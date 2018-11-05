@@ -31,7 +31,7 @@ const stripLinkSymbols = (text: string): string => {
 };
 
 export class SlackChatProvider implements IChatProvider {
-  private token: string;
+  private token: string | undefined;
   private client: SlackAPIClient;
   private messenger: SlackMessenger;
 
@@ -41,7 +41,7 @@ export class SlackChatProvider implements IChatProvider {
     return this.token;
   }
 
-  validateToken(token: string): Promise<CurrentUser> {
+  validateToken(token: string): Promise<CurrentUser | undefined> {
     // This is creating a new client, since getToken from keychain
     // is not called before validation
     const client = new SlackAPIClient(token);
@@ -93,16 +93,7 @@ export class SlackChatProvider implements IChatProvider {
   }
 
   async markChannel(channel: Channel, timestamp: string): Promise<Channel> {
-    let response = await this.client.markChannel({ channel, ts: timestamp });
-    const { ok } = response;
-
-    if (ok) {
-      return {
-        ...channel,
-        readTimestamp: timestamp,
-        unreadCount: 0
-      };
-    }
+    return await this.client.markChannel(channel, timestamp);
   }
 
   fetchThreadReplies(channelId: string, timestamp: string): Promise<Message> {
@@ -120,21 +111,14 @@ export class SlackChatProvider implements IChatProvider {
     parentTimestamp: string
   ) {
     const cleanText = stripLinkSymbols(text);
-    return this.client.sendMessage({
-      channel: channelId,
-      text: cleanText,
-      thread_ts: parentTimestamp
-    });
+    return this.client.sendMessage(channelId, cleanText, parentTimestamp);
   }
 
   async sendMessage(text: string, currentUserId: string, channelId: string) {
     const cleanText = stripLinkSymbols(text);
 
     try {
-      const result = await this.messenger.sendMessage({
-        channel: channelId,
-        text: cleanText
-      });
+      const result = await this.messenger.sendMessage(channelId, cleanText);
 
       // TODO: this is not the correct timestamp to attach, since the
       // API might get delayed, because of network issues
@@ -143,7 +127,7 @@ export class SlackChatProvider implements IChatProvider {
         userId: currentUserId,
         timestamp: result.ts,
         text,
-        content: null,
+        content: undefined,
         reactions: [],
         replies: {}
       };

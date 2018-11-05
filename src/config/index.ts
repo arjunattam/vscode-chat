@@ -1,65 +1,13 @@
 import * as vscode from "vscode";
 import * as https from "https";
 import * as HttpsProxyAgent from "https-proxy-agent";
-import * as str from "./strings";
-import { CONFIG_ROOT, SelfCommands } from "./constants";
-import { keychain } from "./utils/keychain";
-import IssueReporter from "./issues";
-import Logger from "./logger";
+import { CONFIG_ROOT, SelfCommands } from "../constants";
+import { KeychainHelper } from "./keychain";
 
 const TOKEN_CONFIG_KEY = "slack.legacyToken";
 const TELEMETRY_CONFIG_ROOT = "telemetry";
 const TELEMETRY_CONFIG_KEY = "enableTelemetry";
 const CREDENTIAL_SERVICE_NAME = "vscode-chat";
-
-class KeychainHelper {
-  // Adds retry to keychain operations if we are denied access
-  static async handleException(error, retryCall) {
-    Logger.log(`Keychain access: ${error}`);
-    const actionItems = [str.RETRY, str.REPORT_ISSUE];
-    const action = await vscode.window.showInformationMessage(
-      str.KEYCHAIN_ERROR,
-      ...actionItems
-    );
-
-    switch (action) {
-      case str.RETRY:
-        return retryCall();
-      case str.REPORT_ISSUE:
-        const title = "Unable to access keychain";
-        return IssueReporter.openNewIssue(title, `${error}`);
-    }
-  }
-
-  static async get(service: string, account: string) {
-    try {
-      const password = await keychain.getPassword(service, account);
-      return password;
-    } catch (error) {
-      // If user denies, we can catch the error
-      // On Mac, this looks like `Error: User canceled the operation.`
-      return this.handleException(error, () => this.get(service, account));
-    }
-  }
-
-  static async set(service: string, account: string, password: string) {
-    try {
-      await keychain.setPassword(service, account, password);
-    } catch (error) {
-      return this.handleException(error, () =>
-        this.set(service, account, password)
-      );
-    }
-  }
-
-  static async clear(service: string, account: string) {
-    try {
-      await keychain.deletePassword(service, account);
-    } catch (error) {
-      return this.handleException(error, () => this.clear(service, account));
-    }
-  }
-}
 
 class ConfigHelper {
   static getRootConfig() {

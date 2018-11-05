@@ -2,7 +2,7 @@ import * as vscode from "vscode";
 import * as vsls from "vsls/vscode";
 import { SelfCommands } from "../constants";
 import { ChannelMessages, User, Users } from "../types";
-import { VslsChatMessage, VSLS_CHANNEL, toBaseMessage } from "./utils";
+import { VslsChatMessage, VSLS_CHAT_CHANNEL, toBaseMessage } from "./utils";
 
 export abstract class VslsBaseService {
   constructor(protected liveshare: vsls.LiveShare) {}
@@ -27,7 +27,7 @@ export abstract class VslsBaseService {
     newMessages[timestamp] = toBaseMessage(message);
 
     vscode.commands.executeCommand(SelfCommands.UPDATE_MESSAGES, {
-      channelId: VSLS_CHANNEL.id,
+      channelId: VSLS_CHAT_CHANNEL.id,
       messages: newMessages
     });
   }

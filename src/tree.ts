@@ -14,10 +14,24 @@ import {
 
 interface ChatTreeNode {
   label: string;
-  channel: Channel;
-  user: User;
+  channel: Channel | undefined;
+  user: User | undefined;
   isCategory: boolean;
   isOnline: boolean;
+}
+
+interface ISortingFunction {
+  (a: ChannelLabel, b: ChannelLabel): number;
+}
+
+interface IFilterFunction {
+  (a: ChannelLabel): boolean;
+}
+
+// User-defined type guard
+// https://github.com/Microsoft/TypeScript/issues/20707#issuecomment-351874491
+function notUndefined<T>(x: T | undefined): x is T {
+  return x !== undefined;
 }
 
 const GREEN_DOT = path.join(
@@ -34,8 +48,8 @@ class CustomChatTreeItem extends vscode.TreeItem {
     label: string,
     isOnline: boolean,
     isCategory: boolean,
-    channel: Channel,
-    user: User
+    channel?: Channel,
+    user?: User
   ) {
     super(label);
 
@@ -66,12 +80,19 @@ class BaseTreeProvider
   implements vscode.TreeDataProvider<ChatTreeNode>, vscode.Disposable {
   private _onDidChangeTreeData = new vscode.EventEmitter<ChatTreeNode>();
   readonly onDidChangeTreeData? = this._onDidChangeTreeData.event;
-  protected viewId: string;
-  protected sortingFn = (a, b) => a.label.localeCompare(b.label);
-  protected filterFn = undefined;
+
+  protected sortingFn: ISortingFunction = (a: ChannelLabel, b: ChannelLabel) =>
+    a.label.localeCompare(b.label);
+  protected filterFn: IFilterFunction = () => true;
 
   protected _disposables: vscode.Disposable[] = [];
   protected channelLabels: ChannelLabel[] = [];
+
+  constructor(protected viewId: string) {
+    this._disposables.push(
+      vscode.window.registerTreeDataProvider(this.viewId, this)
+    );
+  }
 
   dispose() {
     this._disposables.forEach(dispose => dispose.dispose());
@@ -80,7 +101,7 @@ class BaseTreeProvider
   getLabelsObject(
     channeLabels: ChannelLabel[]
   ): { [channelId: string]: ChannelLabel } {
-    let result = {};
+    let result: { [channelId: string]: ChannelLabel } = {};
     channeLabels.forEach(label => {
       const { channel } = label;
       result[channel.id] = label;
@@ -126,10 +147,10 @@ class BaseTreeProvider
   }
 
   getParent(element: ChatTreeNode): vscode.ProviderResult<ChatTreeNode> {
-    if (!!element.channel.categoryName) {
-      return Promise.resolve(
-        this.getItemForCategory(element.channel.categoryName)
-      );
+    const { channel } = element;
+
+    if (!!channel && !!channel.categoryName) {
+      return Promise.resolve(this.getItemForCategory(channel.categoryName));
     }
   }
 
@@ -160,12 +181,12 @@ class BaseTreeProvider
     const channelsWithoutCategories = this.channelLabels
       .filter(channelLabel => !channelLabel.channel.categoryName)
       .map(this.getItemForChannel);
-    const categories = this.channelLabels
+    const categories: string[] = this.channelLabels
       .map(channelLabel => channelLabel.channel.categoryName)
-      .filter(name => !!name);
+      .filter(notUndefined);
     const uniqueCategories = categories
       .filter((item, pos) => categories.indexOf(item) === pos)
-      .map(this.getItemForCategory);
+      .map(category => this.getItemForCategory(category));
     return Promise.resolve([...channelsWithoutCategories, ...uniqueCategories]);
   }
 
@@ -176,7 +197,7 @@ class BaseTreeProvider
       isOnline,
       channel,
       isCategory: false,
-      user: null
+      user: undefined
     };
   }
 
@@ -185,8 +206,8 @@ class BaseTreeProvider
       label: category,
       isOnline: false,
       isCategory: true,
-      channel: null,
-      user: null
+      channel: undefined,
+      user: undefined
     };
   }
 
@@ -206,51 +227,37 @@ class BaseTreeProvider
 }
 
 export class UnreadsTreeProvider extends BaseTreeProvider {
-  protected filterFn = c => c.unread > 0;
-  protected sortingFn = (a, b) => b.unread - a.unread;
+  protected filterFn: IFilterFunction = c => c.unread > 0;
+  protected sortingFn: ISortingFunction = (a, b) => b.unread - a.unread;
 
   constructor(provider: string) {
-    super();
-    this.viewId = `chat.treeView.unreads.${provider}`;
-    this._disposables.push(
-      vscode.window.registerTreeDataProvider(this.viewId, this)
-    );
+    super(`chat.treeView.unreads.${provider}`);
   }
 }
 
 export class ChannelTreeProvider extends BaseTreeProvider {
-  protected filterFn = c => c.channel.type === ChannelType.channel;
+  protected filterFn: IFilterFunction = c =>
+    c.channel.type === ChannelType.channel;
 
   constructor(provider: string) {
-    super();
-    this.viewId = `chat.treeView.channels.${provider}`;
-    this._disposables.push(
-      vscode.window.registerTreeDataProvider(this.viewId, this)
-    );
+    super(`chat.treeView.channels.${provider}`);
   }
 }
 
 export class GroupTreeProvider extends BaseTreeProvider {
-  protected filterFn = c => c.channel.type === ChannelType.group;
+  protected filterFn: IFilterFunction = c =>
+    c.channel.type === ChannelType.group;
 
   constructor(provider: string) {
-    super();
-    this.viewId = `chat.treeView.groups.${provider}`;
-    this._disposables.push(
-      vscode.window.registerTreeDataProvider(this.viewId, this)
-    );
+    super(`chat.treeView.groups.${provider}`);
   }
 }
 
 export class IMsTreeProvider extends BaseTreeProvider {
-  protected filterFn = c => c.channel.type === ChannelType.im;
+  protected filterFn: IFilterFunction = c => c.channel.type === ChannelType.im;
 
   constructor(provider: string) {
-    super();
-    this.viewId = `chat.treeView.ims.${provider}`;
-    this._disposables.push(
-      vscode.window.registerTreeDataProvider(this.viewId, this)
-    );
+    super(`chat.treeView.ims.${provider}`);
   }
 }
 
@@ -261,14 +268,14 @@ export class OnlineUsersTreeProvider extends BaseTreeProvider {
   private OTHERS_ROLE_NAME = "Others";
 
   constructor(private providerName: string) {
-    super();
-    this.viewId = `chat.treeView.onlineUsers.${providerName}`;
-    this._disposables.push(
-      vscode.window.registerTreeDataProvider(this.viewId, this)
-    );
+    super(`chat.treeView.onlineUsers.${providerName}`);
   }
 
-  updateData(currentUser: CurrentUser, users: Users, imChannels) {
+  updateData(
+    currentUser: CurrentUser,
+    users: Users,
+    imChannels: { [userId: string]: Channel }
+  ) {
     const { id: currentId } = currentUser;
 
     const prevUserIds = new Set(this.users.map(user => user.id));
@@ -339,7 +346,8 @@ export class OnlineUsersTreeProvider extends BaseTreeProvider {
       .map(user => user.roleName);
     const uniqueRoles = roles
       .filter((item, pos) => roles.indexOf(item) === pos)
-      .map(this.getItemForCategory);
+      .filter(notUndefined)
+      .map(role => this.getItemForCategory(role));
 
     if (uniqueRoles.length > 0) {
       rootElements = [...rootElements, ...uniqueRoles];

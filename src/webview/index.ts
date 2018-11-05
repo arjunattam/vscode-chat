@@ -6,6 +6,7 @@ import {
   UIMessageGroup,
   UIMessageDateGroup,
   ChannelMessages,
+  Message,
   Users,
   Channel,
   CurrentUser
@@ -13,6 +14,10 @@ import {
 import { toDateString } from "../utils";
 
 const SAME_GROUP_TIME = 5 * 60; // seconds
+
+interface MessageWithUnread extends Message {
+  isUnread: boolean;
+}
 
 export default class WebviewContainer {
   panel: vscode.WebviewPanel;
@@ -38,7 +43,7 @@ export default class WebviewContainer {
       }
     );
 
-    this.panel.webview.html = getWebviewContent(staticPath);
+    this.panel.webview.html = getWebviewContent(staticPath.toString());
 
     // Handle on did dispose for webview panel
     this.panel.onDidDispose(() => this.onDidDispose());
@@ -76,11 +81,14 @@ export default class WebviewContainer {
     if (!!channel) {
       // Annotates every message with isUnread (boolean)
       const { readTimestamp } = channel;
-      let result = {};
+      let result: { [ts: string]: MessageWithUnread } = {};
+
       Object.keys(messages).forEach(ts => {
         const message = messages[ts];
         const isDifferentUser = message.userId !== currentUser.id;
-        const isUnread = isDifferentUser && +ts > +readTimestamp;
+        const isUnread =
+          !!readTimestamp && isDifferentUser && +ts > +readTimestamp;
+
         result[ts] = { ...message, isUnread };
       });
       return result;
@@ -90,7 +98,8 @@ export default class WebviewContainer {
   }
 
   getMessageGroups(input: ChannelMessages, users: Users): UIMessageDateGroup[] {
-    let result = {};
+    let result: { [date: string]: ChannelMessages } = {};
+
     Object.keys(input).forEach(ts => {
       const date = new Date(+ts * 1000);
       const dateStr = toDateString(date);
@@ -99,6 +108,7 @@ export default class WebviewContainer {
       }
       result[dateStr][ts] = input[ts];
     });
+
     return Object.keys(result)
       .sort((a, b) => a.localeCompare(b))
       .map(date => {
@@ -162,7 +172,7 @@ export default class WebviewContainer {
   }
 }
 
-function getWebviewContent(staticPath) {
+function getWebviewContent(staticPath: string) {
   const vueImports = `
     <script src="${staticPath}/static.js"></script>
     <link rel="stylesheet" type="text/css" href="${staticPath}/static.css"></link>

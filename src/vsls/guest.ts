@@ -1,5 +1,5 @@
 import * as vsls from "vsls/vscode";
-import { REQUEST_NAME, VslsChatMessage, NOTIFICATION_NAME } from "./utils";
+import { REQUEST_NAME, NOTIFICATION_NAME } from "./utils";
 import { User, Users, ChannelMessages } from "../types";
 import { VslsBaseService } from "./base";
 
@@ -10,7 +10,7 @@ export class VslsGuestService extends VslsBaseService {
   ) {
     super(liveshare);
 
-    serviceProxy.onNotify(NOTIFICATION_NAME.message, (msg: VslsChatMessage) =>
+    serviceProxy.onNotify(NOTIFICATION_NAME.message, (msg: any) =>
       this.updateMessages(msg)
     );
 
@@ -40,6 +40,8 @@ export class VslsGuestService extends VslsBaseService {
       );
       return response;
     }
+
+    return Promise.resolve({});
   }
 
   async fetchUserInfo(userId: string): Promise<User> {
@@ -48,6 +50,7 @@ export class VslsGuestService extends VslsBaseService {
         REQUEST_NAME.fetchUserInfo,
         [userId]
       );
+
       return response;
     }
   }
@@ -60,6 +63,8 @@ export class VslsGuestService extends VslsBaseService {
       );
       return response;
     }
+
+    return Promise.resolve({});
   }
 
   async sendMessage(text: string, userId: string, channelId: string) {

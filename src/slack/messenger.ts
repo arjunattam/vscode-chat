@@ -4,6 +4,7 @@ import ConfigHelper from "../config";
 import { getMessage } from "./client";
 import {
   ChannelMessages,
+  ChannelMessagesWithUndefined,
   CurrentUser,
   Users,
   MessageReply,
@@ -45,7 +46,7 @@ class SlackMessenger {
     this.rtmClient = new RTMClient(token, options);
     this.rtmClient.on(RTMEvents.MESSAGE, event => {
       const { subtype } = event;
-      let newMessages: ChannelMessages = {};
+      let newMessages: ChannelMessagesWithUndefined = {};
 
       switch (subtype) {
         case EventSubTypes.DELETED:
@@ -178,7 +179,7 @@ class SlackMessenger {
           const { id, name } = self;
           const { id: teamId, name: teamName } = team;
           return resolve({
-            token: this.token,
+            // token: this.token,
             id,
             name,
             teams: [{ id: teamId, name: teamName }],
@@ -197,8 +198,8 @@ class SlackMessenger {
     });
   };
 
-  sendMessage = ({ channel, text }) => {
-    return this.rtmClient.sendMessage(text, channel);
+  sendMessage = (channelId: string, text: string) => {
+    return this.rtmClient.sendMessage(text, channelId);
   };
 
   handleMessageLinks = (incoming: ChannelMessages) => {

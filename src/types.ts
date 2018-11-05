@@ -1,6 +1,6 @@
 export interface IChatProvider {
   getToken: () => Promise<string>;
-  validateToken: (token: string) => Promise<CurrentUser>;
+  validateToken: (token: string) => Promise<CurrentUser | undefined>;
   fetchUsers: () => Promise<Users>;
   fetchUserInfo: (userId: string) => Promise<User>;
   fetchChannels: (users: Users) => Promise<Channel[]>;
@@ -23,7 +23,7 @@ export interface IChatProvider {
   connect: () => Promise<CurrentUser>;
   isConnected: () => boolean;
   subscribePresence: (users: Users) => void;
-  createIMChannel: (user: User) => Promise<Channel>;
+  createIMChannel: (user: User) => Promise<Channel | undefined>;
   destroy: () => Promise<void>;
 }
 
@@ -53,9 +53,9 @@ export enum Providers {
 export interface CurrentUser {
   id: string;
   name: string;
-  token: string;
+  // token: string;
   teams: Team[];
-  currentTeamId: string;
+  currentTeamId: string | undefined;
   provider: Providers;
 }
 
@@ -112,7 +112,7 @@ export interface Message {
   textHTML?: string;
   isEdited?: Boolean;
   attachment?: MessageAttachment;
-  content: MessageContent;
+  content: MessageContent | undefined;
   reactions: MessageReaction[];
   replies: MessageReplies;
   // TODO - add
@@ -121,6 +121,10 @@ export interface Message {
 
 export interface ChannelMessages {
   [timestamp: string]: Message;
+}
+
+export interface ChannelMessagesWithUndefined {
+  [timestamp: string]: Message | undefined;
 }
 
 export interface Messages {
@@ -137,7 +141,7 @@ export interface Channel {
   id: string;
   name: string;
   type: ChannelType;
-  readTimestamp: string;
+  readTimestamp: string | undefined;
   unreadCount: number;
   categoryName?: string; // for Discord
 }
@@ -184,25 +188,25 @@ export interface UIMessageGroup {
 }
 
 export interface IStore {
-  installationId: string;
-  lastChannelId: string;
+  installationId: string | undefined; // TODO: remove undefined
+  lastChannelId: string | undefined;
   channels: Channel[];
-  currentUserInfo: CurrentUser;
+  currentUserInfo: CurrentUser | undefined;
   users: Users;
-  existingVersion: string;
+  existingVersion: string | undefined;
 }
 
 export interface IManager {
-  token: string;
+  token: string | undefined;
   store: IStore;
   messages: Messages;
   isAuthenticated: () => boolean;
-  getSelectedProvider: () => string;
-  getChannel: (channelId: string) => Channel | undefined;
+  getSelectedProvider: () => string | undefined;
+  getChannel: (channelId: string | undefined) => Channel | undefined;
   getIMChannel: (user: User) => Channel | undefined;
   getChannelLabels: () => any;
   getUnreadCount: (channel: Channel) => number;
-  getCurrentWorkspaceName: () => string;
+  getCurrentWorkspaceName: () => string | undefined;
   updateMessages: (channelId: string, newMessages: ChannelMessages) => void;
   loadChannelHistory: (channelId: string) => Promise<void>;
   updateReadMarker: () => void;
@@ -222,8 +226,8 @@ export interface IManager {
 }
 
 export interface ChatArgs {
-  channel: Channel;
-  user: User;
+  channel?: Channel;
+  user?: User;
   source: EventSource;
 }
 

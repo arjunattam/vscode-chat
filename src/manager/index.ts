@@ -15,7 +15,8 @@ import {
   IChatProvider,
   MessageReply,
   MessageReplies,
-  Providers
+  Providers,
+  ChannelMessagesWithUndefined
 } from "../types";
 import Logger from "../logger";
 import {
@@ -30,19 +31,19 @@ import { SlackChatProvider } from "../slack";
 import { VslsChatProvider } from "../vsls";
 import { Store } from "../store";
 import { ViewsManager } from "./views";
-import { VSLS_CHANNEL } from "../vsls/utils";
+import { VSLS_CHAT_CHANNEL } from "../vsls/utils";
 
 export default class Manager implements IManager, vscode.Disposable {
-  token: string;
-  channelsFetchedAt: Date;
+  token: string | undefined;
   currentUserPrefs: UserPreferences = {};
-  usersFetchedAt: Date;
+  channelsFetchedAt: Date | undefined;
+  usersFetchedAt: Date | undefined;
   messages: Messages = {};
   chatProvider: IChatProvider;
   viewsManager: ViewsManager;
 
   constructor(public store: Store) {
-    const existingVersion: string = this.store.existingVersion;
+    const existingVersion = this.store.existingVersion;
     const currentVersion = getExtensionVersion();
 
     if (!!currentVersion && existingVersion !== currentVersion) {
@@ -65,7 +66,7 @@ export default class Manager implements IManager, vscode.Disposable {
     }
   }
 
-  getSelectedProvider() {
+  getSelectedProvider(): string | undefined {
     // First check if we have a saved user profile
     // Else return default (vsls, if extension exists)
     const { currentUserInfo } = this.store;
@@ -89,6 +90,8 @@ export default class Manager implements IManager, vscode.Disposable {
         return new SlackChatProvider();
       case "vsls":
         return new VslsChatProvider();
+      default:
+        throw new Error(`unsupport chat provider: ${provider}`);
     }
   }
 
@@ -107,15 +110,15 @@ export default class Manager implements IManager, vscode.Disposable {
       this.viewsManager.dispose();
     }
 
-    this.viewsManager = new ViewsManager(selectedProvider, this);
+    this.viewsManager = new ViewsManager(selectedProvider, this as IManager);
 
     if (!!selectedProvider) {
       this.chatProvider = this.getChatProvider(selectedProvider);
       const token = await this.chatProvider.getToken();
       this.token = token;
 
-      const ALL_PROVIDERS = ["slack", "discord"];
-      ALL_PROVIDERS.forEach(provider => {
+      const TREE_VIEW_PROVIDERS = ["slack", "discord"];
+      TREE_VIEW_PROVIDERS.forEach(provider => {
         setVsContext(`chat:${provider}`, provider === selectedProvider);
       });
     }
@@ -132,7 +135,7 @@ export default class Manager implements IManager, vscode.Disposable {
     }
 
     if (this.getSelectedProvider() === "vsls") {
-      this.store.updateLastChannelId(VSLS_CHANNEL.id);
+      this.store.updateLastChannelId(VSLS_CHAT_CHANNEL.id);
     }
 
     return currentUser;
@@ -175,8 +178,10 @@ export default class Manager implements IManager, vscode.Disposable {
     return !!currentUserInfo && !!currentUserInfo.id;
   }
 
-  getChannel(channelId: string): Channel {
-    return this.store.channels.find(channel => channel.id === channelId);
+  getChannel(channelId: string | undefined): Channel | undefined {
+    if (!!channelId) {
+      return this.store.channels.find(channel => channel.id === channelId);
+    }
   }
 
   isChannelMuted(channelId: string): boolean {
@@ -272,7 +277,7 @@ export default class Manager implements IManager, vscode.Disposable {
 
       if (!!currentTeamId) {
         const team = teams.find(team => team.id === currentTeamId);
-        return team.name;
+        return !!team ? team.name : undefined;
       }
     }
   };
@@ -383,7 +388,7 @@ export default class Manager implements IManager, vscode.Disposable {
     return channels;
   };
 
-  shouldFetchNew = (lastFetchedAt: Date): boolean => {
+  shouldFetchNew = (lastFetchedAt: Date | undefined): boolean => {
     if (!lastFetchedAt) {
       return true;
     }
@@ -395,7 +400,7 @@ export default class Manager implements IManager, vscode.Disposable {
   };
 
   getUsersPromise(): Promise<Users> {
-    function isNotEmpty(obj) {
+    function isNotEmpty(obj: any) {
       return Object.keys(obj).length !== 0;
     }
 
@@ -424,18 +429,41 @@ export default class Manager implements IManager, vscode.Disposable {
       : this.fetchChannels();
   }
 
-  updateCurrentWorkspace = (team: Team): Thenable<void> => {
-    const { currentUserInfo } = this.store;
+  updateCurrentWorkspace = (
+    team: Team,
+    existingUserInfo: CurrentUser
+  ): Thenable<void> => {
     const newCurrentUser: CurrentUser = {
-      ...currentUserInfo,
+      ...existingUserInfo,
       currentTeamId: team.id
     };
     return this.store.updateCurrentUser(newCurrentUser);
   };
 
-  updateMessages = (channelId: string, newMessages: ChannelMessages) => {
-    const channelMessages = { ...this.messages[channelId], ...newMessages };
-    this.messages[channelId] = channelMessages;
+  updateMessages = (
+    channelId: string,
+    messages: ChannelMessagesWithUndefined
+  ) => {
+    const existingMessages =
+      channelId in this.messages ? this.messages[channelId] : {};
+    const deletedTimestamps = Object.keys(messages).filter(
+      ts => typeof messages[ts] === "undefined"
+    );
+
+    const newMessages: ChannelMessages = {};
+    Object.keys(existingMessages).forEach(ts => {
+      const isDeleted = deletedTimestamps.indexOf(ts) >= 0;
+      if (!isDeleted) {
+        newMessages[ts] = existingMessages[ts];
+      }
+    });
+    Object.keys(messages).forEach(ts => {
+      const message = messages[ts];
+      if (!!message) {
+        newMessages[ts] = message;
+      }
+    });
+    this.messages[channelId] = newMessages;
 
     // Remove undefined, after message deleted
     Object.keys(this.messages[channelId]).forEach(key => {
@@ -444,17 +472,16 @@ export default class Manager implements IManager, vscode.Disposable {
       }
     });
 
-    // Check if we have all users. Since there is not bots.list API
+    // Check if we have all users. Since there is no `bots.list` Slack API
     // method, it is possible that a bot user is not in our store
     const { users } = this.store;
-    const userIds = new Set(
-      (<any>Object)
-        .values(this.messages[channelId])
-        .map(message => message.userId)
-    );
-    const allIds = new Set(Object.keys(users));
-    if (!isSuperset(allIds, userIds)) {
-      this.fillUpUsers(difference(userIds, allIds));
+    const knownUserIds = new Set(Object.keys(users));
+    const channelMessages = this.messages[channelId];
+    const entries = Object.entries(channelMessages);
+    const userIds = new Set(entries.map(([_, message]) => message.userId));
+
+    if (!isSuperset(knownUserIds, userIds)) {
+      this.fillUpUsers(difference(userIds, knownUserIds));
     }
 
     this.updateAllUI();
@@ -495,9 +522,10 @@ export default class Manager implements IManager, vscode.Disposable {
     this.viewsManager.updateStatusItem();
   }
 
-  getLastTimestamp(): string {
-    const id = this.store.lastChannelId;
-    const channelMessages = id in this.messages ? this.messages[id] : {};
+  getLastTimestamp(): string | undefined {
+    const { lastChannelId: channelId } = this.store;
+    const channelMessages =
+      !!channelId && channelId in this.messages ? this.messages[channelId] : {};
     const timestamps = Object.keys(channelMessages).map(tsString => +tsString);
 
     if (timestamps.length > 0) {
@@ -512,10 +540,9 @@ export default class Manager implements IManager, vscode.Disposable {
 
     if (channel && lastTs) {
       const { readTimestamp } = channel;
-      const hasNewerMsgs = +readTimestamp < +lastTs;
+      const hasNewerMsgs = !!readTimestamp ? +readTimestamp < +lastTs : true;
 
-      if (!readTimestamp || hasNewerMsgs) {
-        const channel = this.getChannel(channelId);
+      if (hasNewerMsgs) {
         const incremented = (+lastTs + 1).toString(); // Slack API workaround
         const updatedChannel = await this.chatProvider.markChannel(
           channel,
@@ -564,7 +591,7 @@ export default class Manager implements IManager, vscode.Disposable {
           ...message,
           reactions
         };
-        const newMessages = {};
+        const newMessages: ChannelMessages = {};
         newMessages[msgTimestamp] = newMessage;
         this.updateMessages(channelId, newMessages);
       }
@@ -601,7 +628,7 @@ export default class Manager implements IManager, vscode.Disposable {
           ...message,
           reactions
         };
-        const newMessages = {};
+        const newMessages: ChannelMessages = {};
         newMessages[msgTimestamp] = newMessage;
         this.updateMessages(channelId, newMessages);
       }
@@ -610,14 +637,17 @@ export default class Manager implements IManager, vscode.Disposable {
 
   async fetchThreadReplies(parentTimestamp: string) {
     const currentChannelId = this.store.lastChannelId;
-    const message = await this.chatProvider.fetchThreadReplies(
-      currentChannelId,
-      parentTimestamp
-    );
 
-    let messages = {};
-    messages[parentTimestamp] = message;
-    this.updateMessages(currentChannelId, messages);
+    if (!!currentChannelId) {
+      const message = await this.chatProvider.fetchThreadReplies(
+        currentChannelId,
+        parentTimestamp
+      );
+
+      let messages: ChannelMessages = {};
+      messages[parentTimestamp] = message;
+      this.updateMessages(currentChannelId, messages);
+    }
   }
 
   updateMessageReply(
@@ -632,7 +662,7 @@ export default class Manager implements IManager, vscode.Disposable {
       parentTimestamp in messages ? messages[parentTimestamp] : undefined;
 
     if (!!message) {
-      let newMessages = {};
+      let newMessages: ChannelMessages = {};
       const replyTs = reply.timestamp;
       let replies: MessageReplies = { ...message.replies };
       replies[replyTs] = { ...reply };

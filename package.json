@@ -232,6 +232,7 @@
   "devDependencies": {
     "@types/http-proxy-agent": "^2.0.0",
     "@types/keytar": "^4.0.1",
+    "@types/markdown-it": "^0.0.7",
     "@types/mixpanel": "^2.14.0",
     "@types/mocha": "^2.2.42",
     "@types/node": "^8.0.0",

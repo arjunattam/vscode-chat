@@ -28,7 +28,9 @@ const isOnline = (presence: Discord.Presence): boolean => {
   return status === "online" || status === "idle";
 };
 
-const getMessageContent = (raw: Discord.Message): MessageContent => {
+const getMessageContent = (
+  raw: Discord.Message
+): MessageContent | undefined => {
   const { embeds } = raw;
   if (!!embeds && embeds.length > 0) {
     const firstEmbed = embeds[0];
@@ -81,7 +83,7 @@ const DEFAULT_AVATARS = [
   "https://discordapp.com/assets/1cbd08c76f8af6dddce02c5138971129.png"
 ];
 
-const getAvatarUrl = (userId, avatar, size) => {
+const getAvatarUrl = (userId: string, avatar: string, size: number) => {
   if (!avatar) {
     return DEFAULT_AVATARS[Math.floor(Math.random() * DEFAULT_AVATARS.length)];
   } else {
@@ -90,12 +92,14 @@ const getAvatarUrl = (userId, avatar, size) => {
   }
 };
 
-const getImageUrl = (userId, avatar) => getAvatarUrl(userId, avatar, 128);
+const getImageUrl = (userId: string, avatar: string) =>
+  getAvatarUrl(userId, avatar, 128);
 
-const getSmallImageUrl = (userId, avatar) => getAvatarUrl(userId, avatar, 32);
+const getSmallImageUrl = (userId: string, avatar: string) =>
+  getAvatarUrl(userId, avatar, 32);
 
 export class DiscordChatProvider implements IChatProvider {
-  token: string;
+  token: string | undefined;
   client: Discord.Client;
   mutedChannels: Set<string> = new Set([]);
   imChannels: Channel[] = [];
@@ -108,7 +112,7 @@ export class DiscordChatProvider implements IChatProvider {
     return Promise.resolve(this.token);
   }
 
-  async validateToken(token: string): Promise<CurrentUser> {
+  async validateToken(token: string): Promise<CurrentUser | undefined> {
     const response = await rp({
       baseUrl: `https://discordapp.com/api/v6`,
       uri: `/users/@me`,
@@ -121,7 +125,6 @@ export class DiscordChatProvider implements IChatProvider {
     return {
       id,
       name,
-      token,
       teams: [],
       currentTeamId: undefined,
       provider: Providers.discord
@@ -141,7 +144,7 @@ export class DiscordChatProvider implements IChatProvider {
         const currentUser: CurrentUser = {
           id,
           name,
-          token: this.token,
+          // token: this.token,
           teams,
           currentTeamId: undefined,
           provider: Providers.discord
@@ -238,21 +241,26 @@ export class DiscordChatProvider implements IChatProvider {
     return Promise.resolve({ mutedChannels });
   }
 
-  getCurrentGuild(): Discord.Guild {
+  getCurrentGuild(): Discord.Guild | undefined {
     const { currentUserInfo } = this.manager.store;
-    const { currentTeamId } = currentUserInfo;
-    return this.client.guilds.find(guild => guild.id === currentTeamId);
+
+    if (!!currentUserInfo) {
+      const { currentTeamId } = currentUserInfo;
+      return this.client.guilds.find(guild => guild.id === currentTeamId);
+    }
   }
 
-  fetchUsers(): Promise<Users> {
+  async fetchUsers(): Promise<Users> {
     const guild = this.getCurrentGuild();
     const readyTimestamp = (this.client.readyTimestamp / 1000.0).toString();
     let users: Users = {};
+
     // We first build users from IM channels, and then from the guild members
     this.imChannels = this.client.channels
       .filter(channel => channel.type === "dm")
-      .map((channel: Discord.DMChannel) => {
-        const { id, recipient } = channel;
+      .map(channel => {
+        const dmChannel = <Discord.DMChannel>channel;
+        const { id, recipient } = dmChannel;
         const user = getUser(recipient);
         users[user.id] = user;
         return {
@@ -264,7 +272,9 @@ export class DiscordChatProvider implements IChatProvider {
         };
       });
 
-    return guild.fetchMembers("", MEMBER_LIMIT).then(response => {
+    if (!!guild) {
+      // Getting guild members requires knowing the guild
+      const response = await guild.fetchMembers("", MEMBER_LIMIT);
       response.members.forEach(member => {
         const { user: discordUser, roles } = member;
         const hoistedRole = roles.find(role => role.hoist);
@@ -277,9 +287,9 @@ export class DiscordChatProvider implements IChatProvider {
         const user = getUser(discordUser);
         users[user.id] = { ...user, roleName };
       });
+    }
 
-      return users;
-    });
+    return users;
   }
 
   async fetchUserInfo(userId: string): Promise<User> {
@@ -292,74 +302,89 @@ export class DiscordChatProvider implements IChatProvider {
     // For unreads, we are not retrieving historical unreads, not clear if API supports that.
     const readyTimestamp = (this.client.readyTimestamp / 1000.0).toString();
     const guild = this.getCurrentGuild();
-    let categories = {};
-    guild.channels
-      .filter(channel => channel.type === "category")
-      .forEach(channel => {
-        const { id: channelId, name, muted } = channel;
-        categories[channelId] = name;
+    let categories: { [id: string]: string } = {};
 
-        if (muted) {
-          this.mutedChannels.add(channelId);
-        }
-      });
+    if (!!guild) {
+      guild.channels
+        .filter(channel => channel.type === "category")
+        .forEach(channel => {
+          const { id: channelId, name, muted } = channel;
+          categories[channelId] = name;
 
-    const { currentUserInfo } = this.manager.store;
-    const guildChannels: Channel[] = guild.channels
-      .filter(channel => channel.type !== "category")
-      .filter(channel => {
-        return channel
-          .permissionsFor(currentUserInfo.id)
-          .has(Discord.Permissions.FLAGS.VIEW_CHANNEL);
-      })
-      .map(channel => {
-        const { name, id, parentID } = channel;
-        return {
-          id,
-          name,
-          categoryName: categories[parentID],
-          type: ChannelType.channel,
-          readTimestamp: readyTimestamp,
-          unreadCount: 0
-        };
-      });
+          if (muted) {
+            this.mutedChannels.add(channelId);
+          }
+        });
 
-    const groupChannels = this.client.channels
-      .filter(channel => channel.type === "group")
-      .map((channel: Discord.GroupDMChannel) => {
-        const { id, recipients } = channel;
-        return {
-          id,
-          name: recipients.map(recipient => recipient.username).join(", "),
-          type: ChannelType.group,
-          readTimestamp: readyTimestamp,
-          unreadCount: 0
-        };
-      });
+      const { currentUserInfo } = this.manager.store;
+      const guildChannels: Channel[] = guild.channels
+        .filter(channel => channel.type !== "category")
+        .filter(channel => {
+          if (!!currentUserInfo) {
+            const userId = currentUserInfo.id;
+            const permissions = channel.permissionsFor(userId);
+            const permissionFlag = Discord.Permissions.FLAGS.VIEW_CHANNEL;
 
-    return Promise.resolve([
-      ...guildChannels,
-      ...this.imChannels,
-      ...groupChannels
-    ]);
+            if (!!permissions && permissionFlag) {
+              return permissions.has(permissionFlag);
+            }
+          }
+
+          return false;
+        })
+        .map(channel => {
+          const { name, id, parentID } = channel;
+          return {
+            id,
+            name,
+            categoryName: categories[parentID],
+            type: ChannelType.channel,
+            readTimestamp: readyTimestamp,
+            unreadCount: 0
+          };
+        });
+
+      const groupChannels = this.client.channels
+        .filter(channel => channel.type === "group")
+        .map(channel => {
+          const groupChannel = <Discord.GroupDMChannel>channel;
+          const { id, recipients } = groupChannel;
+          return {
+            id,
+            name: recipients.map(recipient => recipient.username).join(", "),
+            type: ChannelType.group,
+            readTimestamp: readyTimestamp,
+            unreadCount: 0
+          };
+        });
+
+      return Promise.resolve([
+        ...guildChannels,
+        ...this.imChannels,
+        ...groupChannels
+      ]);
+    }
+
+    return Promise.resolve([]);
   }
 
-  loadChannelHistory(channelId: string): Promise<ChannelMessages> {
+  async loadChannelHistory(channelId: string): Promise<ChannelMessages> {
     const channel: any = this.client.channels.find(
       channel => channel.id === channelId
     );
+
     // channel.fetchMessages will break for voice channels
-    return channel
-      .fetchMessages({ limit: HISTORY_LIMIT })
-      .then((messages: Discord.Message[]) => {
-        let result: ChannelMessages = {};
-        messages.forEach(message => {
-          const parsed = getMessage(message);
-          const { timestamp } = parsed;
-          result[timestamp] = parsed;
-        });
-        return result;
-      });
+    const messages: Discord.Message[] = await channel.fetchMessages({
+      limit: HISTORY_LIMIT
+    });
+
+    let result: ChannelMessages = {};
+    messages.forEach(message => {
+      const parsed = getMessage(message);
+      const { timestamp } = parsed;
+      result[timestamp] = parsed;
+    });
+    return result;
   }
 
   sendMessage(
@@ -377,28 +402,29 @@ export class DiscordChatProvider implements IChatProvider {
     return Promise.resolve(channel);
   }
 
-  subscribePresence(usersUsers): void {}
+  subscribePresence(users: Users): void {}
 
   sendThreadReply() {
     return Promise.resolve();
   }
 
-  destroy() {
+  destroy(): Promise<void> {
     if (!!this.client) {
       return this.client.destroy();
     }
+
+    return Promise.resolve();
   }
 
-  markChannel(channel: Channel, ts: string): Promise<Channel> {
+  async markChannel(channel: Channel, ts: string): Promise<Channel> {
     // Discord does not have a concept of timestamp, it will acknowledge everything
     // return Promise.resolve(channel);
     const { id: channelId } = channel;
     const discordChannel: any = this.client.channels.find(
       channel => channel.id === channelId
     );
-    return discordChannel
-      .acknowledge()
-      .then(() => ({ ...channel, readTimestamp: ts }));
+    await discordChannel.acknowledge();
+    return { ...channel, readTimestamp: ts };
   }
 
   fetchThreadReplies(channelId: string, ts: string): Promise<any> {
@@ -406,7 +432,7 @@ export class DiscordChatProvider implements IChatProvider {
     return Promise.resolve();
   }
 
-  createIMChannel(user: User): Promise<Channel> {
+  createIMChannel(user: User): Promise<Channel | undefined> {
     // This is required to share vsls links with users that
     // do not have corresponding DM channels
     return Promise.resolve(undefined);

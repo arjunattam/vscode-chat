@@ -9,7 +9,7 @@ export default class IssueReporter {
   }
 
   static getUrl(query: object) {
-    const getParams = p =>
+    const getParams = (p: object) =>
       Object.entries(p)
         .map(kv => kv.map(encodeURIComponent).join("="))
         .join("&");
