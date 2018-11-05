@@ -25,9 +25,9 @@ export class Store implements IStore {
 
   constructor(private context: vscode.ExtensionContext) {
     const { globalState } = context;
-    this.channels = globalState.get(stateKeys.CHANNELS);
+    this.channels = globalState.get(stateKeys.CHANNELS) || [];
     this.currentUserInfo = globalState.get(stateKeys.USER_INFO);
-    this.users = globalState.get(stateKeys.USERS);
+    this.users = globalState.get(stateKeys.USERS) || {};
     this.lastChannelId = globalState.get(stateKeys.LAST_CHANNEL_ID);
     this.installationId = globalState.get(stateKeys.INSTALLATION_ID);
     this.existingVersion = globalState.get(stateKeys.EXTENSION_VERSION);
