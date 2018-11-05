@@ -11,7 +11,7 @@ const INTERVAL_TIMEOUT = 30 * 60 * 1000; // 30 mins in ms
 
 export default class TelemetryReporter implements vscode.Disposable {
   private hasUserOptIn: boolean = false;
-  private uniqueId: string;
+  private uniqueId: string | undefined; // TODO: remove undefined
   private mixpanel: Mixpanel.Mixpanel | undefined;
   private versions: Versions;
   private hasExtensionPack: boolean;

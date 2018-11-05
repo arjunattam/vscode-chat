@@ -184,7 +184,7 @@ export interface UIMessageGroup {
 }
 
 export interface IStore {
-  installationId: string;
+  installationId: string | undefined; // TODO: remove undefined
   lastChannelId: string | undefined;
   channels: Channel[];
   currentUserInfo: CurrentUser | undefined;
@@ -197,8 +197,8 @@ export interface IManager {
   store: IStore;
   messages: Messages;
   isAuthenticated: () => boolean;
-  getSelectedProvider: () => string;
-  getChannel: (channelId: string) => Channel | undefined;
+  getSelectedProvider: () => string | undefined;
+  getChannel: (channelId: string | undefined) => Channel | undefined;
   getIMChannel: (user: User) => Channel | undefined;
   getChannelLabels: () => any;
   getUnreadCount: (channel: Channel) => number;
@@ -222,8 +222,8 @@ export interface IManager {
 }
 
 export interface ChatArgs {
-  channel: Channel;
-  user: User;
+  channel?: Channel;
+  user?: User;
   source: EventSource;
 }
 

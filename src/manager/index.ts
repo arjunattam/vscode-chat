@@ -34,15 +34,15 @@ import { VSLS_CHAT_CHANNEL } from "../vsls/utils";
 
 export default class Manager implements IManager, vscode.Disposable {
   token: string | undefined;
-  channelsFetchedAt: Date;
   currentUserPrefs: UserPreferences = {};
-  usersFetchedAt: Date;
+  channelsFetchedAt: Date | undefined;
+  usersFetchedAt: Date | undefined;
   messages: Messages = {};
   chatProvider: IChatProvider;
   viewsManager: ViewsManager;
 
   constructor(public store: Store) {
-    const existingVersion: string = this.store.existingVersion;
+    const existingVersion = this.store.existingVersion;
     const currentVersion = getExtensionVersion();
 
     if (!!currentVersion && existingVersion !== currentVersion) {
@@ -65,7 +65,7 @@ export default class Manager implements IManager, vscode.Disposable {
     }
   }
 
-  getSelectedProvider() {
+  getSelectedProvider(): string | undefined {
     // First check if we have a saved user profile
     // Else return default (vsls, if extension exists)
     const { currentUserInfo } = this.store;
@@ -109,7 +109,7 @@ export default class Manager implements IManager, vscode.Disposable {
       this.viewsManager.dispose();
     }
 
-    this.viewsManager = new ViewsManager(selectedProvider, this);
+    this.viewsManager = new ViewsManager(selectedProvider, this as IManager);
 
     if (!!selectedProvider) {
       this.chatProvider = this.getChatProvider(selectedProvider);
@@ -177,8 +177,10 @@ export default class Manager implements IManager, vscode.Disposable {
     return !!currentUserInfo && !!currentUserInfo.id;
   }
 
-  getChannel(channelId: string): Channel {
-    return this.store.channels.find(channel => channel.id === channelId);
+  getChannel(channelId: string | undefined): Channel | undefined {
+    if (!!channelId) {
+      return this.store.channels.find(channel => channel.id === channelId);
+    }
   }
 
   isChannelMuted(channelId: string): boolean {
@@ -566,7 +568,7 @@ export default class Manager implements IManager, vscode.Disposable {
           ...message,
           reactions
         };
-        const newMessages = {};
+        const newMessages: ChannelMessages = {};
         newMessages[msgTimestamp] = newMessage;
         this.updateMessages(channelId, newMessages);
       }
@@ -603,7 +605,7 @@ export default class Manager implements IManager, vscode.Disposable {
           ...message,
           reactions
         };
-        const newMessages = {};
+        const newMessages: ChannelMessages = {};
         newMessages[msgTimestamp] = newMessage;
         this.updateMessages(channelId, newMessages);
       }
@@ -612,14 +614,17 @@ export default class Manager implements IManager, vscode.Disposable {
 
   async fetchThreadReplies(parentTimestamp: string) {
     const currentChannelId = this.store.lastChannelId;
-    const message = await this.chatProvider.fetchThreadReplies(
-      currentChannelId,
-      parentTimestamp
-    );
 
-    let messages = {};
-    messages[parentTimestamp] = message;
-    this.updateMessages(currentChannelId, messages);
+    if (!!currentChannelId) {
+      const message = await this.chatProvider.fetchThreadReplies(
+        currentChannelId,
+        parentTimestamp
+      );
+
+      let messages: ChannelMessages = {};
+      messages[parentTimestamp] = message;
+      this.updateMessages(currentChannelId, messages);
+    }
   }
 
   updateMessageReply(
@@ -634,7 +639,7 @@ export default class Manager implements IManager, vscode.Disposable {
       parentTimestamp in messages ? messages[parentTimestamp] : undefined;
 
     if (!!message) {
-      let newMessages = {};
+      let newMessages: ChannelMessages = {};
       const replyTs = reply.timestamp;
       let replies: MessageReplies = { ...message.replies };
       replies[replyTs] = { ...reply };

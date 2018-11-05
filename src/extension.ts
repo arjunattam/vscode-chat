@@ -38,18 +38,25 @@ export function activate(context: vscode.ExtensionContext) {
 
   controller = new ViewController(
     context,
-    () => manager.loadChannelHistory(manager.store.lastChannelId),
+    () => {
+      const { lastChannelId } = manager.store;
+      if (lastChannelId) {
+        return manager.loadChannelHistory(lastChannelId);
+      }
+    },
     () => manager.updateReadMarker()
   );
 
   const setupFreshInstall = () => {
-    manager.store.generateInstallationId();
-    const { installationId } = manager.store;
+    const installationId = manager.store.generateInstallationId();
     reporter.setUniqueId(installationId);
     reporter.record(EventType.extensionInstalled, undefined, undefined);
   };
 
-  const setup = async ({ canPromptForAuth, provider }): Promise<any> => {
+  const setup = async (
+    canPromptForAuth: boolean,
+    provider: string | undefined
+  ): Promise<any> => {
     if (!manager.store.installationId) {
       setupFreshInstall();
     }
@@ -113,8 +120,8 @@ export function activate(context: vscode.ExtensionContext) {
     }
   };
 
-  const askForChannel = async (): Promise<Channel> => {
-    await setup({ canPromptForAuth: true, provider: undefined });
+  const askForChannel = async (): Promise<Channel | undefined> => {
+    await setup(true, undefined);
     let channelList = manager
       .getChannelLabels()
       .sort((a, b) => b.unread - a.unread);
@@ -142,17 +149,20 @@ export function activate(context: vscode.ExtensionContext) {
           x.label === selected.label &&
           x.channel.categoryName === selected.description
       );
-      const { channel } = selectedChannelLabel;
-      manager.store.updateLastChannelId(channel.id);
-      return channel;
+
+      if (!!selectedChannelLabel) {
+        const { channel } = selectedChannelLabel;
+        manager.store.updateLastChannelId(channel.id);
+        return channel;
+      }
     }
   };
 
   const getChatChannelId = (args?: ChatArgs): Promise<string> => {
     const { lastChannelId } = manager.store;
-    let channelIdPromise: Promise<string> = null;
+    let channelIdPromise: Promise<string> | undefined;
 
-    if (!channelIdPromise && !!lastChannelId) {
+    if (!!lastChannelId) {
       channelIdPromise = Promise.resolve(lastChannelId);
     }
 
@@ -183,7 +193,7 @@ export function activate(context: vscode.ExtensionContext) {
       controller.loadUi();
     }
 
-    setup({ canPromptForAuth: true, provider: undefined })
+    setup(true, undefined)
       .then(() => getChatChannelId(args))
       .then(() => {
         manager.viewsManager.updateWebview();
@@ -220,7 +230,7 @@ export function activate(context: vscode.ExtensionContext) {
       await askForWorkspace();
       manager.clearOldWorkspace();
       manager.updateAllUI();
-      await setup({ canPromptForAuth: false, provider: undefined });
+      await setup(false, undefined);
     }
   };
 
@@ -299,7 +309,7 @@ export function activate(context: vscode.ExtensionContext) {
   const reset = async (newProvider?: string) => {
     manager.clearAll();
     manager.updateAllUI();
-    await setup({ canPromptForAuth: false, provider: newProvider });
+    await setup(false, newProvider);
   };
 
   const signout = async () => {
@@ -424,7 +434,7 @@ export function activate(context: vscode.ExtensionContext) {
   };
 
   // Setup real-time messenger and updated local state
-  setup({ canPromptForAuth: true, provider: undefined });
+  setup(true, undefined);
 
   // Setup context for conditional views
   setVslsContext();
