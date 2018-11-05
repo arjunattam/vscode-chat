@@ -25,11 +25,11 @@ export class Store implements IStore {
 
   constructor(private context: vscode.ExtensionContext) {
     const { globalState } = context;
+    this.installationId = globalState.get(stateKeys.INSTALLATION_ID);
     this.channels = globalState.get(stateKeys.CHANNELS) || [];
     this.currentUserInfo = globalState.get(stateKeys.USER_INFO);
     this.users = globalState.get(stateKeys.USERS) || {};
     this.lastChannelId = globalState.get(stateKeys.LAST_CHANNEL_ID);
-    this.installationId = globalState.get(stateKeys.INSTALLATION_ID);
     this.existingVersion = globalState.get(stateKeys.EXTENSION_VERSION);
   }
 
@@ -45,7 +45,7 @@ export class Store implements IStore {
     globalState.update(stateKeys.EXTENSION_VERSION, version);
   }
 
-  updateLastChannelId = (channelId: string): Thenable<void> => {
+  updateLastChannelId = (channelId: string | undefined): Thenable<void> => {
     this.lastChannelId = channelId;
     return this.context.globalState.update(
       stateKeys.LAST_CHANNEL_ID,
@@ -67,9 +67,11 @@ export class Store implements IStore {
     if (this.channels.length <= VALUE_LENGTH_LIMIT) {
       return this.context.globalState.update(stateKeys.CHANNELS, this.channels);
     }
+
+    return Promise.resolve();
   };
 
-  updateCurrentUser = (userInfo: CurrentUser): Thenable<void> => {
+  updateCurrentUser = (userInfo: CurrentUser | undefined): Thenable<void> => {
     // In the case of discord, we need to know the current team (guild)
     // If that is available in the store, we should use that
     if (!userInfo) {

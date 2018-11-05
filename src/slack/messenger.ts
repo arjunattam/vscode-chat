@@ -197,8 +197,8 @@ class SlackMessenger {
     });
   };
 
-  sendMessage = ({ channel, text }) => {
-    return this.rtmClient.sendMessage(text, channel);
+  sendMessage = (channelId: string, text: string) => {
+    return this.rtmClient.sendMessage(text, channelId);
   };
 
   handleMessageLinks = (incoming: ChannelMessages) => {

@@ -20,13 +20,13 @@ import { ExtensionUriHandler } from "./uri";
 import * as utils from "./utils";
 import { askForAuth } from "./onboarding";
 import ConfigHelper from "./config";
-import Reporter from "./telemetry";
+import TelemetryReporter from "./telemetry";
 import IssueReporter from "./issues";
 
 let store: Store;
 let manager: Manager;
 let controller: ViewController;
-let reporter: Reporter;
+let reporter: TelemetryReporter;
 
 const SUPPORTED_PROVIDERS = ["slack", "discord"];
 
@@ -34,7 +34,7 @@ export function activate(context: vscode.ExtensionContext) {
   Logger.log("Activating vscode-chat");
   store = new Store(context);
   manager = new Manager(store);
-  reporter = new Reporter(manager);
+  reporter = new TelemetryReporter(manager);
 
   controller = new ViewController(
     context,
@@ -91,7 +91,7 @@ export function activate(context: vscode.ExtensionContext) {
 
   const sendMessage = (
     text: string,
-    parentTimestamp: string
+    parentTimestamp: string | undefined
   ): Promise<void> => {
     const { lastChannelId, currentUserInfo } = manager.store;
     reporter.record(EventType.messageSent, undefined, lastChannelId);
@@ -202,7 +202,7 @@ export function activate(context: vscode.ExtensionContext) {
   const askForWorkspace = async () => {
     const { currentUserInfo } = manager.store;
     const { teams } = currentUserInfo;
-    const labels = teams.map(t => t.name);
+    const labels = teams.map(team => team.name);
 
     const selected = await vscode.window.showQuickPick([...labels], {
       placeHolder: str.CHANGE_WORKSPACE_TITLE
@@ -406,7 +406,7 @@ export function activate(context: vscode.ExtensionContext) {
     if (hasOtherProvider) {
       // Logged in with Slack/Discord, ask for confirmation to sign out
       const msg = str.LIVE_SHARE_CONFIRM_SIGN_OUT(
-        utils.toTitleCase(currentProvider)
+        utils.toTitleCase(currentProvider as string)
       );
       const response = await vscode.window.showInformationMessage(
         msg,

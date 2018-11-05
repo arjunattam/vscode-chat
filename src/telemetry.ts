@@ -2,13 +2,14 @@ import * as vscode from "vscode";
 import * as Mixpanel from "mixpanel";
 import { MIXPANEL_TOKEN } from "./constants";
 import ConfigHelper from "./config";
-import { TelemetryEvent, IManager, EventType, EventSource } from "./types";
+import Manager from "./manager";
+import { TelemetryEvent, EventType, EventSource } from "./types";
 import { getVersions, Versions, hasVslsExtensionPack } from "./utils";
 
 const BATCH_SIZE = 10;
 const INTERVAL_TIMEOUT = 30 * 60 * 1000; // 30 mins in ms
 
-export default class Reporter implements vscode.Disposable {
+export default class TelemetryReporter implements vscode.Disposable {
   private hasUserOptIn: boolean = false;
   private uniqueId: string;
   private mixpanel: Mixpanel.Mixpanel | undefined;
@@ -17,7 +18,7 @@ export default class Reporter implements vscode.Disposable {
   private pendingEvents: TelemetryEvent[] = [];
   private interval: NodeJS.Timer | undefined;
 
-  constructor(private manager: IManager) {
+  constructor(private manager: Manager) {
     const { installationId } = this.manager.store;
     this.uniqueId = installationId;
     this.versions = getVersions();

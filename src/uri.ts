@@ -31,17 +31,18 @@ export class ExtensionUriHandler implements vscode.UriHandler {
       });
   }
 
-  parseQuery(queryString): any {
+  parseQuery(queryString: string): any {
     // From https://stackoverflow.com/a/13419367
-    var query = {};
-    var pairs = (queryString[0] === "?"
-      ? queryString.substr(1)
-      : queryString
-    ).split("&");
+    const filtered =
+      queryString[0] === "?" ? queryString.substr(1) : queryString;
+    const pairs = filtered.split("&");
+    var query: { [key: string]: string } = {};
 
     for (var i = 0; i < pairs.length; i++) {
       var pair = pairs[i].split("=");
-      query[decodeURIComponent(pair[0])] = decodeURIComponent(pair[1] || "");
+      const key: string = decodeURIComponent(pair[0]);
+      const value: string = decodeURIComponent(pair[1] || "");
+      query[key] = value;
     }
 
     return query;

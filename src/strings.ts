@@ -24,16 +24,17 @@ export const TOKEN_PLACEHOLDER = "Paste token here";
 export const AUTH_FAILED_MESSAGE =
   "Sign in failed. Help us get better by reporting an issue.";
 
-export const INVALID_TOKEN = provider =>
+export const INVALID_TOKEN = (provider: string) =>
   `The ${provider} token cannot be validated. Please enter a valid token.`;
 
-export const INVALID_COMMAND = text => `${text} is not a recognised command.`;
+export const INVALID_COMMAND = (text: string) =>
+  `${text} is not a recognised command.`;
 
-export const UPLOADED_FILE = link => `uploaded a file: ${link}`;
+export const UPLOADED_FILE = (link: string) => `uploaded a file: ${link}`;
 
 export const LIVE_REQUEST_MESSAGE = "wants to start a Live Share session";
 
-export const LIVE_SHARE_INVITE = name =>
+export const LIVE_SHARE_INVITE = (name: string) =>
   `${name} has invited you to a Live Share collaboration session.`;
 
 export const LIVE_SHARE_CHAT_NO_SESSION =
@@ -45,7 +46,7 @@ export const LIVE_SHARE_INFO_MESSAGES = {
   left: "_has left the Live Share session_"
 };
 
-export const LIVE_SHARE_CONFIRM_SIGN_OUT = provider =>
+export const LIVE_SHARE_CONFIRM_SIGN_OUT = (provider: string) =>
   `To use chat over VS Live Share, you need to sign out of your ${provider} account.`;
 
 export const SIGN_OUT = "Sign out";

@@ -55,7 +55,7 @@ export interface CurrentUser {
   name: string;
   token: string;
   teams: Team[];
-  currentTeamId: string;
+  currentTeamId: string | undefined;
   provider: Providers;
 }
 
@@ -184,7 +184,7 @@ export interface UIMessageGroup {
 }
 
 export interface IStore {
-  installationId: string | undefined;
+  installationId: string;
   lastChannelId: string | undefined;
   channels: Channel[];
   currentUserInfo: CurrentUser | undefined;

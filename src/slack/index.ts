@@ -131,10 +131,7 @@ export class SlackChatProvider implements IChatProvider {
     const cleanText = stripLinkSymbols(text);
 
     try {
-      const result = await this.messenger.sendMessage({
-        channel: channelId,
-        text: cleanText
-      });
+      const result = await this.messenger.sendMessage(channelId, cleanText);
 
       // TODO: this is not the correct timestamp to attach, since the
       // API might get delayed, because of network issues

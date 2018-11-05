@@ -1,13 +1,13 @@
 import * as vscode from "vscode";
+import * as rp from "request-promise-native";
 import {
   CommandHandler,
   CommandResponse,
   MessageCommand
 } from "../controller/commands";
 import { TRAVIS_SCHEME } from "../constants";
-const rp = require("request-promise-native");
 
-function getTravisBuild(username, reponame, build) {
+function getTravisBuild(username: string, reponame: string, build: string) {
   return rp({
     baseUrl: "https://api.travis-ci.org/",
     uri: `repos/${username}/${reponame}/builds/${build}`,
@@ -41,7 +41,7 @@ export class TravisLinkHandler implements CommandHandler {
     const { path } = vscode.Uri.parse(subcommand);
     const matched = path.match(/^\/(.+)\/(.+)\/(.+)\/(.+)$/);
 
-    if (matched.length) {
+    if (!!matched && matched.length) {
       const user = matched[1];
       const repo = matched[2];
       const buildId = matched[4];
@@ -51,7 +51,8 @@ export class TravisLinkHandler implements CommandHandler {
       );
     }
 
-    return;
+    const response: CommandResponse = { sendToSlack: false, response: "" };
+    return Promise.resolve(response);
   }
 }
 

@@ -81,7 +81,7 @@ const DEFAULT_AVATARS = [
   "https://discordapp.com/assets/1cbd08c76f8af6dddce02c5138971129.png"
 ];
 
-const getAvatarUrl = (userId, avatar, size) => {
+const getAvatarUrl = (userId: string, avatar: string, size: number) => {
   if (!avatar) {
     return DEFAULT_AVATARS[Math.floor(Math.random() * DEFAULT_AVATARS.length)];
   } else {
@@ -90,12 +90,14 @@ const getAvatarUrl = (userId, avatar, size) => {
   }
 };
 
-const getImageUrl = (userId, avatar) => getAvatarUrl(userId, avatar, 128);
+const getImageUrl = (userId: string, avatar: string) =>
+  getAvatarUrl(userId, avatar, 128);
 
-const getSmallImageUrl = (userId, avatar) => getAvatarUrl(userId, avatar, 32);
+const getSmallImageUrl = (userId: string, avatar: string) =>
+  getAvatarUrl(userId, avatar, 32);
 
 export class DiscordChatProvider implements IChatProvider {
-  token: string;
+  token: string | undefined;
   client: Discord.Client;
   mutedChannels: Set<string> = new Set([]);
   imChannels: Channel[] = [];
@@ -377,7 +379,7 @@ export class DiscordChatProvider implements IChatProvider {
     return Promise.resolve(channel);
   }
 
-  subscribePresence(usersUsers): void {}
+  subscribePresence(users: Users): void {}
 
   sendThreadReply() {
     return Promise.resolve();

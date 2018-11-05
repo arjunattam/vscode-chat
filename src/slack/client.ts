@@ -17,11 +17,11 @@ const CHANNEL_HISTORY_LIMIT = 500;
 
 const USER_LIST_LIMIT = 1000;
 
-const getFile = rawFile => {
+const getFile = (rawFile: any) => {
   return { name: rawFile.name, permalink: rawFile.permalink };
 };
 
-const getContent = attachment => {
+const getContent = (attachment: any) => {
   return {
     author: attachment.author_name,
     authorIcon: attachment.author_icon,
@@ -34,13 +34,13 @@ const getContent = attachment => {
   };
 };
 
-const getReaction = reaction => ({
+const getReaction = (reaction: any) => ({
   name: `:${reaction.name}:`,
   count: reaction.count,
   userIds: reaction.users
 });
 
-const getUser = (member): User => {
+const getUser = (member: any): User => {
   const { id, profile, real_name, name, deleted } = member;
   const { display_name, image_72, image_24 } = profile;
 
@@ -52,7 +52,7 @@ const getUser = (member): User => {
     internalName: name,
     imageUrl: image_72,
     smallImageUrl: image_24,
-    isOnline: undefined,
+    isOnline: false,
     isDeleted: deleted
   };
 };
@@ -124,10 +124,10 @@ export default class SlackAPIClient {
     let result = {};
 
     if (ok) {
-      messages.forEach(message => {
+      messages.forEach((rawMessage: any) => {
         result = {
           ...result,
-          ...getMessage(message)
+          ...getMessage(rawMessage)
         };
       });
     }
@@ -271,10 +271,10 @@ export default class SlackAPIClient {
 
   getChannelInfo = async (originalChannel: Channel): Promise<Channel> => {
     const { id, type } = originalChannel;
+    let response: any;
     let channel;
-    let response;
 
-    const getChannel = response => {
+    const getChannel = (response: any) => {
       const { unread_count_display, last_read } = response;
       return {
         ...originalChannel,
@@ -324,23 +324,23 @@ export default class SlackAPIClient {
     }
   };
 
-  openIMChannel = (user: User): Promise<Channel> => {
+  openIMChannel = async (user: User): Promise<Channel> => {
     const { id, name } = user;
-    return this.client.im
-      .open({ user: id, return_im: true })
-      .then((response: any) => {
-        const { ok, channel } = response;
+    let response: any = await this.client.im.open({
+      user: id,
+      return_im: true
+    });
+    const { ok, channel } = response;
 
-        if (ok) {
-          return {
-            id: channel.id,
-            name: `@${name}`,
-            type: ChannelType.im,
-            unreadCount: 0,
-            readTimestamp: null
-          };
-        }
-      });
+    if (ok) {
+      return {
+        id: channel.id,
+        name: `@${name}`,
+        type: ChannelType.im,
+        unreadCount: 0,
+        readTimestamp: null
+      };
+    }
   };
 
   getUserPrefs = (): Promise<UserPreferences> => {

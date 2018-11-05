@@ -1,13 +1,14 @@
 import * as EmojiConvertor from "emoji-js";
-import { UIMessage, ChannelMessages } from "../types";
+import { UIMessage, ChannelMessages, MessageReply } from "../types";
 import * as str from "../strings";
-const MarkdownIt = require("markdown-it");
-const markdownItSlack = require("markdown-it-slack");
+import * as MarkdownIt from "markdown-it";
+import * as markdownItSlack from "markdown-it-slack";
 
 export const parseUsernames = (uiMessage: UIMessage): UIMessage => {
   // Find and replace names like <@UBCQ8LF28>
   const { messages, users } = uiMessage;
-  let newMessages = {};
+  let newMessages: ChannelMessages = {};
+
   Object.keys(messages).map(ts => {
     const message = messages[ts];
     let { text } = message;
@@ -40,11 +41,12 @@ export const emojify = (messages: ChannelMessages): ChannelMessages => {
   // We have added node_modules/emoji-datasource to vscodeignore since we use
   // allow_native. If this changes, we might have to emoji sheeets (through CDN?)
   emoji.replace_mode = "unified";
-  let emojifiedMessages = {};
+  let emojifiedMessages: ChannelMessages = {};
 
   Object.keys(messages).forEach(key => {
     const message = messages[key];
     const { text, reactions } = message;
+
     emojifiedMessages[key] = {
       ...message,
       reactions: reactions
@@ -63,7 +65,8 @@ export const emojify = (messages: ChannelMessages): ChannelMessages => {
 export const parseLinks = (messages: ChannelMessages): ChannelMessages => {
   // Looks for <url|title> pattern, and replaces them with normal markdown
   // The |pattern can be optional
-  let parsed = {};
+  let parsed: ChannelMessages = {};
+
   Object.keys(messages).forEach(key => {
     const { content, text } = messages[key];
     const URL_REGEX = /https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-z]{2,6}\b([-a-zA-Z0-9@:%_\+.~#?&//=;\^]*)/;
@@ -72,6 +75,7 @@ export const parseLinks = (messages: ChannelMessages): ChannelMessages => {
       `<(${URL_REGEX.source})(${SLACK_MODIFIER.source})>`,
       "g"
     );
+
     parsed[key] = {
       ...messages[key],
       text: text
@@ -99,12 +103,12 @@ export const parseLinks = (messages: ChannelMessages): ChannelMessages => {
   return parsed;
 };
 
-const getAttachmentLink = ({ name, permalink }) => {
+const getAttachmentLink = (name: string, permalink: string) => {
   return `[${name}](${permalink})`;
 };
 
 export const markdownify = (messages: ChannelMessages): ChannelMessages => {
-  let markdowned = {};
+  let markdowned: ChannelMessages = {};
   const md = new MarkdownIt({ breaks: true }).use(markdownItSlack);
 
   // Override renderer for link_open --> this adds an onclick attribute
@@ -124,11 +128,12 @@ export const markdownify = (messages: ChannelMessages): ChannelMessages => {
     return defaultRender(tokens, idx, options, env, self);
   };
 
-  const replyParser = reply => {
+  const replyParser = (reply: MessageReply) => {
     const { attachment: replyAttachment, text: replyText } = reply;
     // Replies might not have both attachment and text
     if (!!replyAttachment) {
-      const attachmentLink = getAttachmentLink(replyAttachment);
+      const { name, permalink } = replyAttachment;
+      const attachmentLink = getAttachmentLink(name, permalink);
       return {
         ...reply,
         textHTML: md.renderInline(str.UPLOADED_FILE(attachmentLink))
@@ -142,14 +147,19 @@ export const markdownify = (messages: ChannelMessages): ChannelMessages => {
 
   Object.keys(messages).forEach(key => {
     const { content, attachment, text, replies } = messages[key];
-    let parsedReplies = {};
+    let parsedReplies: { [ts: string]: MessageReply } = {};
+    let link = "";
 
     Object.keys(replies).forEach(replyTs => {
       const reply = replies[replyTs];
       parsedReplies[replyTs] = replyParser(reply);
     });
 
-    const link = attachment ? getAttachmentLink(attachment) : ``;
+    if (!!attachment) {
+      const { name, permalink } = attachment;
+      link = getAttachmentLink(name, permalink);
+    }
+
     markdowned[key] = {
       ...messages[key],
       replies: parsedReplies,

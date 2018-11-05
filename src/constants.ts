@@ -45,7 +45,7 @@ export const SelfCommands = {
   SEND_TO_WEBVIEW: "extension.chat.sendToWebview"
 };
 
-export const SLASH_COMMANDS = {
+export const SLASH_COMMANDS: any = {
   live: {
     share: {
       action: LiveShareCommands.START,
