@@ -2,6 +2,12 @@
 
 All notable changes to the vscode-chat extension will be documented in this file. This follows the [Keep a Changelog](http://keepachangelog.com/) format.
 
+## [0.7.4] - 2018-11-05
+
+### Fixed
+
+- Fixed bad instantiation for users and channels state causing VS Live Share chat to not work.
+
 ## [0.7.3] - 2018-10-16
 
 ### Fixed
