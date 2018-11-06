@@ -13,7 +13,7 @@ import {
   Providers
 } from "../types";
 
-const CHANNEL_HISTORY_LIMIT = 500;
+const CHANNEL_HISTORY_LIMIT = 50;
 
 const USER_LIST_LIMIT = 1000;
 

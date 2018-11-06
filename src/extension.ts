@@ -86,13 +86,11 @@ export function activate(context: vscode.ExtensionContext) {
       .then(() => {
         manager.updateUserPrefs(); // TODO: for discord, this needs to happen after channels are fetched
         return manager.getUsersPromise();
-        // return Promise.resolve();
       })
       .then(() => {
         const { users } = manager.store;
         manager.chatProvider.subscribePresence(users);
         return manager.getChannelsPromise();
-        // return Promise.resolve();
       });
   };
 

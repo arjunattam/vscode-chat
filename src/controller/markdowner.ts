@@ -131,7 +131,13 @@ export const markdownify = (messages: ChannelMessages): ChannelMessages => {
   md.renderer.rules.link_open = function(tokens, idx, options, env, self) {
     const index = tokens[idx].attrIndex("href");
     const value = tokens[idx].attrs[index][1];
+
+    // To suppress the default click handling behaviour of VS Code, we make
+    // the href URI invalid. See: https://github.com/karigari/vscode-chat/issues/24
+    tokens[idx].attrSet("href", `unparseable-href-${value}`);
     tokens[idx].attrPush(["onclick", `openLink('${value}'); return false;`]);
+
+    // Add -1 tabindex so that pressing the `tab` key goes straight to the input field
     tokens[idx].attrPush(["tabindex", "-1"]);
     return defaultRender(tokens, idx, options, env, self);
   };

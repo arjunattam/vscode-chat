@@ -8,8 +8,8 @@ import {
 } from "../constants";
 
 export const openUrl = (url: string) => {
-  const parsed = vscode.Uri.parse(url);
-  return vscode.commands.executeCommand(VSCodeCommands.OPEN, parsed);
+  const parsedUrl = vscode.Uri.parse(url);
+  return vscode.commands.executeCommand(VSCodeCommands.OPEN, parsedUrl);
 };
 
 export const openSettings = () => {
