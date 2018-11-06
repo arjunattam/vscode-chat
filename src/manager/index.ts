@@ -241,10 +241,13 @@ export default class Manager implements IManager, vscode.Disposable {
     return channels.find(channel => channel.name === name);
   }
 
-  async createIMChannel(user: User): Promise<Channel> {
+  async createIMChannel(user: User): Promise<Channel | undefined> {
     const channel = await this.chatProvider.createIMChannel(user);
-    this.updateChannel(channel);
-    return channel;
+
+    if (!!channel) {
+      this.updateChannel(channel);
+      return channel;
+    }
   }
 
   getUnreadCount(channel: Channel): number {
@@ -373,8 +376,10 @@ export default class Manager implements IManager, vscode.Disposable {
     // historical unread counts for channels in the list API.
     const promises = channels.map(async channel => {
       const newChannel = await this.chatProvider.fetchChannelInfo(channel);
-      // TODO: only update when we have a different unread
-      return this.updateChannel(newChannel);
+
+      if (!!newChannel && newChannel.unreadCount !== channel.unreadCount) {
+        return this.updateChannel(newChannel);
+      }
     });
 
     await Promise.all(promises);
@@ -501,8 +506,11 @@ export default class Manager implements IManager, vscode.Disposable {
     await Promise.all(
       ids.map(async userId => {
         let user = await this.chatProvider.fetchUserInfo(userId);
-        const { id } = user;
-        usersCopy[id] = user;
+
+        if (!!user) {
+          const { id } = user;
+          usersCopy[id] = user;
+        }
       })
     );
 
@@ -520,10 +528,13 @@ export default class Manager implements IManager, vscode.Disposable {
   }
 
   async updateUserPrefs() {
-    const response = await this.chatProvider.getUserPrefs();
-    // We could also save the muted channels to local storage
-    this.currentUserPrefs = response;
-    this.viewsManager.updateStatusItem();
+    const response = await this.chatProvider.getUserPreferences();
+
+    if (!!response) {
+      // We could also save the muted channels to local storage
+      this.currentUserPrefs = response;
+      this.viewsManager.updateStatusItem();
+    }
   }
 
   getLastTimestamp(): string | undefined {
@@ -552,11 +563,43 @@ export default class Manager implements IManager, vscode.Disposable {
           channel,
           incremented
         );
-        this.updateChannel(updatedChannel);
-        this.updateAllUI();
+
+        if (!!updatedChannel) {
+          this.updateChannel(updatedChannel);
+          this.updateAllUI();
+        }
       }
     }
   }
+
+  sendMessage = (
+    text: string,
+    channelId: string,
+    parentTimestamp: string | undefined
+  ): Promise<void> => {
+    const { currentUserInfo } = this.store;
+
+    if (!!currentUserInfo) {
+      if (!!parentTimestamp) {
+        // This is a thread reply
+        return this.chatProvider.sendThreadReply(
+          text,
+          currentUserInfo.id,
+          channelId,
+          parentTimestamp
+        );
+      } else {
+        // THis is a normal message
+        return this.chatProvider.sendMessage(
+          text,
+          currentUserInfo.id,
+          channelId
+        );
+      }
+    }
+
+    return Promise.resolve();
+  };
 
   addReaction(
     channelId: string,
@@ -648,9 +691,11 @@ export default class Manager implements IManager, vscode.Disposable {
         parentTimestamp
       );
 
-      let messages: ChannelMessages = {};
-      messages[parentTimestamp] = message;
-      this.updateMessages(currentChannelId, messages);
+      if (!!message) {
+        let messages: ChannelMessages = {};
+        messages[parentTimestamp] = message;
+        this.updateMessages(currentChannelId, messages);
+      }
     }
   }
 

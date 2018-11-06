@@ -56,7 +56,7 @@ export class SlackChatProvider implements IChatProvider {
     return this.messenger.subscribePresence(users);
   }
 
-  createIMChannel(user: User): Promise<Channel> {
+  createIMChannel(user: User): Promise<Channel | undefined> {
     return this.client.openIMChannel(user);
   }
 
@@ -70,7 +70,7 @@ export class SlackChatProvider implements IChatProvider {
     return this.client.getChannels(users);
   }
 
-  fetchUserInfo(userId: string): Promise<User> {
+  fetchUserInfo(userId: string): Promise<User | undefined> {
     if (userId.startsWith("B")) {
       return this.client.getBotInfo(userId);
     } else {
@@ -82,19 +82,25 @@ export class SlackChatProvider implements IChatProvider {
     return this.client.getConversationHistory(channelId);
   }
 
-  getUserPrefs(): Promise<UserPreferences> {
+  getUserPreferences(): Promise<UserPreferences | undefined> {
     return this.client.getUserPrefs();
   }
 
-  markChannel(channel: Channel, timestamp: string): Promise<Channel> {
+  markChannel(
+    channel: Channel,
+    timestamp: string
+  ): Promise<Channel | undefined> {
     return this.client.markChannel(channel, timestamp);
   }
 
-  fetchThreadReplies(channelId: string, timestamp: string): Promise<Message> {
+  fetchThreadReplies(
+    channelId: string,
+    timestamp: string
+  ): Promise<Message | undefined> {
     return this.client.getReplies(channelId, timestamp);
   }
 
-  fetchChannelInfo(channel: Channel): Promise<Channel> {
+  fetchChannelInfo(channel: Channel): Promise<Channel | undefined> {
     return this.client.getChannelInfo(channel);
   }
 

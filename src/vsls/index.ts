@@ -214,7 +214,7 @@ export class VslsChatProvider implements IChatProvider {
     return this.liveshare.unshareService(VSLS_SERVICE_NAME);
   }
 
-  getUserPrefs(): Promise<UserPreferences> {
+  getUserPreferences(): Promise<UserPreferences> {
     return Promise.resolve({});
   }
 

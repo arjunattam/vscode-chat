@@ -94,32 +94,15 @@ export function activate(context: vscode.ExtensionContext) {
       });
   };
 
-  const sendMessage = (
-    text: string,
-    parentTimestamp: string | undefined
-  ): Promise<void> => {
-    const { lastChannelId, currentUserInfo } = manager.store;
+  const sendMessage = (text: string, parentTimestamp: string | undefined) => {
+    const { lastChannelId } = manager.store;
     reporter.record(EventType.messageSent, undefined, lastChannelId);
     manager.updateReadMarker();
 
-    if (!currentUserInfo || !lastChannelId) {
-      // TODO: this needs to be handled and shown to the user
-      return Promise.resolve();
-    }
-
-    if (!!parentTimestamp) {
-      return manager.chatProvider.sendThreadReply(
-        text,
-        currentUserInfo.id,
-        lastChannelId,
-        parentTimestamp
-      );
-    } else {
-      return manager.chatProvider.sendMessage(
-        text,
-        currentUserInfo.id,
-        lastChannelId
-      );
+    if (!!lastChannelId) {
+      // lastChannelId should always exist since this will only be
+      // called after loading the webview (which requires lastChannelId)
+      return manager.sendMessage(text, lastChannelId, parentTimestamp);
     }
   };
 
@@ -161,12 +144,14 @@ export function activate(context: vscode.ExtensionContext) {
     }
   };
 
-  const getChatChannelId = (args?: ChatArgs): Promise<string | undefined> => {
+  const getChatChannelId = async (
+    args?: ChatArgs
+  ): Promise<string | undefined> => {
     const { lastChannelId } = manager.store;
-    let channelIdPromise: Promise<string> | undefined;
+    let chatChannelId: string | undefined;
 
     if (!!lastChannelId) {
-      channelIdPromise = Promise.resolve(lastChannelId);
+      chatChannelId = lastChannelId;
     }
 
     if (!!args) {
@@ -174,44 +159,46 @@ export function activate(context: vscode.ExtensionContext) {
         // We have a channel in args
         const { channel } = args;
         manager.store.updateLastChannelId(channel.id);
-        channelIdPromise = Promise.resolve(channel.id);
+        chatChannelId = channel.id;
       } else if (!!args.user) {
         // We have a user, but no corresponding channel
-        // So we create one
-        channelIdPromise = manager.createIMChannel(args.user).then(channel => {
-          return manager.store.updateLastChannelId(channel.id).then(() => {
-            return channel.id;
-          });
-        });
+        // So we create one -->
+        const channel = await manager.createIMChannel(args.user);
+
+        if (!!channel) {
+          manager.store.updateLastChannelId(channel.id);
+          chatChannelId = channel.id;
+        }
       }
     }
 
-    return !!channelIdPromise
-      ? channelIdPromise
-      : askForChannel().then(channel => (channel ? channel.id : undefined));
+    if (!chatChannelId) {
+      // Since we don't know the channel, we will prompt the user
+      const channel = await askForChannel();
+
+      if (!!channel) {
+        chatChannelId = channel.id;
+      }
+    }
+
+    return chatChannelId;
   };
 
-  const openChatPanel = (args?: ChatArgs) => {
+  const openChatPanel = async (args?: ChatArgs) => {
     if (!!manager.token) {
       controller.loadUi();
     }
 
-    setup(true, undefined)
-      .then(() => getChatChannelId(args))
-      .then(() => {
-        manager.viewsManager.updateWebview();
-        const { lastChannelId } = manager.store;
+    await setup(true, undefined);
+    await getChatChannelId(args);
+    manager.viewsManager.updateWebview();
+    const { lastChannelId } = manager.store;
 
-        if (lastChannelId) {
-          reporter.record(
-            EventType.viewOpened,
-            !!args ? args.source : EventSource.command,
-            lastChannelId
-          );
-          manager.loadChannelHistory(lastChannelId);
-        }
-      })
-      .catch(error => console.error(error));
+    if (!!lastChannelId) {
+      const source = !!args ? args.source : EventSource.command;
+      reporter.record(EventType.viewOpened, source, lastChannelId);
+      manager.loadChannelHistory(lastChannelId);
+    }
   };
 
   const askForWorkspace = async () => {
@@ -267,14 +254,9 @@ export function activate(context: vscode.ExtensionContext) {
       const vslsUri = await liveshare.share({ suppressNotification: true });
       let channelId = await getChatChannelId(args);
       reporter.record(EventType.vslsShared, EventSource.activity, channelId);
-      const { currentUserInfo } = manager.store;
 
-      if (vslsUri && currentUserInfo && channelId) {
-        manager.chatProvider.sendMessage(
-          vslsUri.toString(),
-          currentUserInfo.id,
-          channelId
-        );
+      if (vslsUri && channelId) {
+        manager.sendMessage(vslsUri.toString(), channelId, undefined);
       }
     }
   };

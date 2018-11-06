@@ -136,7 +136,6 @@ export class DiscordChatProvider implements IChatProvider {
         const currentUser: CurrentUser = {
           id,
           name,
-          // token: this.token,
           teams,
           currentTeamId: undefined,
           provider: Providers.discord
@@ -228,7 +227,7 @@ export class DiscordChatProvider implements IChatProvider {
     return !!this.client && !!this.client.readyTimestamp;
   }
 
-  getUserPrefs(): Promise<UserPreferences> {
+  getUserPreferences(): Promise<UserPreferences> {
     const mutedChannels = Array.from(this.mutedChannels);
     return Promise.resolve({ mutedChannels });
   }
