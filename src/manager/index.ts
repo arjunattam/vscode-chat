@@ -1,39 +1,39 @@
-import * as semver from "semver";
 import * as vscode from "vscode";
-import { DiscordChatProvider } from "../discord";
-import Logger from "../logger";
-import { SlackChatProvider } from "../slack";
-import { Store } from "../store";
+import * as semver from "semver";
 import {
   Channel,
-  ChannelLabel,
-  ChannelMessages,
-  ChannelMessagesWithUndefined,
-  ChannelType,
   CurrentUser,
-  IChatProvider,
-  IManager,
-  MessageReplies,
-  MessageReply,
+  ChannelMessages,
   Messages,
-  Providers,
-  Team,
+  Users,
+  IManager,
   User,
+  Team,
+  ChannelType,
+  ChannelLabel,
   UserPreferences,
-  Users
+  IChatProvider,
+  MessageReply,
+  MessageReplies,
+  Providers,
+  ChannelMessagesWithUndefined
 } from "../types";
+import Logger from "../logger";
 import {
-  difference,
   getExtensionVersion,
-  hasVslsExtension,
   isSuperset,
-  setVsContext
+  difference,
+  setVsContext,
+  hasVslsExtension
 } from "../utils";
+import { DiscordChatProvider } from "../discord";
+import { SlackChatProvider } from "../slack";
 import { VslsChatProvider } from "../vsls";
-import { VSLS_CHAT_CHANNEL } from "../vsls/utils";
+import { Store } from "../store";
 import { ViewsManager } from "./views";
-import { VslsContactProvider } from "./vslsContactProvider";
+import { VSLS_CHAT_CHANNEL } from "../vsls/utils";
 import ConfigHelper from "../config";
+import { VslsContactProvider } from "./vslsContactProvider";
 
 export default class Manager implements IManager, vscode.Disposable {
   token: string | undefined;
@@ -147,18 +147,35 @@ export default class Manager implements IManager, vscode.Disposable {
 
     if (provider === "vsls") {
       this.store.updateLastChannelId(VSLS_CHAT_CHANNEL.id);
-    } else {
-      // We can setup the vsls contact provider to
-      // integrate non-vsls chat provider with vsls.
-
-      if (hasVslsExtension()) {
-        // Can we have a more appropriate condition here?
-        this.vslsContactProvider = new VslsContactProvider(provider, this);
-        await this.vslsContactProvider.register();
-      }
     }
 
     return currentUser;
+  };
+
+  initializeVslsContactProvider = async (): Promise<any> => {
+    // This method is called after the users state has been initialized, since
+    // the vsls contact provider uses list of users to match with vsls contacts.
+    const provider = this.getSelectedProvider();
+    const hasNonVslsChatProvider = !!provider && provider !== "vsls";
+
+    if (hasVslsExtension() && hasNonVslsChatProvider) {
+      const isNotAlreadyInit =
+        !this.vslsContactProvider || !this.vslsContactProvider.isInitialized;
+      const { currentUserInfo, users } = this.store;
+
+      if (isNotAlreadyInit && !!currentUserInfo) {
+        this.vslsContactProvider = new VslsContactProvider(
+          <string>provider,
+          this
+        );
+        await this.vslsContactProvider.register();
+
+        const userId = currentUserInfo.id;
+        const currentUser = users[userId];
+        this.vslsContactProvider.notifySelfContact(currentUser);
+        this.vslsContactProvider.notifyAvailableUsers(userId, users);
+      }
+    }
   };
 
   clearAll() {
@@ -396,17 +413,6 @@ export default class Manager implements IManager, vscode.Disposable {
     });
 
     this.store.updateUsers(usersWithPresence);
-
-    if (!!this.vslsContactProvider) {
-      const { currentUserInfo } = this.store;
-      const userId = currentUserInfo.id;
-      const currentUser = usersWithPresence[userId];
-      // TODO: can we move the self contact notification
-      // to the intiailize provider method?
-      this.vslsContactProvider.notifySelfContact(currentUser);
-      this.vslsContactProvider.notifyAvailableUsers(userId, usersWithPresence);
-    }
-
     this.updateUsersFetchedAt();
     return usersWithPresence;
   };

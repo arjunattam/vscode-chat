@@ -59,9 +59,7 @@ const getUser = (member: any): User => {
     internalName: name,
     imageUrl: image_72,
     smallImageUrl: image_24,
-    // TODO: this is weird. setting this to false breaks the green
-    // dot status in the user tree view.
-    isOnline: undefined,
+    isOnline: false,
     isDeleted: deleted
   };
 };

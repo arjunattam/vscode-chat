@@ -19,6 +19,7 @@ import { User, Users } from "../types";
 import Manager from "./index";
 
 export class VslsContactProvider implements ContactServiceProvider {
+  public isInitialized: boolean = false;
   private matchedContacts: { [internalUserId: string]: Contact } = {};
 
   private readonly _onNotified = new EventEmitter<
@@ -44,7 +45,7 @@ export class VslsContactProvider implements ContactServiceProvider {
     parameters: Object,
     cancellationToken?: CancellationToken
   ): Promise<Object> {
-    let result = null;
+    let result = {};
 
     switch (type) {
       case Methods.RequestInitializeName:
@@ -75,21 +76,6 @@ export class VslsContactProvider implements ContactServiceProvider {
     });
   }
 
-  private getUserPresence = (user: User): PresenceStatus => {
-    const { isOnline } = user;
-    return isOnline ? PresenceStatus.Available : PresenceStatus.Offline;
-  };
-
-  private getContact = (user: User) => {
-    const contact: Contact = {
-      id: user.id,
-      displayName: user.fullName,
-      email: user.email,
-      status: this.getUserPresence(user)
-    };
-    return contact;
-  };
-
   public notifySelfContact(user: User) {
     const contact = this.getContact(user);
 
@@ -114,7 +100,7 @@ export class VslsContactProvider implements ContactServiceProvider {
       changes: [
         {
           contactId: contact.id,
-          status: contact.status
+          status: <PresenceStatus>contact.status
         }
       ]
     };
@@ -130,7 +116,7 @@ export class VslsContactProvider implements ContactServiceProvider {
         changes: [
           {
             contactId: matchedContact.id,
-            status: contact.status
+            status: <PresenceStatus>contact.status
           }
         ]
       };
@@ -146,6 +132,7 @@ export class VslsContactProvider implements ContactServiceProvider {
   }
 
   private async initializeHandler(): Promise<InitializeResponse> {
+    this.isInitialized = true;
     return {
       description: this.description,
       capabilities: {
@@ -172,15 +159,12 @@ export class VslsContactProvider implements ContactServiceProvider {
     const userToInvite = this.manager.store.users[userIdToInvite];
 
     if (!!userToInvite) {
+      // TODO: in cases where an IM channel does not exist, we can
+      // create a new one.
       const imChannel = this.manager.getIMChannel(userToInvite);
-      const currentUserId = this.manager.store.currentUserInfo.id;
 
       if (!!imChannel) {
-        this.manager.chatProvider.sendMessage(
-          link,
-          currentUserId,
-          imChannel.id
-        );
+        this.manager.sendMessage(link, imChannel.id, undefined);
       }
     }
   }
@@ -233,4 +217,19 @@ export class VslsContactProvider implements ContactServiceProvider {
     };
     return result;
   }
+
+  private getUserPresence = (user: User): PresenceStatus => {
+    const { isOnline } = user;
+    return isOnline ? PresenceStatus.Available : PresenceStatus.Away;
+  };
+
+  private getContact = (user: User) => {
+    const contact: Contact = {
+      id: user.id,
+      displayName: user.fullName,
+      email: user.email,
+      status: this.getUserPresence(user)
+    };
+    return contact;
+  };
 }

@@ -94,7 +94,8 @@ export function activate(context: vscode.ExtensionContext) {
       manager.chatProvider.subscribePresence(users);
     }
 
-    return manager.initializeChannelsState();
+    await manager.initializeChannelsState();
+    return manager.initializeVslsContactProvider();
   };
 
   const sendMessage = (text: string, parentTimestamp: string | undefined) => {
@@ -555,8 +556,8 @@ export function activate(context: vscode.ExtensionContext) {
       SelfCommands.HANDLE_INCOMING_LINKS,
       ({ uri, senderId }) => {
         if (uri.authority === LIVE_SHARE_BASE_URL) {
-          // TODO: replacing own prompt with the live share prompt via notification.
-          // Should we clear up the rest of the code for prompt as well?
+          // We are replacing our own prompt with the live share prompt.
+          // TODO: Clear up the rest of the code for vsls join prompt.
 
           // vscode.commands.executeCommand(SelfCommands.LIVE_SHARE_JOIN_PROMPT, {
           //   senderId,
