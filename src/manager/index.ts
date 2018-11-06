@@ -32,6 +32,7 @@ import { VslsChatProvider } from "../vsls";
 import { Store } from "../store";
 import { ViewsManager } from "./views";
 import { VSLS_CHAT_CHANNEL } from "../vsls/utils";
+import ConfigHelper from "../config";
 
 export default class Manager implements IManager, vscode.Disposable {
   token: string | undefined;
@@ -82,12 +83,12 @@ export default class Manager implements IManager, vscode.Disposable {
     }
   }
 
-  getChatProvider(provider: string): IChatProvider {
+  getChatProvider(token: string, provider: string): IChatProvider {
     switch (provider) {
       case "discord":
-        return new DiscordChatProvider(this);
+        return new DiscordChatProvider(token, this);
       case "slack":
-        return new SlackChatProvider();
+        return new SlackChatProvider(token);
       case "vsls":
         return new VslsChatProvider();
       default:
@@ -96,8 +97,8 @@ export default class Manager implements IManager, vscode.Disposable {
   }
 
   async validateToken(provider: string, token: string) {
-    const chatProvider = this.getChatProvider(provider);
-    const currentUser = await chatProvider.validateToken(token);
+    const chatProvider = this.getChatProvider(token, provider);
+    const currentUser = await chatProvider.validateToken();
     return currentUser;
   }
 
@@ -113,14 +114,17 @@ export default class Manager implements IManager, vscode.Disposable {
     this.viewsManager = new ViewsManager(selectedProvider, this as IManager);
 
     if (!!selectedProvider) {
-      this.chatProvider = this.getChatProvider(selectedProvider);
-      const token = await this.chatProvider.getToken();
-      this.token = token;
+      const token = await ConfigHelper.getToken(selectedProvider);
 
-      const TREE_VIEW_PROVIDERS = ["slack", "discord"];
-      TREE_VIEW_PROVIDERS.forEach(provider => {
-        setVsContext(`chat:${provider}`, provider === selectedProvider);
-      });
+      if (!!token) {
+        this.chatProvider = this.getChatProvider(token, selectedProvider);
+        this.token = token;
+
+        const TREE_VIEW_PROVIDERS = ["slack", "discord"];
+        TREE_VIEW_PROVIDERS.forEach(provider => {
+          setVsContext(`chat:${provider}`, provider === selectedProvider);
+        });
+      }
     }
   };
 

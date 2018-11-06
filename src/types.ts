@@ -1,6 +1,5 @@
 export interface IChatProvider {
-  getToken: () => Promise<string>;
-  validateToken: (token: string) => Promise<CurrentUser | undefined>;
+  validateToken: () => Promise<CurrentUser | undefined>;
   fetchUsers: () => Promise<Users>;
   fetchUserInfo: (userId: string) => Promise<User>;
   fetchChannels: (users: Users) => Promise<Channel[]>;

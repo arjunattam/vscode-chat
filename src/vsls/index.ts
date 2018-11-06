@@ -18,8 +18,6 @@ import { VslsHostService } from "./host";
 import { VslsGuestService } from "./guest";
 import { SelfCommands } from "../constants";
 
-const VSLS_TOKEN_STRING = "vsls-placeholder-token";
-
 const VSLS_SERVICE_NAME = "vsls-chat";
 
 export class VslsChatProvider implements IChatProvider {
@@ -216,10 +214,6 @@ export class VslsChatProvider implements IChatProvider {
     return this.liveshare.unshareService(VSLS_SERVICE_NAME);
   }
 
-  getToken(): Promise<string> {
-    return Promise.resolve(VSLS_TOKEN_STRING);
-  }
-
   getUserPrefs(): Promise<UserPreferences> {
     return Promise.resolve({});
   }
@@ -246,7 +240,7 @@ export class VslsChatProvider implements IChatProvider {
     return Promise.resolve({ ...channel, readTimestamp: ts, unreadCount: 0 });
   }
 
-  async validateToken(token: string): Promise<CurrentUser | undefined> {
+  async validateToken(): Promise<CurrentUser | undefined> {
     // This will never be called, since vsls does not have a token configuration step
     return undefined;
   }

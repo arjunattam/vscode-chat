@@ -8,6 +8,7 @@ const TOKEN_CONFIG_KEY = "slack.legacyToken";
 const TELEMETRY_CONFIG_ROOT = "telemetry";
 const TELEMETRY_CONFIG_KEY = "enableTelemetry";
 const CREDENTIAL_SERVICE_NAME = "vscode-chat";
+const VSLS_CHAT_TOKEN = "vsls-placeholder-token";
 
 class ConfigHelper {
   static getRootConfig() {
@@ -29,8 +30,12 @@ class ConfigHelper {
     });
   }
 
-  static async getToken(service: string): Promise<string> {
-    const keychainToken = await KeychainHelper.get(
+  static async getToken(service: string): Promise<string | null> {
+    if (service === "vsls") {
+      return VSLS_CHAT_TOKEN;
+    }
+
+    const keychainToken: string | null = await KeychainHelper.get(
       CREDENTIAL_SERVICE_NAME,
       service
     );
