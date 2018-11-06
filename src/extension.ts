@@ -561,10 +561,17 @@ export function activate(context: vscode.ExtensionContext) {
       SelfCommands.HANDLE_INCOMING_LINKS,
       ({ uri, senderId }) => {
         if (uri.authority === LIVE_SHARE_BASE_URL) {
-          vscode.commands.executeCommand(SelfCommands.LIVE_SHARE_JOIN_PROMPT, {
-            senderId,
-            messageUri: uri
-          });
+          // TODO: replacing own prompt with the live share prompt via notification.
+          // Should we clear up the rest of the code for prompt as well?
+
+          // vscode.commands.executeCommand(SelfCommands.LIVE_SHARE_JOIN_PROMPT, {
+          //   senderId,
+          //   messageUri: uri
+          // });
+
+          if (!!manager.vslsContactProvider) {
+            manager.vslsContactProvider.notifyInviteReceived(senderId, uri);
+          }
         }
       }
     ),

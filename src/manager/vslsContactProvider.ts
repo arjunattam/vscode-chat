@@ -16,13 +16,16 @@ import {
   SelfContactNotification
 } from "vsls/vsls-contactprotocol";
 import { User, Users } from "../types";
+import Manager from "./index";
 
 export class VslsContactProvider implements ContactServiceProvider {
+  private matchedContacts: { [internalUserId: string]: Contact } = {};
+
   private readonly _onNotified = new EventEmitter<
     NotifyContactServiceEventArgs
   >();
 
-  constructor(private description: string) {}
+  constructor(private description: string, private manager: Manager) {}
 
   async register() {
     const liveshare = await vsls.getApiAsync();
@@ -72,13 +75,17 @@ export class VslsContactProvider implements ContactServiceProvider {
     });
   }
 
+  private getUserPresence = (user: User): PresenceStatus => {
+    const { isOnline } = user;
+    return isOnline ? PresenceStatus.Available : PresenceStatus.Offline;
+  };
+
   private getContact = (user: User) => {
-    const isOnline = user.isOnline;
     const contact: Contact = {
       id: user.id,
       displayName: user.fullName,
       email: user.email,
-      status: isOnline ? PresenceStatus.Available : PresenceStatus.Offline
+      status: this.getUserPresence(user)
     };
     return contact;
   };
@@ -103,16 +110,32 @@ export class VslsContactProvider implements ContactServiceProvider {
 
   public notifyPresenceChanged(user: User) {
     const contact = this.getContact(user);
-    this.notify(Methods.NotifyPresenceChangedName, <
-      PresenceChangedNotification
-    >{
+    const notification: PresenceChangedNotification = {
       changes: [
         {
           contactId: contact.id,
           status: contact.status
         }
       ]
-    });
+    };
+    this.notify(Methods.NotifyPresenceChangedName, notification);
+
+    // This user might also have a matched contact, and if so,
+    // we will send a presence changed notification for them.
+    const matchedContact = this.matchedContacts[user.id];
+
+    if (!!matchedContact) {
+      // TODO: test this flow with arjun-test
+      const notification: PresenceChangedNotification = {
+        changes: [
+          {
+            contactId: matchedContact.id,
+            status: contact.status
+          }
+        ]
+      };
+      this.notify(Methods.NotifyPresenceChangedName, notification);
+    }
   }
 
   public notifyInviteReceived(fromUserId: string, uri: Uri) {
@@ -138,26 +161,76 @@ export class VslsContactProvider implements ContactServiceProvider {
   }
 
   private async sendInviteLinkHandler(params: InviteRequest): Promise<void> {
-    // TODO:
-    // await this.webClient.chat.postMessage({
-    //   channel: this.imChannels[params.targetContactId],
-    //   text: params.link,
-    //   as_user: true
-    // });
+    const { link, targetContactId } = params;
+    // targetContactId can be one of slack/discord users, or
+    // a matched contact.
+    const matchedUserIds = Object.keys(this.matchedContacts);
+    const targetMatchedUserId = matchedUserIds.find(
+      userId => this.matchedContacts[userId].id === targetContactId
+    );
+    const userIdToInvite = targetMatchedUserId || targetContactId;
+    const userToInvite = this.manager.store.users[userIdToInvite];
+
+    if (!!userToInvite) {
+      const imChannel = this.manager.getIMChannel(userToInvite);
+      const currentUserId = this.manager.store.currentUserInfo.id;
+
+      if (!!imChannel) {
+        this.manager.chatProvider.sendMessage(
+          link,
+          currentUserId,
+          imChannel.id
+        );
+      }
+    }
   }
 
   private async presenceRequestHandler(
     params: ContactPresenceRequest
   ): Promise<ContactPresenceResponse> {
-    // TODO:
-    console.log("request contacts");
     const { contacts } = params;
-    console.log(contacts);
+
+    // TODO: Verify this:
+    // To be able to match incoming contacts, we need to have our
+    // existing users in store. Hence this can only happen after the
+    // first fetchUsers() call.
+    const knownUsers = this.manager.store.users;
+    const knownUserIds = Object.keys(knownUsers);
+
+    // Attempting to match contacts with known users
+    contacts.forEach(contact => {
+      const { email, displayName } = contact;
+      const matchByEmail = knownUserIds.find(
+        userId => knownUsers[userId].email === email
+      );
+      const matchByName = knownUserIds.find(
+        // Since discord does not have a full name, we will
+        // need to do something else here.
+        userId => knownUsers[userId].fullName === displayName
+      );
+
+      if (!!matchByEmail) {
+        this.matchedContacts[matchByEmail] = contact;
+      } else if (!!matchByName) {
+        this.matchedContacts[matchByName] = contact;
+      }
+    });
+
+    const matchedIds = Object.keys(this.matchedContacts);
 
     let result: ContactPresenceResponse = {
-      contacts: []
+      contacts: matchedIds.map(userId => {
+        const contact = this.matchedContacts[userId];
+        const user = knownUsers[userId];
+        return {
+          contactId: contact.id,
+          contact: {
+            ...contact,
+            status: this.getUserPresence(user)
+          }
+        };
+      })
     };
-
     return result;
   }
 }

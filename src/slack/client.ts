@@ -54,11 +54,14 @@ const getUser = (member: any): User => {
     id,
     // Conditional required for bots like @paperbot
     name: display_name ? display_name : name,
+    email: profile.email,
     fullName: real_name,
     internalName: name,
     imageUrl: image_72,
     smallImageUrl: image_24,
-    isOnline: false,
+    // TODO: this is weird. setting this to false breaks the green
+    // dot status in the user tree view.
+    isOnline: undefined,
     isDeleted: deleted
   };
 };

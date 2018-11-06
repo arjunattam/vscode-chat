@@ -1,37 +1,37 @@
-import * as vscode from "vscode";
 import * as semver from "semver";
+import * as vscode from "vscode";
+import { DiscordChatProvider } from "../discord";
+import Logger from "../logger";
+import { SlackChatProvider } from "../slack";
+import { Store } from "../store";
 import {
   Channel,
-  CurrentUser,
-  ChannelMessages,
-  Messages,
-  Users,
-  IManager,
-  User,
-  Team,
-  ChannelType,
   ChannelLabel,
-  UserPreferences,
+  ChannelMessages,
+  ChannelMessagesWithUndefined,
+  ChannelType,
+  CurrentUser,
   IChatProvider,
-  MessageReply,
+  IManager,
   MessageReplies,
+  MessageReply,
+  Messages,
   Providers,
-  ChannelMessagesWithUndefined
+  Team,
+  User,
+  UserPreferences,
+  Users
 } from "../types";
-import Logger from "../logger";
 import {
-  getExtensionVersion,
-  isSuperset,
   difference,
-  setVsContext,
-  hasVslsExtension
+  getExtensionVersion,
+  hasVslsExtension,
+  isSuperset,
+  setVsContext
 } from "../utils";
-import { DiscordChatProvider } from "../discord";
-import { SlackChatProvider } from "../slack";
 import { VslsChatProvider } from "../vsls";
-import { Store } from "../store";
-import { ViewsManager } from "./views";
 import { VSLS_CHAT_CHANNEL } from "../vsls/utils";
+import { ViewsManager } from "./views";
 import { VslsContactProvider } from "./vslsContactProvider";
 
 export default class Manager implements IManager, vscode.Disposable {
@@ -145,7 +145,7 @@ export default class Manager implements IManager, vscode.Disposable {
 
       if (hasVslsExtension()) {
         // Can we have a more appropriate condition here?
-        this.vslsContactProvider = new VslsContactProvider(provider);
+        this.vslsContactProvider = new VslsContactProvider(provider, this);
         await this.vslsContactProvider.register();
       }
     }

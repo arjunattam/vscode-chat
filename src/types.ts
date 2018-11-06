@@ -40,7 +40,7 @@ export enum UserPresence {
 export interface User {
   id: string;
   name: string;
-  email?: string;
+  email?: string; // Discord does not have emails, hence the ?
   fullName: string;
   internalName?: string; // Used by slack provider to associate DMs
   imageUrl: string;
