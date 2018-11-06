@@ -247,7 +247,7 @@ export function activate(context: vscode.ExtensionContext) {
   };
 
   const shareVslsLink = async (args?: ChatArgs) => {
-    const liveshare = await vsls.getApiAsync();
+    const liveshare = await vsls.getApi();
 
     if (!!liveshare) {
       // liveshare.share() creates a new session if required
@@ -399,7 +399,7 @@ export function activate(context: vscode.ExtensionContext) {
 
   const startVslsChat = async () => {
     // Verify that we have an ongoing Live Share session
-    const liveshare = await vsls.getApiAsync();
+    const liveshare = await vsls.getApi();
     const hasSession = !!liveshare && !!liveshare.session.id;
 
     if (!hasSession) {
@@ -488,12 +488,12 @@ export function activate(context: vscode.ExtensionContext) {
     ),
     vscode.commands.registerCommand(
       SelfCommands.LIVE_SHARE_SESSION_CHANGED,
-      ({ isActive, currentUser }) => {
+      ({ isSessionActive, currentUser }) => {
         const provider = manager.getSelectedProvider();
 
         if (provider === "vsls") {
           manager.store.updateCurrentUser(currentUser);
-          manager.viewsManager.updateVslsStatus(isActive);
+          manager.viewsManager.updateVslsStatus(isSessionActive);
         }
       }
     ),

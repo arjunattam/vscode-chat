@@ -19,10 +19,10 @@ export class VslsHostService extends VslsBaseService {
   cachedPeers: vsls.Peer[] = [];
 
   constructor(
-    protected liveshare: vsls.LiveShare,
-    private sharedService: vsls.SharedService
+    private sharedService: vsls.SharedService,
+    private peerNumber: number
   ) {
-    super(liveshare);
+    super();
     sharedService.onRequest(REQUEST_NAME.message, payload => {
       if (!!payload) {
         const message = payload[0];
@@ -59,9 +59,8 @@ export class VslsHostService extends VslsBaseService {
   }
 
   sendStartedMessage() {
-    const { peerNumber } = this.liveshare.session;
     return this.broadcastMessage(
-      peerNumber.toString(),
+      this.peerNumber.toString(),
       LIVE_SHARE_INFO_MESSAGES.started
     );
   }
@@ -84,49 +83,60 @@ export class VslsHostService extends VslsBaseService {
     });
   }
 
-  fetchUsers(): Promise<Users> {
+  async fetchUsers(): Promise<Users> {
     const users: Users = {};
-    const { peerNumber: userId, user } = this.liveshare.session;
-    const currentUser = toBaseUser(userId, user);
-    users[currentUser.id] = currentUser;
+    const liveshare = <vsls.LiveShare>await vsls.getApi();
+    const { peerNumber: userId, user } = liveshare.session;
 
-    this.liveshare.peers.map(peer => {
+    if (!!user) {
+      const currentUser = toBaseUser(userId, user);
+      users[currentUser.id] = currentUser;
+    }
+
+    liveshare.peers.map(peer => {
       const { peerNumber: peerId, user: peerUser } = peer;
-      const user: User = toBaseUser(peerId, peerUser);
-      users[user.id] = user;
+
+      if (!!peerUser) {
+        const user: User = toBaseUser(peerId, peerUser);
+        users[user.id] = user;
+      }
     });
 
-    return Promise.resolve(users);
+    return users;
   }
 
-  async fetchUserInfo(userId: string): Promise<User> {
+  async fetchUserInfo(userId: string): Promise<User | undefined> {
     // userId could be current user or one of the peers
-    if (!!this.liveshare) {
-      const { peerNumber } = this.liveshare.session;
+    const liveshare = <vsls.LiveShare>await vsls.getApi();
+    const { peerNumber, user } = liveshare.session;
 
-      if (peerNumber.toString() === userId) {
-        const { user } = this.liveshare.session;
-        return Promise.resolve(toBaseUser(peerNumber, user));
-      }
+    if (peerNumber.toString() === userId && !!user) {
+      return Promise.resolve(toBaseUser(peerNumber, user));
+    }
 
-      const peer = this.liveshare.peers.find(
-        peer => peer.peerNumber.toString() === userId
-      );
+    const peer = liveshare.peers.find(
+      peer => peer.peerNumber.toString() === userId
+    );
 
-      if (!!peer) {
-        const { peerNumber: peerId, user: peerUser } = peer;
+    if (!!peer) {
+      const { peerNumber: peerId, user: peerUser } = peer;
+
+      if (!!peerUser) {
         return Promise.resolve(toBaseUser(peerId, peerUser));
       }
+    }
 
-      // Finally, let's check cached peers
-      // In some cases, vsls seems to be returning stale data, and
-      // so we cache whatever we know locally.
-      const cachedPeer = this.cachedPeers.find(
-        peer => peer.peerNumber.toString() === userId
-      );
+    // Finally, let's check cached peers
+    // In some cases, vsls seems to be returning stale data, and
+    // so we cache whatever we know locally.
+    const cachedPeer = this.cachedPeers.find(
+      peer => peer.peerNumber.toString() === userId
+    );
 
-      if (!!cachedPeer) {
-        const { peerNumber: peerId, user: peerUser } = cachedPeer;
+    if (!!cachedPeer) {
+      const { peerNumber: peerId, user: peerUser } = cachedPeer;
+
+      if (!!peerUser) {
         return Promise.resolve(toBaseUser(peerId, peerUser));
       }
     }

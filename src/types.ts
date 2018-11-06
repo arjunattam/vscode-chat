@@ -22,7 +22,7 @@ export interface IChatProvider {
     channelId: string,
     parentTimestamp: string
   ) => Promise<void>;
-  connect: () => Promise<CurrentUser>;
+  connect: () => Promise<CurrentUser | undefined>;
   isConnected: () => boolean;
   subscribePresence: (users: Users) => void;
   createIMChannel: (user: User) => Promise<Channel | undefined>;

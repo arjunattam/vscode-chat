@@ -64,7 +64,7 @@ class OpenCommandHandler extends VscodeCommandHandler {
 
       switch (uri.authority) {
         case LIVE_SHARE_BASE_URL:
-          const liveshare = await vsls.getApiAsync();
+          const liveshare = await vsls.getApi();
           const opts: vsls.JoinOptions = { newWindow: false };
 
           if (liveshare) {
