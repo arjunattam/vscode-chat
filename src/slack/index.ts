@@ -1,6 +1,5 @@
 import * as vscode from "vscode";
 import { SelfCommands } from "../constants";
-import ConfigHelper from "../config";
 import SlackAPIClient from "./client";
 import SlackMessenger from "./messenger";
 import {
@@ -31,25 +30,21 @@ const stripLinkSymbols = (text: string): string => {
 };
 
 export class SlackChatProvider implements IChatProvider {
-  private token: string | undefined;
   private client: SlackAPIClient;
   private messenger: SlackMessenger;
 
-  async getToken(): Promise<string> {
-    this.token = await ConfigHelper.getToken("slack");
+  constructor(private token: string) {
     this.client = new SlackAPIClient(this.token);
-    return this.token;
+    this.messenger = new SlackMessenger(this.token);
   }
 
-  validateToken(token: string): Promise<CurrentUser | undefined> {
+  validateToken(): Promise<CurrentUser | undefined> {
     // This is creating a new client, since getToken from keychain
     // is not called before validation
-    const client = new SlackAPIClient(token);
-    return client.authTest();
+    return this.client.authTest();
   }
 
   connect(): Promise<CurrentUser> {
-    this.messenger = new SlackMessenger(this.token);
     return this.messenger.start();
   }
 
@@ -61,7 +56,7 @@ export class SlackChatProvider implements IChatProvider {
     return this.messenger.subscribePresence(users);
   }
 
-  createIMChannel(user: User): Promise<Channel> {
+  createIMChannel(user: User): Promise<Channel | undefined> {
     return this.client.openIMChannel(user);
   }
 
@@ -75,8 +70,7 @@ export class SlackChatProvider implements IChatProvider {
     return this.client.getChannels(users);
   }
 
-  fetchUserInfo(userId: string): Promise<User> {
-    // Works for bots only, since workspace users are fetched already
+  fetchUserInfo(userId: string): Promise<User | undefined> {
     if (userId.startsWith("B")) {
       return this.client.getBotInfo(userId);
     } else {
@@ -88,19 +82,25 @@ export class SlackChatProvider implements IChatProvider {
     return this.client.getConversationHistory(channelId);
   }
 
-  getUserPrefs(): Promise<UserPreferences> {
+  getUserPreferences(): Promise<UserPreferences | undefined> {
     return this.client.getUserPrefs();
   }
 
-  async markChannel(channel: Channel, timestamp: string): Promise<Channel> {
-    return await this.client.markChannel(channel, timestamp);
+  markChannel(
+    channel: Channel,
+    timestamp: string
+  ): Promise<Channel | undefined> {
+    return this.client.markChannel(channel, timestamp);
   }
 
-  fetchThreadReplies(channelId: string, timestamp: string): Promise<Message> {
+  fetchThreadReplies(
+    channelId: string,
+    timestamp: string
+  ): Promise<Message | undefined> {
     return this.client.getReplies(channelId, timestamp);
   }
 
-  fetchChannelInfo(channel: Channel): Promise<Channel> {
+  fetchChannelInfo(channel: Channel): Promise<Channel | undefined> {
     return this.client.getChannelInfo(channel);
   }
 

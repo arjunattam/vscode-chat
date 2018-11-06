@@ -179,7 +179,6 @@ class SlackMessenger {
           const { id, name } = self;
           const { id: teamId, name: teamName } = team;
           return resolve({
-            // token: this.token,
             id,
             name,
             teams: [{ id: teamId, name: teamName }],

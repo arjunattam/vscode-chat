@@ -95,8 +95,8 @@ export class ViewsManager implements vscode.Disposable {
     });
   }
 
-  updateVslsStatus = (isActive: boolean) => {
-    if (isActive) {
+  updateVslsStatus = (isSessionActive: boolean) => {
+    if (isSessionActive) {
       this.statusItem.show();
     } else {
       this.statusItem.hide();

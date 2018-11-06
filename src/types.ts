@@ -1,14 +1,16 @@
 export interface IChatProvider {
-  getToken: () => Promise<string>;
-  validateToken: (token: string) => Promise<CurrentUser | undefined>;
+  validateToken: () => Promise<CurrentUser | undefined>;
   fetchUsers: () => Promise<Users>;
-  fetchUserInfo: (userId: string) => Promise<User>;
+  fetchUserInfo: (userId: string) => Promise<User | undefined>;
   fetchChannels: (users: Users) => Promise<Channel[]>;
-  fetchChannelInfo: (channel: Channel) => Promise<Channel>;
+  fetchChannelInfo: (channel: Channel) => Promise<Channel | undefined>;
   loadChannelHistory: (channelId: string) => Promise<ChannelMessages>;
-  getUserPrefs: () => Promise<UserPreferences>;
-  markChannel: (channel: Channel, ts: string) => Promise<Channel>;
-  fetchThreadReplies: (channelId: string, ts: string) => Promise<Message>;
+  getUserPreferences: () => Promise<UserPreferences | undefined>;
+  markChannel: (channel: Channel, ts: string) => Promise<Channel | undefined>;
+  fetchThreadReplies: (
+    channelId: string,
+    ts: string
+  ) => Promise<Message | undefined>;
   sendMessage: (
     text: string,
     currentUserId: string,
@@ -20,7 +22,7 @@ export interface IChatProvider {
     channelId: string,
     parentTimestamp: string
   ) => Promise<void>;
-  connect: () => Promise<CurrentUser>;
+  connect: () => Promise<CurrentUser | undefined>;
   isConnected: () => boolean;
   subscribePresence: (users: Users) => void;
   createIMChannel: (user: User) => Promise<Channel | undefined>;

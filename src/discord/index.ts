@@ -15,7 +15,6 @@ import {
   MessageContent,
   Providers
 } from "../types";
-import ConfigHelper from "../config";
 import { SelfCommands } from "../constants";
 import { toTitleCase } from "../utils";
 import Logger from "../logger";
@@ -99,26 +98,21 @@ const getSmallImageUrl = (userId: string, avatar: string) =>
   getAvatarUrl(userId, avatar, 32);
 
 export class DiscordChatProvider implements IChatProvider {
-  token: string | undefined;
   client: Discord.Client;
   mutedChannels: Set<string> = new Set([]);
   imChannels: Channel[] = [];
 
-  constructor(private manager: IManager) {}
-
-  async getToken(): Promise<string> {
-    // When this starts using OAuth, we need to manage refresh tokens here
-    this.token = await ConfigHelper.getToken("discord");
-    return Promise.resolve(this.token);
+  constructor(private token: string, private manager: IManager) {
+    this.client = new Discord.Client();
   }
 
-  async validateToken(token: string): Promise<CurrentUser | undefined> {
+  async validateToken(): Promise<CurrentUser | undefined> {
     const response = await rp({
       baseUrl: `https://discordapp.com/api/v6`,
       uri: `/users/@me`,
       json: true,
       headers: {
-        Authorization: `${token}`
+        Authorization: `${this.token}`
       }
     });
     const { id, username: name } = response;
@@ -132,8 +126,6 @@ export class DiscordChatProvider implements IChatProvider {
   }
 
   connect(): Promise<CurrentUser> {
-    this.client = new Discord.Client();
-
     return new Promise(resolve => {
       this.client.on("ready", () => {
         const { id, username: name } = this.client.user;
@@ -144,7 +136,6 @@ export class DiscordChatProvider implements IChatProvider {
         const currentUser: CurrentUser = {
           id,
           name,
-          // token: this.token,
           teams,
           currentTeamId: undefined,
           provider: Providers.discord
@@ -236,7 +227,7 @@ export class DiscordChatProvider implements IChatProvider {
     return !!this.client && !!this.client.readyTimestamp;
   }
 
-  getUserPrefs(): Promise<UserPreferences> {
+  getUserPreferences(): Promise<UserPreferences> {
     const mutedChannels = Array.from(this.mutedChannels);
     return Promise.resolve({ mutedChannels });
   }

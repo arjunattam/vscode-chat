@@ -1,9 +1,9 @@
 import * as vscode from "vscode";
+import * as vsls from "vsls/vscode";
 import {
   SLASH_COMMANDS,
   LIVE_SHARE_BASE_URL,
   TRAVIS_BASE_URL,
-  LiveShareCommands,
   VSCodeCommands
 } from "../constants";
 import { TravisLinkHandler } from "../bots/travis";
@@ -55,27 +55,33 @@ class VscodeCommandHandler implements CommandHandler {
 }
 
 class OpenCommandHandler extends VscodeCommandHandler {
-  handle = (cmd: MessageCommand): Promise<CommandResponse> => {
+  handle = async (cmd: MessageCommand): Promise<any> => {
     const { subcommand } = cmd;
     let uri: vscode.Uri | undefined;
 
     try {
       uri = vscode.Uri.parse(subcommand);
-    } catch (err) {
-      return new Promise((_, reject) => reject());
-    }
 
-    switch (uri.authority) {
-      case LIVE_SHARE_BASE_URL:
-        const opts = { newWindow: false };
-        return this.execute(LiveShareCommands.JOIN, uri.toString(), opts);
-      case TRAVIS_BASE_URL:
-        if (ConfigHelper.hasTravisProvider()) {
-          const travisHandler = new TravisLinkHandler();
-          return travisHandler.handle(cmd);
-        }
-      default:
-        return this.execute(VSCodeCommands.OPEN, uri);
+      switch (uri.authority) {
+        case LIVE_SHARE_BASE_URL:
+          const liveshare = await vsls.getApi();
+          const opts: vsls.JoinOptions = { newWindow: false };
+
+          if (liveshare) {
+            await liveshare.join(uri, opts);
+          }
+
+          break;
+        case TRAVIS_BASE_URL:
+          if (ConfigHelper.hasTravisProvider()) {
+            const travisHandler = new TravisLinkHandler();
+            return travisHandler.handle(cmd);
+          }
+        default:
+          return this.execute(VSCodeCommands.OPEN, uri);
+      }
+    } catch (err) {
+      // return new Promise((_, reject) => reject());
     }
   };
 }

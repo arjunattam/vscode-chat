@@ -53,6 +53,14 @@ export function activate(context: vscode.ExtensionContext) {
     reporter.record(EventType.extensionInstalled, undefined, undefined);
   };
 
+  const handleNoToken = (canPromptForAuth: boolean) => {
+    if (canPromptForAuth && !utils.hasVslsExtension()) {
+      askForAuth();
+    }
+
+    throw new Error(str.TOKEN_NOT_FOUND);
+  };
+
   const setup = async (
     canPromptForAuth: boolean,
     provider: string | undefined
@@ -65,61 +73,39 @@ export function activate(context: vscode.ExtensionContext) {
       await manager.initializeToken(provider);
 
       if (!manager.token) {
-        if (canPromptForAuth && !utils.hasVslsExtension()) {
-          askForAuth();
-        }
-
-        throw new Error(str.TOKEN_NOT_FOUND);
+        handleNoToken(canPromptForAuth);
       }
     }
 
-    return manager
-      .initializeProvider()
-      .then(() => {
-        const { currentUserInfo } = manager.store;
+    await manager.initializeProvider();
+    const { currentUserInfo } = manager.store;
 
-        if (!!currentUserInfo && !currentUserInfo.currentTeamId) {
-          // If no current team is available, we need to ask
-          return askForWorkspace();
-        }
-      })
-      .then(() => {
-        manager.updateUserPrefs(); // TODO: for discord, this needs to happen after channels are fetched
-        return manager.getUsersPromise();
-      })
-      .then(() => {
-        const { users } = manager.store;
-        manager.chatProvider.subscribePresence(users);
-        return manager.getChannelsPromise();
-      });
+    if (!!currentUserInfo && !currentUserInfo.currentTeamId) {
+      // If no current team is available, we need to ask
+      await askForWorkspace();
+    }
+
+    // TODO: In discord, user preferences are available after channels are fetched
+    manager.updateUserPrefs(); // async update
+    await manager.initializeUsersState();
+    const { users } = manager.store;
+
+    if (!!manager.chatProvider) {
+      manager.chatProvider.subscribePresence(users);
+    }
+
+    return manager.initializeChannelsState();
   };
 
-  const sendMessage = (
-    text: string,
-    parentTimestamp: string | undefined
-  ): Promise<void> => {
-    const { lastChannelId, currentUserInfo } = manager.store;
+  const sendMessage = (text: string, parentTimestamp: string | undefined) => {
+    const { lastChannelId } = manager.store;
     reporter.record(EventType.messageSent, undefined, lastChannelId);
     manager.updateReadMarker();
 
-    if (!currentUserInfo || !lastChannelId) {
-      // TODO: this needs to be handled and shown to the user
-      return Promise.resolve();
-    }
-
-    if (!!parentTimestamp) {
-      return manager.chatProvider.sendThreadReply(
-        text,
-        currentUserInfo.id,
-        lastChannelId,
-        parentTimestamp
-      );
-    } else {
-      return manager.chatProvider.sendMessage(
-        text,
-        currentUserInfo.id,
-        lastChannelId
-      );
+    if (!!lastChannelId) {
+      // lastChannelId should always exist since this will only be
+      // called after loading the webview (which requires lastChannelId)
+      return manager.sendMessage(text, lastChannelId, parentTimestamp);
     }
   };
 
@@ -161,12 +147,14 @@ export function activate(context: vscode.ExtensionContext) {
     }
   };
 
-  const getChatChannelId = (args?: ChatArgs): Promise<string | undefined> => {
+  const getChatChannelId = async (
+    args?: ChatArgs
+  ): Promise<string | undefined> => {
     const { lastChannelId } = manager.store;
-    let channelIdPromise: Promise<string> | undefined;
+    let chatChannelId: string | undefined;
 
     if (!!lastChannelId) {
-      channelIdPromise = Promise.resolve(lastChannelId);
+      chatChannelId = lastChannelId;
     }
 
     if (!!args) {
@@ -174,44 +162,50 @@ export function activate(context: vscode.ExtensionContext) {
         // We have a channel in args
         const { channel } = args;
         manager.store.updateLastChannelId(channel.id);
-        channelIdPromise = Promise.resolve(channel.id);
+        chatChannelId = channel.id;
       } else if (!!args.user) {
         // We have a user, but no corresponding channel
-        // So we create one
-        channelIdPromise = manager.createIMChannel(args.user).then(channel => {
-          return manager.store.updateLastChannelId(channel.id).then(() => {
-            return channel.id;
-          });
-        });
+        // So we create one -->
+        const channel = await manager.createIMChannel(args.user);
+
+        if (!!channel) {
+          manager.store.updateLastChannelId(channel.id);
+          chatChannelId = channel.id;
+        }
       }
     }
 
-    return !!channelIdPromise
-      ? channelIdPromise
-      : askForChannel().then(channel => (channel ? channel.id : undefined));
+    if (!chatChannelId) {
+      // Since we don't know the channel, we will prompt the user
+      const channel = await askForChannel();
+
+      if (!!channel) {
+        chatChannelId = channel.id;
+      }
+    }
+
+    return chatChannelId;
   };
 
-  const openChatPanel = (args?: ChatArgs) => {
+  const openChatPanel = async (args?: ChatArgs) => {
     if (!!manager.token) {
       controller.loadUi();
     }
 
-    setup(true, undefined)
-      .then(() => getChatChannelId(args))
-      .then(() => {
-        manager.viewsManager.updateWebview();
-        const { lastChannelId } = manager.store;
+    await setup(true, undefined);
+    await getChatChannelId(args);
 
-        if (lastChannelId) {
-          reporter.record(
-            EventType.viewOpened,
-            !!args ? args.source : EventSource.command,
-            lastChannelId
-          );
-          manager.loadChannelHistory(lastChannelId);
-        }
-      })
-      .catch(error => console.error(error));
+    if (!!manager.viewsManager) {
+      manager.viewsManager.updateWebview();
+    }
+
+    const { lastChannelId } = manager.store;
+
+    if (!!lastChannelId) {
+      const source = !!args ? args.source : EventSource.command;
+      reporter.record(EventType.viewOpened, source, lastChannelId);
+      manager.loadChannelHistory(lastChannelId);
+    }
   };
 
   const askForWorkspace = async () => {
@@ -260,21 +254,16 @@ export function activate(context: vscode.ExtensionContext) {
   };
 
   const shareVslsLink = async (args?: ChatArgs) => {
-    const liveshare = await vsls.getApiAsync();
+    const liveshare = await vsls.getApi();
 
     if (!!liveshare) {
       // liveshare.share() creates a new session if required
       const vslsUri = await liveshare.share({ suppressNotification: true });
       let channelId = await getChatChannelId(args);
       reporter.record(EventType.vslsShared, EventSource.activity, channelId);
-      const { currentUserInfo } = manager.store;
 
-      if (vslsUri && currentUserInfo && channelId) {
-        manager.chatProvider.sendMessage(
-          vslsUri.toString(),
-          currentUserInfo.id,
-          channelId
-        );
+      if (vslsUri && channelId) {
+        manager.sendMessage(vslsUri.toString(), channelId, undefined);
       }
     }
   };
@@ -417,7 +406,7 @@ export function activate(context: vscode.ExtensionContext) {
 
   const startVslsChat = async () => {
     // Verify that we have an ongoing Live Share session
-    const liveshare = await vsls.getApiAsync();
+    const liveshare = await vsls.getApi();
     const hasSession = !!liveshare && !!liveshare.session.id;
 
     if (!hasSession) {
@@ -427,10 +416,12 @@ export function activate(context: vscode.ExtensionContext) {
 
     // Resume on existing VS Live Share chat if possible
     const currentProvider = manager.getSelectedProvider();
-    const hasOtherProvider =
-      currentProvider !== "vsls" || manager.chatProvider.isConnected();
+    const hasOtherProvider = currentProvider !== "vsls";
+    const isOtherConnected = !!manager.chatProvider
+      ? manager.chatProvider.isConnected()
+      : false;
 
-    if (hasOtherProvider) {
+    if (hasOtherProvider || isOtherConnected) {
       // Logged in with Slack/Discord, ask for confirmation to sign out
       const msg = str.LIVE_SHARE_CONFIRM_SIGN_OUT(
         utils.toTitleCase(currentProvider as string)
@@ -506,12 +497,15 @@ export function activate(context: vscode.ExtensionContext) {
     ),
     vscode.commands.registerCommand(
       SelfCommands.LIVE_SHARE_SESSION_CHANGED,
-      ({ isActive, currentUser }) => {
+      ({ isSessionActive, currentUser }) => {
         const provider = manager.getSelectedProvider();
 
         if (provider === "vsls") {
           manager.store.updateCurrentUser(currentUser);
-          manager.viewsManager.updateVslsStatus(isActive);
+
+          if (!!manager.viewsManager) {
+            manager.viewsManager.updateVslsStatus(isSessionActive);
+          }
         }
       }
     ),

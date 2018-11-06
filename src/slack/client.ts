@@ -13,7 +13,7 @@ import {
   Providers
 } from "../types";
 
-const CHANNEL_HISTORY_LIMIT = 500;
+const CHANNEL_HISTORY_LIMIT = 50;
 
 const USER_LIST_LIMIT = 1000;
 
@@ -149,7 +149,7 @@ export default class SlackAPIClient {
     return result;
   };
 
-  async getUsers(): Promise<Users | undefined> {
+  async getUsers(): Promise<Users> {
     const response: any = await this.client.apiCall("users.list", {
       limit: USER_LIST_LIMIT
     });
@@ -165,6 +165,8 @@ export default class SlackAPIClient {
 
       return users;
     }
+
+    return {};
   }
 
   async getBotInfo(botId: string): Promise<User | undefined> {
@@ -196,7 +198,7 @@ export default class SlackAPIClient {
     }
   }
 
-  async getChannels(users: Users): Promise<Channel[] | undefined> {
+  async getChannels(users: Users): Promise<Channel[]> {
     const response: any = await this.client.conversations.list({
       exclude_archived: true,
       types: "public_channel, private_channel, mpim, im"
@@ -283,40 +285,45 @@ export default class SlackAPIClient {
         })
         .filter(Boolean);
     }
+
+    return [];
   }
 
-  getChannelInfo = async (originalChannel: Channel): Promise<Channel> => {
+  getChannelInfo = async (
+    originalChannel: Channel
+  ): Promise<Channel | undefined> => {
     const { id, type } = originalChannel;
     let response: any;
     let channel;
 
-    const getChannel = (response: any) => {
-      const { unread_count_display, last_read } = response;
+    try {
+      switch (type) {
+        case "group":
+          response = await this.client.groups.info({ channel: id });
+          channel = response.group;
+          break;
+        case "channel":
+          response = await this.client.channels.info({ channel: id });
+          channel = response.channel;
+          break;
+        case "im":
+          response = await this.client.conversations.info({
+            channel: id
+          });
+          channel = response.channel;
+          break;
+      }
+
+      const { unread_count_display, last_read } = channel;
       return {
         ...originalChannel,
         unreadCount: unread_count_display,
         readTimestamp: last_read
       };
-    };
-
-    switch (type) {
-      case "group":
-        response = await this.client.groups.info({ channel: id });
-        channel = response.group;
-        break;
-      case "channel":
-        response = await this.client.channels.info({ channel: id });
-        channel = response.channel;
-        break;
-      case "im":
-        response = await this.client.conversations.info({
-          channel: id
-        });
-        channel = response.channel;
-        break;
+    } catch (error) {
+      // TODO: this is failing for private groups -> need to investigate why
+      console.log("Error fetching channel:", originalChannel.name);
     }
-
-    return getChannel(channel);
   };
 
   sendMessage = (

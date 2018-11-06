@@ -5,11 +5,10 @@ import { VslsBaseService } from "./base";
 
 export class VslsGuestService extends VslsBaseService {
   constructor(
-    protected liveshare: vsls.LiveShare,
-    private serviceProxy: vsls.SharedServiceProxy
+    private serviceProxy: vsls.SharedServiceProxy,
+    private peer: vsls.Peer
   ) {
-    super(liveshare);
-
+    super();
     serviceProxy.onNotify(NOTIFICATION_NAME.message, (msg: any) =>
       this.updateMessages(msg)
     );
@@ -23,9 +22,9 @@ export class VslsGuestService extends VslsBaseService {
     // The host is not able to identify peers, because liveshare.peers
     // apparently returns stale data. Till then, we will use a registration
     // mechanism whenever a guest connects to the shared service
-    const { peerNumber, user, role, access } = this.liveshare.session;
-    const peer: vsls.Peer = { peerNumber, user, role, access };
-    this.serviceProxy.request(REQUEST_NAME.registerGuest, [{ peer }]);
+    this.serviceProxy.request(REQUEST_NAME.registerGuest, [
+      { peer: this.peer }
+    ]);
   }
 
   isConnected() {
@@ -44,7 +43,7 @@ export class VslsGuestService extends VslsBaseService {
     return Promise.resolve({});
   }
 
-  async fetchUserInfo(userId: string): Promise<User> {
+  async fetchUserInfo(userId: string): Promise<User | undefined> {
     if (this.serviceProxy.isServiceAvailable) {
       const response = await this.serviceProxy.request(
         REQUEST_NAME.fetchUserInfo,

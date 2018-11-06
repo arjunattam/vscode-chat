@@ -1,12 +1,9 @@
 import * as vscode from "vscode";
-import * as vsls from "vsls/vscode";
 import { SelfCommands } from "../constants";
 import { ChannelMessages, User, Users } from "../types";
 import { VslsChatMessage, VSLS_CHAT_CHANNEL, toBaseMessage } from "./utils";
 
 export abstract class VslsBaseService {
-  constructor(protected liveshare: vsls.LiveShare) {}
-
   abstract sendMessage(
     text: string,
     userId: string,
@@ -17,7 +14,7 @@ export abstract class VslsBaseService {
 
   abstract fetchUsers(): Promise<Users>;
 
-  abstract fetchUserInfo(userId: string): Promise<User>;
+  abstract fetchUserInfo(userId: string): Promise<User | undefined>;
 
   abstract fetchMessagesHistory(): Promise<ChannelMessages>;
 

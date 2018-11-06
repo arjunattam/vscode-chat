@@ -33,6 +33,7 @@ import { VslsChatProvider } from "../vsls";
 import { VSLS_CHAT_CHANNEL } from "../vsls/utils";
 import { ViewsManager } from "./views";
 import { VslsContactProvider } from "./vslsContactProvider";
+import ConfigHelper from "../config";
 
 export default class Manager implements IManager, vscode.Disposable {
   token: string | undefined;
@@ -40,8 +41,8 @@ export default class Manager implements IManager, vscode.Disposable {
   channelsFetchedAt: Date | undefined;
   usersFetchedAt: Date | undefined;
   messages: Messages = {};
-  chatProvider: IChatProvider;
-  viewsManager: ViewsManager;
+  chatProvider: IChatProvider | undefined;
+  viewsManager: ViewsManager | undefined;
   vslsContactProvider: VslsContactProvider | undefined;
 
   constructor(public store: Store) {
@@ -84,12 +85,12 @@ export default class Manager implements IManager, vscode.Disposable {
     }
   }
 
-  getChatProvider(provider: string): IChatProvider {
+  getChatProvider(token: string, provider: string): IChatProvider {
     switch (provider) {
       case "discord":
-        return new DiscordChatProvider(this);
+        return new DiscordChatProvider(token, this);
       case "slack":
-        return new SlackChatProvider();
+        return new SlackChatProvider(token);
       case "vsls":
         return new VslsChatProvider();
       default:
@@ -98,8 +99,8 @@ export default class Manager implements IManager, vscode.Disposable {
   }
 
   async validateToken(provider: string, token: string) {
-    const chatProvider = this.getChatProvider(provider);
-    const currentUser = await chatProvider.validateToken(token);
+    const chatProvider = this.getChatProvider(token, provider);
+    const currentUser = await chatProvider.validateToken();
     return currentUser;
   }
 
@@ -115,26 +116,33 @@ export default class Manager implements IManager, vscode.Disposable {
     this.viewsManager = new ViewsManager(selectedProvider, this as IManager);
 
     if (!!selectedProvider) {
-      this.chatProvider = this.getChatProvider(selectedProvider);
-      const token = await this.chatProvider.getToken();
-      this.token = token;
+      const token = await ConfigHelper.getToken(selectedProvider);
 
-      const TREE_VIEW_PROVIDERS = ["slack", "discord"];
-      TREE_VIEW_PROVIDERS.forEach(provider => {
-        setVsContext(`chat:${provider}`, provider === selectedProvider);
-      });
+      if (!!token) {
+        this.chatProvider = this.getChatProvider(token, selectedProvider);
+        this.token = token;
+
+        const TREE_VIEW_PROVIDERS = ["slack", "discord"];
+        TREE_VIEW_PROVIDERS.forEach(provider => {
+          setVsContext(`chat:${provider}`, provider === selectedProvider);
+        });
+      }
     }
   };
 
   initializeProvider = async (): Promise<any> => {
-    const isConnected = this.chatProvider.isConnected();
+    const isConnected = !!this.chatProvider
+      ? this.chatProvider.isConnected()
+      : false;
     const isAuthenticated = this.isAuthenticated();
     let currentUser = this.store.currentUserInfo;
     const provider = this.getSelectedProvider();
 
     if (!(isConnected && isAuthenticated)) {
-      currentUser = await this.chatProvider.connect();
-      this.store.updateCurrentUser(currentUser);
+      if (!!this.chatProvider) {
+        currentUser = await this.chatProvider.connect();
+        this.store.updateCurrentUser(currentUser);
+      }
     }
 
     if (provider === "vsls") {
@@ -174,9 +182,11 @@ export default class Manager implements IManager, vscode.Disposable {
   }
 
   updateAllUI() {
-    this.viewsManager.updateStatusItem();
-    this.viewsManager.updateTreeViews();
-    this.viewsManager.updateWebview();
+    if (!!this.viewsManager) {
+      this.viewsManager.updateStatusItem();
+      this.viewsManager.updateTreeViews();
+      this.viewsManager.updateWebview();
+    }
   }
 
   dispose() {
@@ -249,10 +259,15 @@ export default class Manager implements IManager, vscode.Disposable {
     return channels.find(channel => channel.name === name);
   }
 
-  async createIMChannel(user: User): Promise<Channel> {
-    const channel = await this.chatProvider.createIMChannel(user);
-    this.updateChannel(channel);
-    return channel;
+  async createIMChannel(user: User): Promise<Channel | undefined> {
+    const channel = await (this.chatProvider as IChatProvider).createIMChannel(
+      user
+    );
+
+    if (!!channel) {
+      this.updateChannel(channel);
+      return channel;
+    }
   }
 
   getUnreadCount(channel: Channel): number {
@@ -304,7 +319,7 @@ export default class Manager implements IManager, vscode.Disposable {
         isOnline
       };
 
-      if (isOnline !== existingIsOnline) {
+      if (isOnline !== existingIsOnline && !!this.viewsManager) {
         this.viewsManager.updateTreeViews();
       }
 
@@ -347,11 +362,14 @@ export default class Manager implements IManager, vscode.Disposable {
     }
 
     this.store.updateChannels(updatedChannels);
-    this.viewsManager.updateTreeViews();
+
+    if (!!this.viewsManager) {
+      this.viewsManager.updateTreeViews();
+    }
   };
 
   fetchUsers = async (): Promise<Users> => {
-    const users = await this.chatProvider.fetchUsers();
+    const users = await (this.chatProvider as IChatProvider).fetchUsers();
     let usersWithPresence: Users = {};
     const { users: existingUsers } = this.store;
 
@@ -397,22 +415,33 @@ export default class Manager implements IManager, vscode.Disposable {
     // We have to fetch twice here because Slack does not return the
     // historical unread counts for channels in the list API.
     const promises = channels.map(async channel => {
-      const newChannel = await this.chatProvider.fetchChannelInfo(channel);
-      // TODO: only update when we have a different unread
-      return this.updateChannel(newChannel);
+      const newChannel = await (this
+        .chatProvider as IChatProvider).fetchChannelInfo(channel);
+
+      if (!!newChannel && newChannel.unreadCount !== channel.unreadCount) {
+        return this.updateChannel(newChannel);
+      }
     });
 
     await Promise.all(promises);
-    this.viewsManager.updateStatusItem();
+
+    if (!!this.viewsManager) {
+      this.viewsManager.updateStatusItem();
+    }
   };
 
   fetchChannels = async (): Promise<Channel[]> => {
     const { users } = this.store;
-    const channels = await this.chatProvider.fetchChannels(users);
+    const channels = await (this.chatProvider as IChatProvider).fetchChannels(
+      users
+    );
     await this.store.updateChannels(channels);
-
     this.updateChannelsFetchedAt();
-    this.viewsManager.updateTreeViews();
+
+    if (!!this.viewsManager) {
+      this.viewsManager.updateTreeViews();
+    }
+
     this.fetchUnreadCounts(channels);
     return channels;
   };
@@ -428,7 +457,7 @@ export default class Manager implements IManager, vscode.Disposable {
     return difference > FETCH_THRESHOLD;
   };
 
-  getUsersPromise(): Promise<Users> {
+  initializeUsersState(): Promise<Users> {
     function isNotEmpty(obj: any) {
       return Object.keys(obj).length !== 0;
     }
@@ -444,7 +473,7 @@ export default class Manager implements IManager, vscode.Disposable {
       : this.fetchUsers();
   }
 
-  getChannelsPromise(): Promise<Channel[]> {
+  initializeChannelsState(): Promise<Channel[]> {
     // This assumes that users are available
     const { channels } = this.store;
     return !!channels
@@ -525,19 +554,28 @@ export default class Manager implements IManager, vscode.Disposable {
 
     await Promise.all(
       ids.map(async userId => {
-        let user = await this.chatProvider.fetchUserInfo(userId);
-        const { id } = user;
-        usersCopy[id] = user;
+        let user = await (this.chatProvider as IChatProvider).fetchUserInfo(
+          userId
+        );
+
+        if (!!user) {
+          const { id } = user;
+          usersCopy[id] = user;
+        }
       })
     );
 
     this.store.updateUsers(usersCopy);
-    return this.viewsManager.updateWebview();
+
+    if (!!this.viewsManager) {
+      return this.viewsManager.updateWebview();
+    }
   }
 
   async loadChannelHistory(channelId: string): Promise<void> {
     try {
-      const messages = await this.chatProvider.loadChannelHistory(channelId);
+      const messages = await (this
+        .chatProvider as IChatProvider).loadChannelHistory(channelId);
       return this.updateMessages(channelId, messages);
     } catch (error) {
       return console.error(error);
@@ -545,10 +583,17 @@ export default class Manager implements IManager, vscode.Disposable {
   }
 
   async updateUserPrefs() {
-    const response = await this.chatProvider.getUserPrefs();
-    // We could also save the muted channels to local storage
-    this.currentUserPrefs = response;
-    this.viewsManager.updateStatusItem();
+    const response = await (this
+      .chatProvider as IChatProvider).getUserPreferences();
+
+    if (!!response) {
+      // We could also save the muted channels to local storage
+      this.currentUserPrefs = response;
+
+      if (!!this.viewsManager) {
+        this.viewsManager.updateStatusItem();
+      }
+    }
   }
 
   getLastTimestamp(): string | undefined {
@@ -573,15 +618,45 @@ export default class Manager implements IManager, vscode.Disposable {
 
       if (hasNewerMsgs) {
         const incremented = (+lastTs + 1).toString(); // Slack API workaround
-        const updatedChannel = await this.chatProvider.markChannel(
-          channel,
-          incremented
-        );
-        this.updateChannel(updatedChannel);
-        this.updateAllUI();
+        const updatedChannel = await (this
+          .chatProvider as IChatProvider).markChannel(channel, incremented);
+
+        if (!!updatedChannel) {
+          this.updateChannel(updatedChannel);
+          this.updateAllUI();
+        }
       }
     }
   }
+
+  sendMessage = (
+    text: string,
+    channelId: string,
+    parentTimestamp: string | undefined
+  ): Promise<void> => {
+    const { currentUserInfo } = this.store;
+
+    if (!!currentUserInfo) {
+      if (!!parentTimestamp) {
+        // This is a thread reply
+        return (this.chatProvider as IChatProvider).sendThreadReply(
+          text,
+          currentUserInfo.id,
+          channelId,
+          parentTimestamp
+        );
+      } else {
+        // THis is a normal message
+        return (this.chatProvider as IChatProvider).sendMessage(
+          text,
+          currentUserInfo.id,
+          channelId
+        );
+      }
+    }
+
+    return Promise.resolve();
+  };
 
   addReaction(
     channelId: string,
@@ -668,14 +743,17 @@ export default class Manager implements IManager, vscode.Disposable {
     const currentChannelId = this.store.lastChannelId;
 
     if (!!currentChannelId) {
-      const message = await this.chatProvider.fetchThreadReplies(
+      const message = await (this
+        .chatProvider as IChatProvider).fetchThreadReplies(
         currentChannelId,
         parentTimestamp
       );
 
-      let messages: ChannelMessages = {};
-      messages[parentTimestamp] = message;
-      this.updateMessages(currentChannelId, messages);
+      if (!!message) {
+        let messages: ChannelMessages = {};
+        messages[parentTimestamp] = message;
+        this.updateMessages(currentChannelId, messages);
+      }
     }
   }
 
