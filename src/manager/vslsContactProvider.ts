@@ -111,7 +111,6 @@ export class VslsContactProvider implements ContactServiceProvider {
     const matchedContact = this.matchedContacts[user.id];
 
     if (!!matchedContact) {
-      // TODO: test this flow with arjun-test
       const notification: PresenceChangedNotification = {
         changes: [
           {
@@ -173,11 +172,6 @@ export class VslsContactProvider implements ContactServiceProvider {
     params: ContactPresenceRequest
   ): Promise<ContactPresenceResponse> {
     const { contacts } = params;
-
-    // TODO: Verify this:
-    // To be able to match incoming contacts, we need to have our
-    // existing users in store. Hence this can only happen after the
-    // first fetchUsers() call.
     const knownUsers = this.manager.store.users;
     const knownUserIds = Object.keys(knownUsers);
 
@@ -192,11 +186,10 @@ export class VslsContactProvider implements ContactServiceProvider {
         // need to do something else here.
         userId => knownUsers[userId].fullName === displayName
       );
+      const matchedUserId = matchByEmail || matchByName;
 
-      if (!!matchByEmail) {
-        this.matchedContacts[matchByEmail] = contact;
-      } else if (!!matchByName) {
-        this.matchedContacts[matchByName] = contact;
+      if (!!matchedUserId) {
+        this.matchedContacts[matchedUserId] = contact;
       }
     });
 
