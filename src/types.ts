@@ -24,9 +24,19 @@ export interface IChatProvider {
   ) => Promise<void>;
   connect: () => Promise<CurrentUser | undefined>;
   isConnected: () => boolean;
+  updateSelfPresence: (presence: UserPresence) => any;
   subscribePresence: (users: Users) => void;
   createIMChannel: (user: User) => Promise<Channel | undefined>;
   destroy: () => Promise<void>;
+}
+
+export enum UserPresence {
+  unknown = "unknown",
+  available = "available",
+  idle = "idle",
+  doNotDisturb = "doNotDisturb",
+  invisible = "invisible",
+  offline = "offline"
 }
 
 export interface User {
@@ -36,7 +46,7 @@ export interface User {
   internalName?: string; // Used by slack provider to associate DMs
   imageUrl: string;
   smallImageUrl: string;
-  isOnline: boolean;
+  presence: UserPresence;
   isBot?: boolean;
   isDeleted?: boolean;
   roleName?: string;
@@ -151,7 +161,7 @@ export interface ChannelLabel {
   channel: Channel;
   unread: number;
   label: string;
-  isOnline: boolean;
+  presence: UserPresence;
 }
 
 enum MessageType {
@@ -211,7 +221,7 @@ export interface IManager {
   updateMessages: (channelId: string, newMessages: ChannelMessages) => void;
   loadChannelHistory: (channelId: string) => Promise<void>;
   updateReadMarker: () => void;
-  updateUserPresence: (userId: string, isOnline: boolean) => void;
+  updatePresenceForUser: (userId: string, presence: UserPresence) => void;
   addReaction: (
     channelId: string,
     msgTimestamp: string,

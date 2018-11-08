@@ -10,7 +10,8 @@ import {
   Message,
   ChannelMessages,
   UserPreferences,
-  CurrentUser
+  CurrentUser,
+  UserPresence
 } from "../types";
 
 const stripLinkSymbols = (text: string): string => {
@@ -138,6 +139,20 @@ export class SlackChatProvider implements IChatProvider {
       });
     } catch (error) {
       return console.error(error);
+    }
+  }
+
+  async updateSelfPresence(presence: UserPresence): Promise<any> {
+    switch (presence) {
+      case UserPresence.doNotDisturb:
+        // TODO: This assumes snooze duration as 1 minute
+        return await this.client.setUserSnooze(1);
+      case UserPresence.available:
+        return await this.client.setUserPresence("auto");
+      case UserPresence.invisible:
+        return await this.client.setUserPresence("away");
+      default:
+        throw new Error(`unsupported presence type`);
     }
   }
 

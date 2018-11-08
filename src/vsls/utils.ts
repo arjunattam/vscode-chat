@@ -1,6 +1,6 @@
 import * as vsls from "vsls/vscode";
 import * as gravatar from "gravatar-api";
-import { User, Message } from "../types";
+import { User, Message, UserPresence } from "../types";
 
 export const VSLS_CHAT_CHANNEL = {
   id: "vsls-channel-id",
@@ -31,7 +31,7 @@ export const toBaseUser = (peerNumber: number, user: vsls.UserInfo): User => {
     fullName: displayName,
     imageUrl: avatar,
     smallImageUrl: avatar,
-    isOnline: true
+    presence: UserPresence.available
   };
 };
 

@@ -10,7 +10,8 @@ import {
   Message,
   UserPreferences,
   CurrentUser,
-  Providers
+  Providers,
+  UserPresence
 } from "../types";
 
 const CHANNEL_HISTORY_LIMIT = 50;
@@ -58,7 +59,7 @@ const getUser = (member: any): User => {
     internalName: name,
     imageUrl: image_72,
     smallImageUrl: image_24,
-    isOnline: false,
+    presence: UserPresence.unknown,
     isDeleted: deleted
   };
 };
@@ -152,6 +153,9 @@ export default class SlackAPIClient {
     const { members, ok } = response;
     let users: Users = {};
 
+    // TODO: where to get this info
+    this.getDndTeamInfo();
+
     if (ok) {
       members.forEach((member: any) => {
         const user = getUser(member);
@@ -179,7 +183,7 @@ export default class SlackAPIClient {
         fullName: name,
         imageUrl: icons.image_72,
         smallImageUrl: icons.image_24,
-        isOnline: false,
+        presence: UserPresence.unknown,
         isBot: true
       };
     }
@@ -425,5 +429,24 @@ export default class SlackAPIClient {
         }))
       };
     }
+  };
+
+  setUserPresence = async (presence: "auto" | "away"): Promise<boolean> => {
+    const response = await this.client.users.setPresence({ presence });
+    return response.ok;
+  };
+
+  setUserSnooze = async (durationInMinutes: number): Promise<boolean> => {
+    const response: any = await this.client.dnd.setSnooze({
+      num_minutes: durationInMinutes
+    });
+    console.log(response);
+    return response.ok && response.snooze_enabled;
+  };
+
+  getDndTeamInfo = async () => {
+    // TODO: pass list of user ids here
+    const response = await this.client.dnd.teamInfo();
+    console.log(response);
   };
 }

@@ -5,7 +5,13 @@ import Manager from "./manager";
 import Logger from "./logger";
 import { Store } from "./store";
 import * as str from "./strings";
-import { Channel, ChatArgs, EventType, EventSource } from "./types";
+import {
+  Channel,
+  ChatArgs,
+  EventType,
+  EventSource,
+  UserPresence
+} from "./types";
 import {
   SelfCommands,
   LiveShareCommands,
@@ -326,6 +332,21 @@ export function activate(context: vscode.ExtensionContext) {
     }
   };
 
+  const updateSelfPresence = async () => {
+    // Called when user triggers a change for self presence
+    // using manual command
+    const status = await vscode.window.showQuickPick([
+      "available",
+      "idle",
+      "doNotDisturb",
+      "invisible"
+    ]);
+
+    if (!!status && !!manager.chatProvider) {
+      manager.chatProvider.updateSelfPresence(status as UserPresence);
+    }
+  };
+
   const fetchReplies = (parentTimestamp: string) => {
     manager.fetchThreadReplies(parentTimestamp);
   };
@@ -529,10 +550,14 @@ export function activate(context: vscode.ExtensionContext) {
       }
     ),
     vscode.commands.registerCommand(
-      SelfCommands.UPDATE_USER_PRESENCE,
-      ({ userId, isOnline }) => {
-        manager.updateUserPresence(userId, isOnline);
+      SelfCommands.UPDATE_PRESENCE_STATUSES,
+      ({ userId, presence }) => {
+        manager.updatePresenceForUser(userId, presence);
       }
+    ),
+    vscode.commands.registerCommand(
+      SelfCommands.UPDATE_SELF_PRESENCE,
+      updateSelfPresence
     ),
     vscode.commands.registerCommand(
       SelfCommands.CHANNEL_MARKED,

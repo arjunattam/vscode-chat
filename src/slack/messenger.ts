@@ -8,9 +8,21 @@ import {
   CurrentUser,
   Users,
   MessageReply,
-  Providers
+  Providers,
+  UserPresence
 } from "../types";
 import { SelfCommands } from "../constants";
+
+interface IDNDStatus {
+  dnd_enabled: boolean;
+  next_dnd_start_ts: number;
+  next_dnd_end_ts: number;
+  // The following fields are only available for the
+  // DND_UPDATED_SELF event.
+  snooze_enabled?: boolean;
+  snooze_endtime?: number;
+  snooze_remaining?: number;
+}
 
 const RTMEvents = {
   AUTHENTICATED: "authenticated",
@@ -21,7 +33,9 @@ const RTMEvents = {
   PRESENCE_CHANGE: "presence_change",
   CHANNEL_MARKED: "channel_marked",
   GROUP_MARKED: "group_marked",
-  IM_MARKED: "im_marked"
+  IM_MARKED: "im_marked",
+  DND_UPDATED_SELF: "dnd_updated",
+  DND_UPDATED_USER: "dnd_updated_user"
 };
 
 const EventSubTypes = {
@@ -33,7 +47,7 @@ const EventSubTypes = {
 class SlackMessenger {
   rtmClient: RTMClient;
 
-  constructor(private token: string) {
+  constructor(token: string) {
     // We can also use { useRtmConnect: false } for rtm.start
     // instead of rtm.connect, which has more fields in the payload
     let options: RTMClientOptions = {};
@@ -130,11 +144,23 @@ class SlackMessenger {
     });
 
     this.rtmClient.on(RTMEvents.PRESENCE_CHANGE, event => {
-      const { user: userId, presence } = event;
-      const isOnline = presence === "active";
-      vscode.commands.executeCommand(SelfCommands.UPDATE_USER_PRESENCE, {
+      const { user: userId, presence: rawPresence } = event;
+      let presence: UserPresence = UserPresence.unknown;
+
+      switch (rawPresence) {
+        case "active":
+          presence = UserPresence.available;
+          break;
+        case "away":
+          presence = UserPresence.offline;
+          break;
+      }
+
+      // TODO: it is possible that this user has dnd enabled, so the presence
+      // could be do not disturb, in case the user is online
+      vscode.commands.executeCommand(SelfCommands.UPDATE_PRESENCE_STATUSES, {
         userId,
-        isOnline
+        presence
       });
     });
 
@@ -163,6 +189,21 @@ class SlackMessenger {
         readTimestamp: ts,
         unreadCount: unread_count_display
       });
+    });
+
+    this.rtmClient.on(RTMEvents.DND_UPDATED_SELF, event => {
+      console.log("dnd updated for self", event);
+      const { user: userId } = event;
+      const dndStatus: IDNDStatus = event.dnd_status;
+    });
+
+    this.rtmClient.on(RTMEvents.DND_UPDATED_USER, event => {
+      console.log("dnd updated for user", event);
+      // This event is not fired when the snooze ends for a user
+      // Hence, we need to maintain that time locally
+      // TODO: what about normal dnd schedules? are those events fired?
+      const { user: userId } = event;
+      const dndStatus: IDNDStatus = event.dnd_status;
     });
   }
 

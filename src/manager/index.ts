@@ -16,7 +16,8 @@ import {
   MessageReply,
   MessageReplies,
   Providers,
-  ChannelMessagesWithUndefined
+  ChannelMessagesWithUndefined,
+  UserPresence
 } from "../types";
 import Logger from "../logger";
 import {
@@ -205,7 +206,7 @@ export default class Manager implements IManager, vscode.Disposable {
       const unread = this.getUnreadCount(channel);
       const { name, type, id } = channel;
       const isMuted = this.isChannelMuted(id);
-      let isOnline = false;
+      let presence: UserPresence = UserPresence.unknown;
 
       if (type === ChannelType.im) {
         const relatedUserId = Object.keys(users).find(value => {
@@ -217,7 +218,7 @@ export default class Manager implements IManager, vscode.Disposable {
 
         if (!!relatedUserId) {
           const relatedUser = users[relatedUserId];
-          isOnline = relatedUser.isOnline;
+          presence = relatedUser.presence;
         }
       }
 
@@ -235,7 +236,7 @@ export default class Manager implements IManager, vscode.Disposable {
         channel,
         unread,
         label,
-        isOnline
+        presence
       };
     });
   }
@@ -297,17 +298,17 @@ export default class Manager implements IManager, vscode.Disposable {
     }
   };
 
-  updateUserPresence = (userId: string, isOnline: boolean) => {
+  updatePresenceForUser = (userId: string, presence: UserPresence) => {
     const { users } = this.store;
 
     if (userId in users) {
-      const existingIsOnline = users[userId].isOnline;
+      const existingPresence = users[userId].presence;
       this.store.users[userId] = {
         ...users[userId],
-        isOnline
+        presence
       };
 
-      if (isOnline !== existingIsOnline && !!this.viewsManager) {
+      if (presence !== existingPresence && !!this.viewsManager) {
         this.viewsManager.updateTreeViews();
       }
     }
@@ -363,17 +364,19 @@ export default class Manager implements IManager, vscode.Disposable {
       const existingUser =
         userId in existingUsers ? existingUsers[userId] : null;
       const newUser = users[userId];
-      let calculatedIsOnline: boolean;
+      let calculatedPresence: UserPresence;
 
-      if (newUser.isOnline !== undefined) {
-        calculatedIsOnline = newUser.isOnline;
+      if (newUser.presence !== UserPresence.unknown) {
+        calculatedPresence = newUser.presence;
       } else {
-        calculatedIsOnline = !!existingUser ? existingUser.isOnline : false;
+        calculatedPresence = !!existingUser
+          ? existingUser.presence
+          : UserPresence.unknown;
       }
 
       usersWithPresence[userId] = {
         ...users[userId],
-        isOnline: calculatedIsOnline
+        presence: calculatedPresence
       };
     });
 

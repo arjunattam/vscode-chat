@@ -109,6 +109,10 @@
         "title": "Chat: Chat with VS Live Share participants"
       },
       {
+        "command": "extension.chat.updateSelfPresence",
+        "title": "Chat: Update your presence status"
+      },
+      {
         "command": "extension.chat.startLiveShare",
         "title": "Invite to Live Share",
         "icon": {
