@@ -114,7 +114,6 @@ export default class SlackAPIClient {
     if (ok) {
       const { team, user, user_id, team_id } = response;
       return {
-        // token: this.token,
         id: user_id,
         name: user,
         teams: [{ id: team_id, name: team }],
