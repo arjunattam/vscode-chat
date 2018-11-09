@@ -4,6 +4,6 @@
     <title>Oval</title>
     <defs></defs>
     <g stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
-        <circle id="Oval" fill="#FF0000" cx="12" cy="12" r="6" fill-opacity="0.7"></circle>
+        <circle id="Oval" fill="#DF554E" cx="12" cy="12" r="6" fill-opacity="0.7"></circle>
     </g>
 </svg>

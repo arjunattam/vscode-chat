@@ -142,18 +142,29 @@ export class SlackChatProvider implements IChatProvider {
     }
   }
 
-  async updateSelfPresence(presence: UserPresence): Promise<any> {
+  async updateSelfPresence(
+    presence: UserPresence,
+    durationInMinutes: number
+  ): Promise<UserPresence | undefined> {
+    let response;
+
     switch (presence) {
       case UserPresence.doNotDisturb:
-        // TODO: This assumes snooze duration as 1 minute
-        return await this.client.setUserSnooze(1);
+        response = await this.client.setUserSnooze(durationInMinutes);
+        break;
       case UserPresence.available:
-        return await this.client.setUserPresence("auto");
+        // TODO: if user is on snooze, and changes to available -->
+        // we need to call endUserSnooze
+        response = await this.client.setUserPresence("auto");
+        break;
       case UserPresence.invisible:
-        return await this.client.setUserPresence("away");
+        response = await this.client.setUserPresence("away");
+        break;
       default:
         throw new Error(`unsupported presence type`);
     }
+
+    return !!response ? presence : undefined;
   }
 
   destroy(): Promise<void> {

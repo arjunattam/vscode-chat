@@ -303,6 +303,16 @@ export default class Manager implements IManager, vscode.Disposable {
 
     if (userId in users) {
       const existingPresence = users[userId].presence;
+
+      if (
+        existingPresence === UserPresence.invisible &&
+        presence === UserPresence.offline
+      ) {
+        // If we know user is `invisible`, then `offline` presence change
+        // should be ignored. This will only happen for self.
+        return;
+      }
+
       this.store.users[userId] = {
         ...users[userId],
         presence
@@ -630,6 +640,33 @@ export default class Manager implements IManager, vscode.Disposable {
     }
 
     return Promise.resolve();
+  };
+
+  getCurrentPresence = () => {
+    const { currentUserInfo, users } = this.store;
+
+    if (!!currentUserInfo) {
+      const currentUser = users[currentUserInfo.id];
+      return currentUser.presence;
+    }
+  };
+
+  updateSelfPresence = async (
+    presence: UserPresence,
+    durationInMinutes: number
+  ) => {
+    const { currentUserInfo } = this.store;
+
+    if (!!this.chatProvider && !!currentUserInfo) {
+      const presenceResult = await this.chatProvider.updateSelfPresence(
+        presence,
+        durationInMinutes
+      );
+
+      if (!!presenceResult) {
+        this.updatePresenceForUser(currentUserInfo.id, presenceResult);
+      }
+    }
   };
 
   addReaction(

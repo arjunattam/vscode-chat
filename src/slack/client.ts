@@ -440,8 +440,12 @@ export default class SlackAPIClient {
     const response: any = await this.client.dnd.setSnooze({
       num_minutes: durationInMinutes
     });
-    console.log(response);
     return response.ok && response.snooze_enabled;
+  };
+
+  endUserSnooze = async (): Promise<boolean> => {
+    const response = await this.client.dnd.endSnooze();
+    return response.ok;
   };
 
   getDndTeamInfo = async () => {

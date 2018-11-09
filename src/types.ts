@@ -24,7 +24,10 @@ export interface IChatProvider {
   ) => Promise<void>;
   connect: () => Promise<CurrentUser | undefined>;
   isConnected: () => boolean;
-  updateSelfPresence: (presence: UserPresence) => any;
+  updateSelfPresence: (
+    presence: UserPresence,
+    durationInMinutes: number
+  ) => Promise<UserPresence | undefined>;
   subscribePresence: (users: Users) => void;
   createIMChannel: (user: User) => Promise<Channel | undefined>;
   destroy: () => Promise<void>;

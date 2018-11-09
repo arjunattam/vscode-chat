@@ -35,8 +35,6 @@ const getPresence = (presence: Discord.Presence): UserPresence => {
       return UserPresence.idle;
     case "offline":
       return UserPresence.offline;
-    // TODO: invisible not one of the statuses, hence we will
-    // need to maintain that state separately?
   }
 };
 
@@ -412,7 +410,9 @@ export class DiscordChatProvider implements IChatProvider {
     return Promise.resolve();
   }
 
-  async updateSelfPresence(presence: UserPresence): Promise<any> {
+  async updateSelfPresence(
+    presence: UserPresence
+  ): Promise<UserPresence | undefined> {
     let status: Discord.PresenceStatus;
 
     switch (presence) {
@@ -433,7 +433,9 @@ export class DiscordChatProvider implements IChatProvider {
     }
 
     const response = await this.client.user.setPresence({ status });
-    return response;
+    // response.presence.status is always `invisible`
+    // Hence we return the original presence input as success
+    return presence;
   }
 
   destroy(): Promise<void> {

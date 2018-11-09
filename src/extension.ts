@@ -334,16 +334,47 @@ export function activate(context: vscode.ExtensionContext) {
 
   const updateSelfPresence = async () => {
     // Called when user triggers a change for self presence
-    // using manual command
-    const status = await vscode.window.showQuickPick([
-      "available",
-      "idle",
-      "doNotDisturb",
-      "invisible"
-    ]);
+    // using manual command.
+    const currentPresence = manager.getCurrentPresence();
+    const presenceChoices = [
+      UserPresence.available,
+      UserPresence.idle, // not available for slack
+      UserPresence.doNotDisturb,
+      UserPresence.invisible
+    ];
+    const items: vscode.QuickPickItem[] = presenceChoices.map(choice => {
+      const isCurrent = currentPresence === choice;
+      return {
+        label: choice,
+        description: isCurrent ? "current" : ""
+      };
+    });
+    const status = await vscode.window.showQuickPick(items);
 
-    if (!!status && !!manager.chatProvider) {
-      manager.chatProvider.updateSelfPresence(status as UserPresence);
+    if (!!status) {
+      const isSlack = manager.getSelectedProvider() === "slack";
+      let durationInMinutes = 0;
+
+      if (status.label === UserPresence.doNotDisturb && isSlack) {
+        // Ask for duration for dnd.snooze for slack implementation
+        const options: { [label: string]: number } = {
+          "20 minutes": 20,
+          "1 hour": 60,
+          "2 hours": 120,
+          "4 hours": 240,
+          "8 hours": 480,
+          "24 hours": 1440
+        };
+        const selected = await vscode.window.showQuickPick(
+          Object.keys(options)
+        );
+        durationInMinutes = !!selected ? options[selected] : 0;
+      }
+
+      manager.updateSelfPresence(
+        status.label as UserPresence,
+        durationInMinutes
+      );
     }
   };
 
