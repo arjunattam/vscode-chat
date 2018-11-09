@@ -174,6 +174,9 @@ export class VslsContactProvider implements ContactServiceProvider {
     const { contacts } = params;
     const knownUsers = this.manager.store.users;
     const knownUserIds = Object.keys(knownUsers);
+    // The response can only have contacts matched in this
+    // request. Hence, we maintain a list of matched ids.
+    let matchedUserIds: string[] = [];
 
     // Attempting to match contacts with known users
     contacts.forEach(contact => {
@@ -190,13 +193,12 @@ export class VslsContactProvider implements ContactServiceProvider {
 
       if (!!matchedUserId) {
         this.matchedContacts[matchedUserId] = contact;
+        matchedUserIds.push(matchedUserId);
       }
     });
 
-    const matchedIds = Object.keys(this.matchedContacts);
-
     let result: ContactPresenceResponse = {
-      contacts: matchedIds.map(userId => {
+      contacts: matchedUserIds.map(userId => {
         const contact = this.matchedContacts[userId];
         const user = knownUsers[userId];
         return {
