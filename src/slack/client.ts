@@ -10,8 +10,17 @@ import {
   Message,
   UserPreferences,
   CurrentUser,
-  Providers
+  Providers,
+  UserPresence
 } from "../types";
+import { IDNDStatusForUser } from "./common";
+
+interface ISnoozeAPIResponse {
+  ok: boolean;
+  snooze_enabled: boolean;
+  snooze_endtime: number;
+  snooze_remaining: number;
+}
 
 const CHANNEL_HISTORY_LIMIT = 50;
 
@@ -59,7 +68,7 @@ const getUser = (member: any): User => {
     internalName: name,
     imageUrl: image_72,
     smallImageUrl: image_24,
-    isOnline: false,
+    presence: UserPresence.unknown,
     isDeleted: deleted
   };
 };
@@ -115,7 +124,6 @@ export default class SlackAPIClient {
     if (ok) {
       const { team, user, user_id, team_id } = response;
       return {
-        // token: this.token,
         id: user_id,
         name: user,
         teams: [{ id: team_id, name: team }],
@@ -181,7 +189,7 @@ export default class SlackAPIClient {
         fullName: name,
         imageUrl: icons.image_72,
         smallImageUrl: icons.image_24,
-        isOnline: false,
+        presence: UserPresence.unknown,
         isBot: true
       };
     }
@@ -427,5 +435,43 @@ export default class SlackAPIClient {
         }))
       };
     }
+  };
+
+  setUserPresence = async (presence: "auto" | "away"): Promise<boolean> => {
+    const response = await this.client.users.setPresence({ presence });
+    return response.ok;
+  };
+
+  setUserSnooze = async (durationInMinutes: number): Promise<boolean> => {
+    const response = (await this.client.dnd.setSnooze({
+      num_minutes: durationInMinutes
+    })) as ISnoozeAPIResponse;
+    return response.ok && response.snooze_enabled;
+  };
+
+  endUserSnooze = async (): Promise<boolean> => {
+    const response = await this.client.dnd.endSnooze();
+    return response.ok;
+  };
+
+  endUserDnd = async (): Promise<boolean> => {
+    const response = await this.client.dnd.endDnd();
+    return response.ok;
+  };
+
+  getDndTeamInfo = async (): Promise<IDNDStatusForUser> => {
+    const response: any = await this.client.dnd.teamInfo();
+    const users: IDNDStatusForUser = response.users;
+    let result: IDNDStatusForUser = {};
+
+    const userIds = Object.keys(users);
+    userIds.forEach(userId => {
+      const { dnd_enabled } = users[userId];
+      if (!!dnd_enabled) {
+        result[userId] = users[userId];
+      }
+    });
+
+    return result;
   };
 }

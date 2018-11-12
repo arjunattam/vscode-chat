@@ -16,7 +16,8 @@ import {
   MessageReply,
   MessageReplies,
   Providers,
-  ChannelMessagesWithUndefined
+  ChannelMessagesWithUndefined,
+  UserPresence
 } from "../types";
 import Logger from "../logger";
 import {
@@ -90,7 +91,7 @@ export default class Manager implements IManager, vscode.Disposable {
       case "discord":
         return new DiscordChatProvider(token, this);
       case "slack":
-        return new SlackChatProvider(token);
+        return new SlackChatProvider(token, this);
       case "vsls":
         return new VslsChatProvider();
       default:
@@ -234,7 +235,7 @@ export default class Manager implements IManager, vscode.Disposable {
       const unread = this.getUnreadCount(channel);
       const { name, type, id } = channel;
       const isMuted = this.isChannelMuted(id);
-      let isOnline = false;
+      let presence: UserPresence = UserPresence.unknown;
 
       if (type === ChannelType.im) {
         const relatedUserId = Object.keys(users).find(value => {
@@ -246,7 +247,7 @@ export default class Manager implements IManager, vscode.Disposable {
 
         if (!!relatedUserId) {
           const relatedUser = users[relatedUserId];
-          isOnline = relatedUser.isOnline;
+          presence = relatedUser.presence;
         }
       }
 
@@ -264,7 +265,7 @@ export default class Manager implements IManager, vscode.Disposable {
         channel,
         unread,
         label,
-        isOnline
+        presence
       };
     });
   }
@@ -326,17 +327,39 @@ export default class Manager implements IManager, vscode.Disposable {
     }
   };
 
-  updateUserPresence = (userId: string, isOnline: boolean) => {
+  getUserPresence(userId: string) {
+    const user = this.store.users[userId];
+    return !!user ? user.presence : undefined;
+  }
+
+  getCurrentUserPresence() {
+    const { currentUserInfo } = this.store;
+    return !!currentUserInfo
+      ? this.getUserPresence(currentUserInfo.id)
+      : undefined;
+  }
+
+  updatePresenceForUser = (userId: string, presence: UserPresence) => {
     const { users } = this.store;
 
     if (userId in users) {
-      const existingIsOnline = users[userId].isOnline;
+      const existingPresence = users[userId].presence;
+
+      if (
+        existingPresence === UserPresence.invisible &&
+        presence === UserPresence.offline
+      ) {
+        // If we know user is `invisible`, then `offline` presence change
+        // should be ignored. This will only happen for self.
+        return;
+      }
+
       this.store.users[userId] = {
         ...users[userId],
-        isOnline
+        presence
       };
 
-      if (isOnline !== existingIsOnline && !!this.viewsManager) {
+      if (presence !== existingPresence && !!this.viewsManager) {
         this.viewsManager.updateTreeViews();
       }
 
@@ -398,17 +421,19 @@ export default class Manager implements IManager, vscode.Disposable {
       const existingUser =
         userId in existingUsers ? existingUsers[userId] : null;
       const newUser = users[userId];
-      let calculatedIsOnline: boolean;
+      let calculatedPresence: UserPresence;
 
-      if (newUser.isOnline !== undefined) {
-        calculatedIsOnline = newUser.isOnline;
+      if (newUser.presence !== UserPresence.unknown) {
+        calculatedPresence = newUser.presence;
       } else {
-        calculatedIsOnline = !!existingUser ? existingUser.isOnline : false;
+        calculatedPresence = !!existingUser
+          ? existingUser.presence
+          : UserPresence.unknown;
       }
 
       usersWithPresence[userId] = {
         ...users[userId],
-        isOnline: calculatedIsOnline
+        presence: calculatedPresence
       };
     });
 
@@ -662,6 +687,33 @@ export default class Manager implements IManager, vscode.Disposable {
     }
 
     return Promise.resolve();
+  };
+
+  getCurrentPresence = () => {
+    const { currentUserInfo, users } = this.store;
+
+    if (!!currentUserInfo) {
+      const currentUser = users[currentUserInfo.id];
+      return currentUser.presence;
+    }
+  };
+
+  updateSelfPresence = async (
+    presence: UserPresence,
+    durationInMinutes: number
+  ) => {
+    const { currentUserInfo } = this.store;
+
+    if (!!this.chatProvider && !!currentUserInfo) {
+      const presenceResult = await this.chatProvider.updateSelfPresence(
+        presence,
+        durationInMinutes
+      );
+
+      if (!!presenceResult) {
+        this.updatePresenceForUser(currentUserInfo.id, presenceResult);
+      }
+    }
   };
 
   addReaction(

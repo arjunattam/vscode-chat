@@ -5,7 +5,13 @@ import Manager from "./manager";
 import Logger from "./logger";
 import { Store } from "./store";
 import * as str from "./strings";
-import { Channel, ChatArgs, EventType, EventSource } from "./types";
+import {
+  Channel,
+  ChatArgs,
+  EventType,
+  EventSource,
+  UserPresence
+} from "./types";
 import {
   SelfCommands,
   LiveShareCommands,
@@ -327,6 +333,57 @@ export function activate(context: vscode.ExtensionContext) {
     }
   };
 
+  const updateSelfPresence = async () => {
+    // Called when user triggers a change for self presence
+    // using manual command.
+    const isSlack = manager.getSelectedProvider() === "slack";
+    const currentPresence = manager.getCurrentPresence();
+    const presenceChoices = [
+      UserPresence.available,
+      UserPresence.doNotDisturb,
+      UserPresence.invisible
+    ];
+
+    if (!isSlack) {
+      // Slack does not have the idle option
+      presenceChoices.push(UserPresence.idle);
+    }
+
+    const items: vscode.QuickPickItem[] = presenceChoices.map(choice => {
+      const isCurrent = currentPresence === choice;
+      return {
+        label: choice,
+        description: isCurrent ? "current" : ""
+      };
+    });
+    const status = await vscode.window.showQuickPick(items);
+
+    if (!!status) {
+      let durationInMinutes = 0;
+
+      if (status.label === UserPresence.doNotDisturb && isSlack) {
+        // Ask for duration for dnd.snooze for slack implementation
+        const options: { [label: string]: number } = {
+          "20 minutes": 20,
+          "1 hour": 60,
+          "2 hours": 120,
+          "4 hours": 240,
+          "8 hours": 480,
+          "24 hours": 1440
+        };
+        const selected = await vscode.window.showQuickPick(
+          Object.keys(options)
+        );
+        durationInMinutes = !!selected ? options[selected] : 0;
+      }
+
+      manager.updateSelfPresence(
+        status.label as UserPresence,
+        durationInMinutes
+      );
+    }
+  };
+
   const fetchReplies = (parentTimestamp: string) => {
     manager.fetchThreadReplies(parentTimestamp);
   };
@@ -530,10 +587,14 @@ export function activate(context: vscode.ExtensionContext) {
       }
     ),
     vscode.commands.registerCommand(
-      SelfCommands.UPDATE_USER_PRESENCE,
-      ({ userId, isOnline }) => {
-        manager.updateUserPresence(userId, isOnline);
+      SelfCommands.UPDATE_PRESENCE_STATUSES,
+      ({ userId, presence }) => {
+        manager.updatePresenceForUser(userId, presence);
       }
+    ),
+    vscode.commands.registerCommand(
+      SelfCommands.UPDATE_SELF_PRESENCE,
+      updateSelfPresence
     ),
     vscode.commands.registerCommand(
       SelfCommands.CHANNEL_MARKED,

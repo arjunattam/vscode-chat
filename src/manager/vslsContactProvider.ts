@@ -15,7 +15,7 @@ import {
   InviteReceivedNotification,
   SelfContactNotification
 } from "vsls/vsls-contactprotocol";
-import { User, Users } from "../types";
+import { User, Users, UserPresence } from "../types";
 import Manager from "./index";
 
 export class VslsContactProvider implements ContactServiceProvider {
@@ -214,8 +214,20 @@ export class VslsContactProvider implements ContactServiceProvider {
   }
 
   private getUserPresence = (user: User): PresenceStatus => {
-    const { isOnline } = user;
-    return isOnline ? PresenceStatus.Available : PresenceStatus.Away;
+    switch (user.presence) {
+      case UserPresence.available:
+        return PresenceStatus.Available;
+      case UserPresence.doNotDisturb:
+        return PresenceStatus.DoNotDisturb;
+      case UserPresence.idle:
+        return PresenceStatus.Away;
+      case UserPresence.invisible:
+        return PresenceStatus.Invisible;
+      case UserPresence.offline:
+        return PresenceStatus.Offline;
+      case UserPresence.unknown:
+        return PresenceStatus.Unknown;
+    }
   };
 
   private getContact = (user: User) => {

@@ -24,6 +24,10 @@ export interface IChatProvider {
   ) => Promise<void>;
   connect: () => Promise<CurrentUser | undefined>;
   isConnected: () => boolean;
+  updateSelfPresence: (
+    presence: UserPresence,
+    durationInMinutes: number
+  ) => Promise<UserPresence | undefined>;
   subscribePresence: (users: Users) => void;
   createIMChannel: (user: User) => Promise<Channel | undefined>;
   destroy: () => Promise<void>;
@@ -32,8 +36,7 @@ export interface IChatProvider {
 export enum UserPresence {
   unknown = "unknown",
   available = "available",
-  busy = "busy",
-  away = "away",
+  idle = "idle",
   doNotDisturb = "doNotDisturb",
   invisible = "invisible",
   offline = "offline"
@@ -47,7 +50,7 @@ export interface User {
   internalName?: string; // Used by slack provider to associate DMs
   imageUrl: string;
   smallImageUrl: string;
-  isOnline: boolean;
+  presence: UserPresence;
   isBot?: boolean;
   isDeleted?: boolean;
   roleName?: string;
@@ -66,7 +69,6 @@ export enum Providers {
 export interface CurrentUser {
   id: string;
   name: string;
-  // token: string;
   teams: Team[];
   currentTeamId: string | undefined;
   provider: Providers;
@@ -163,7 +165,7 @@ export interface ChannelLabel {
   channel: Channel;
   unread: number;
   label: string;
-  isOnline: boolean;
+  presence: UserPresence;
 }
 
 enum MessageType {
@@ -220,10 +222,12 @@ export interface IManager {
   getChannelLabels: () => any;
   getUnreadCount: (channel: Channel) => number;
   getCurrentWorkspaceName: () => string | undefined;
+  getUserPresence: (userId: string) => UserPresence | undefined;
+  getCurrentUserPresence: () => UserPresence | undefined;
   updateMessages: (channelId: string, newMessages: ChannelMessages) => void;
   loadChannelHistory: (channelId: string) => Promise<void>;
   updateReadMarker: () => void;
-  updateUserPresence: (userId: string, isOnline: boolean) => void;
+  updatePresenceForUser: (userId: string, presence: UserPresence) => void;
   addReaction: (
     channelId: string,
     msgTimestamp: string,

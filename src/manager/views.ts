@@ -32,8 +32,6 @@ export class ViewsManager implements vscode.Disposable {
   }
 
   updateStatusItem() {
-    // TODO: channels can be undefined since this is called before
-    // getChannelsPromise
     const { channels } = this.parentManager.store;
     const unreads = channels.map(channel => {
       return this.parentManager.getUnreadCount(channel);

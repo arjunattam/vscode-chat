@@ -13,7 +13,8 @@ import {
   ChannelMessages,
   Message,
   MessageContent,
-  Providers
+  Providers,
+  UserPresence
 } from "../types";
 import { SelfCommands } from "../constants";
 import { toTitleCase } from "../utils";
@@ -22,9 +23,19 @@ import Logger from "../logger";
 const HISTORY_LIMIT = 50;
 const MEMBER_LIMIT = 500;
 
-const isOnline = (presence: Discord.Presence): boolean => {
+const getPresence = (presence: Discord.Presence): UserPresence => {
   const { status } = presence;
-  return status === "online" || status === "idle";
+
+  switch (status) {
+    case "online":
+      return UserPresence.available;
+    case "dnd":
+      return UserPresence.doNotDisturb;
+    case "idle":
+      return UserPresence.idle;
+    case "offline":
+      return UserPresence.offline;
+  }
 };
 
 const getMessageContent = (
@@ -70,7 +81,7 @@ const getUser = (raw: Discord.User): User => {
     fullName: username,
     imageUrl: getImageUrl(userId, avatar),
     smallImageUrl: getSmallImageUrl(userId, avatar),
-    isOnline: isOnline(presence)
+    presence: getPresence(presence)
   };
 };
 
@@ -152,9 +163,9 @@ export class DiscordChatProvider implements IChatProvider {
 
       this.client.on("presenceUpdate", (_, newMember: Discord.GuildMember) => {
         const { id: userId, presence } = newMember;
-        vscode.commands.executeCommand(SelfCommands.UPDATE_USER_PRESENCE, {
+        vscode.commands.executeCommand(SelfCommands.UPDATE_PRESENCE_STATUSES, {
           userId,
-          isOnline: isOnline(presence)
+          presence: getPresence(presence)
         });
       });
 
@@ -397,6 +408,34 @@ export class DiscordChatProvider implements IChatProvider {
 
   sendThreadReply() {
     return Promise.resolve();
+  }
+
+  async updateSelfPresence(
+    presence: UserPresence
+  ): Promise<UserPresence | undefined> {
+    let status: Discord.PresenceStatus;
+
+    switch (presence) {
+      case UserPresence.available:
+        status = "online";
+        break;
+      case UserPresence.doNotDisturb:
+        status = "dnd";
+        break;
+      case UserPresence.idle:
+        status = "idle";
+        break;
+      case UserPresence.invisible:
+        status = "invisible";
+        break;
+      default:
+        throw new Error("status not supported by discord");
+    }
+
+    const response = await this.client.user.setPresence({ status });
+    // response.presence.status is always `invisible`
+    // Hence we return the original presence input as success
+    return presence;
   }
 
   destroy(): Promise<void> {

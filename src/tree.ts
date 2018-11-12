@@ -9,7 +9,8 @@ import {
   ChannelLabel,
   Users,
   CurrentUser,
-  ChannelType
+  ChannelType,
+  UserPresence
 } from "./types";
 
 interface ChatTreeNode {
@@ -17,7 +18,7 @@ interface ChatTreeNode {
   channel: Channel | undefined;
   user: User | undefined;
   isCategory: boolean;
-  isOnline: boolean;
+  presence: UserPresence;
 }
 
 interface ISortingFunction {
@@ -34,19 +35,25 @@ function notUndefined<T>(x: T | undefined): x is T {
   return x !== undefined;
 }
 
-const GREEN_DOT = path.join(
+const BASE_PATH = path.join(
   __filename,
   "..",
   "..",
   "public",
   "icons",
-  "green.svg"
+  "presence"
 );
+
+const PRESENCE_ICONS = {
+  green: path.join(BASE_PATH, "green.svg"),
+  red: path.join(BASE_PATH, "red.svg"),
+  yellow: path.join(BASE_PATH, "yellow.svg")
+};
 
 class CustomChatTreeItem extends vscode.TreeItem {
   constructor(
     label: string,
-    isOnline: boolean,
+    presence: UserPresence,
     isCategory: boolean,
     channel?: Channel,
     user?: User
@@ -63,11 +70,25 @@ class CustomChatTreeItem extends vscode.TreeItem {
       };
     }
 
-    if (isOnline) {
-      this.iconPath = {
-        light: GREEN_DOT,
-        dark: GREEN_DOT
-      };
+    switch (presence) {
+      case UserPresence.available:
+        this.iconPath = {
+          light: PRESENCE_ICONS.green,
+          dark: PRESENCE_ICONS.green
+        };
+        break;
+      case UserPresence.doNotDisturb:
+        this.iconPath = {
+          light: PRESENCE_ICONS.red,
+          dark: PRESENCE_ICONS.red
+        };
+        break;
+      case UserPresence.idle:
+        this.iconPath = {
+          light: PRESENCE_ICONS.yellow,
+          dark: PRESENCE_ICONS.yellow
+        };
+        break;
     }
 
     if (isCategory) {
@@ -129,7 +150,7 @@ class BaseTreeProvider
       return this.refresh();
     }
 
-    // Looking for changes in isOnline and unread
+    // Looking for changes in presence and unread
     Object.keys(newLabels).forEach(channelId => {
       const newLabel = newLabels[channelId];
       const prevLabel = prevLabels[channelId];
@@ -139,7 +160,7 @@ class BaseTreeProvider
         this.refresh();
       }
 
-      if (prevLabel.isOnline !== newLabel.isOnline) {
+      if (prevLabel.presence !== newLabel.presence) {
         // Can we send just this element?
         this.refresh();
       }
@@ -191,10 +212,10 @@ class BaseTreeProvider
   }
 
   getItemForChannel(channelLabel: ChannelLabel): ChatTreeNode {
-    const { label, isOnline, channel } = channelLabel;
+    const { label, presence, channel } = channelLabel;
     return {
       label,
-      isOnline,
+      presence,
       channel,
       isCategory: false,
       user: undefined
@@ -204,7 +225,7 @@ class BaseTreeProvider
   getItemForCategory(category: string): ChatTreeNode {
     return {
       label: category,
-      isOnline: false,
+      presence: UserPresence.unknown,
       isCategory: true,
       channel: undefined,
       user: undefined
@@ -214,10 +235,10 @@ class BaseTreeProvider
   getTreeItem(element: ChatTreeNode): vscode.TreeItem {
     // TODO: when selected, the highlight on the tree item seems to stick. This might
     // be because we don't use URIs (~= each channel is a URI) to open/close. Need to investigate.
-    const { label, isOnline, isCategory, channel, user } = element;
+    const { label, presence, isCategory, channel, user } = element;
     const treeItem = new CustomChatTreeItem(
       label,
-      isOnline,
+      presence,
       isCategory,
       channel,
       user
@@ -277,11 +298,17 @@ export class OnlineUsersTreeProvider extends BaseTreeProvider {
     imChannels: { [userId: string]: Channel }
   ) {
     const { id: currentId } = currentUser;
+    const ALLOWED_PRESENCE = [
+      UserPresence.available,
+      UserPresence.doNotDisturb,
+      UserPresence.idle
+    ];
 
     const prevUserIds = new Set(this.users.map(user => user.id));
     this.users = Object.keys(users)
       .map(userId => users[userId])
-      .filter(user => user.isOnline && user.id !== currentId);
+      .filter(user => ALLOWED_PRESENCE.indexOf(user.presence) >= 0)
+      .filter(user => user.id !== currentId); // Can't have the self user in this list
     const newUserIds = new Set(this.users.map(user => user.id));
     this.imChannels = imChannels;
 
@@ -293,7 +320,7 @@ export class OnlineUsersTreeProvider extends BaseTreeProvider {
   getItemForUser(user: User): ChatTreeNode {
     return {
       label: user.name,
-      isOnline: user.isOnline,
+      presence: user.presence,
       isCategory: false,
       user,
       channel: this.imChannels[user.id]

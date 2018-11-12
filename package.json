@@ -109,6 +109,10 @@
         "title": "Chat: Chat with VS Live Share participants"
       },
       {
+        "command": "extension.chat.updateSelfPresence",
+        "title": "Chat: Update your presence status"
+      },
+      {
         "command": "extension.chat.startLiveShare",
         "title": "Invite to Live Share",
         "icon": {
@@ -165,23 +169,6 @@
           "id": "chat.treeView.ims.discord",
           "name": "Direct Messages",
           "when": "chat:discord"
-        }
-      ],
-      "vsliveshareTreeExplorerActivityBar": [
-        {
-          "id": "chat.treeView.onlineUsers.slack",
-          "name": "Slack Users",
-          "when": "chat:vslsEnabled && chat:slack"
-        },
-        {
-          "id": "chat.treeView.onlineUsers.discord",
-          "name": "Discord Users",
-          "when": "chat:vslsEnabled && chat:discord"
-        },
-        {
-          "id": "chat.treeView.onboarding.vsls",
-          "name": "Online Users",
-          "when": "chat:vslsEnabled && !chat:slack && !chat:discord"
         }
       ]
     },

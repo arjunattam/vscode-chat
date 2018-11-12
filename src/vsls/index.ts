@@ -258,4 +258,8 @@ export class VslsChatProvider implements IChatProvider {
   async createIMChannel(user: User): Promise<Channel | undefined> {
     return undefined;
   }
+
+  updateSelfPresence(): any {
+    // no-op
+  }
 }
