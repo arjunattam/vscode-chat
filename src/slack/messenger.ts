@@ -12,17 +12,7 @@ import {
   UserPresence
 } from "../types";
 import { SelfCommands } from "../constants";
-
-interface IDNDStatus {
-  dnd_enabled: boolean;
-  next_dnd_start_ts: number;
-  next_dnd_end_ts: number;
-  // The following fields are only available for the
-  // DND_UPDATED_SELF event.
-  snooze_enabled?: boolean;
-  snooze_endtime?: number;
-  snooze_remaining?: number;
-}
+import { IDNDStatus } from "./common";
 
 const RTMEvents = {
   AUTHENTICATED: "authenticated",
@@ -47,7 +37,11 @@ const EventSubTypes = {
 class SlackMessenger {
   rtmClient: RTMClient;
 
-  constructor(token: string) {
+  constructor(
+    token: string,
+    private onPresenceChanged: any,
+    private onDndStateChanged: any
+  ) {
     // We can also use { useRtmConnect: false } for rtm.start
     // instead of rtm.connect, which has more fields in the payload
     let options: RTMClientOptions = {};
@@ -143,27 +137,6 @@ class SlackMessenger {
       });
     });
 
-    this.rtmClient.on(RTMEvents.PRESENCE_CHANGE, event => {
-      const { user: userId, presence: rawPresence } = event;
-      let presence: UserPresence = UserPresence.unknown;
-
-      switch (rawPresence) {
-        case "active":
-          presence = UserPresence.available;
-          break;
-        case "away":
-          presence = UserPresence.offline;
-          break;
-      }
-
-      // TODO: it is possible that this user has dnd enabled, so the presence
-      // could be do not disturb, in case the user is online
-      vscode.commands.executeCommand(SelfCommands.UPDATE_PRESENCE_STATUSES, {
-        userId,
-        presence
-      });
-    });
-
     this.rtmClient.on(RTMEvents.CHANNEL_MARKED, event => {
       const { channel, ts, unread_count_display } = event;
       vscode.commands.executeCommand(SelfCommands.CHANNEL_MARKED, {
@@ -191,19 +164,23 @@ class SlackMessenger {
       });
     });
 
+    this.rtmClient.on(RTMEvents.PRESENCE_CHANGE, event => {
+      const { user: userId, presence: rawPresence } = event;
+      this.onPresenceChanged(userId, rawPresence);
+    });
+
     this.rtmClient.on(RTMEvents.DND_UPDATED_SELF, event => {
-      console.log("dnd updated for self", event);
+      // This is a no-op, since the DND_UPDATED_USER handler does everything
       const { user: userId } = event;
       const dndStatus: IDNDStatus = event.dnd_status;
     });
 
     this.rtmClient.on(RTMEvents.DND_UPDATED_USER, event => {
-      console.log("dnd updated for user", event);
       // This event is not fired when the snooze ends for a user
-      // Hence, we need to maintain that time locally
-      // TODO: what about normal dnd schedules? are those events fired?
+      // Hence, we need to maintain that via dnd timers
       const { user: userId } = event;
       const dndStatus: IDNDStatus = event.dnd_status;
+      this.onDndStateChanged(userId, dndStatus);
     });
   }
 

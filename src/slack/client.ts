@@ -13,6 +13,14 @@ import {
   Providers,
   UserPresence
 } from "../types";
+import { IDNDStatusForUser } from "./common";
+
+interface ISnoozeAPIResponse {
+  ok: boolean;
+  snooze_enabled: boolean;
+  snooze_endtime: number;
+  snooze_remaining: 1200;
+}
 
 const CHANNEL_HISTORY_LIMIT = 50;
 
@@ -152,9 +160,6 @@ export default class SlackAPIClient {
     });
     const { members, ok } = response;
     let users: Users = {};
-
-    // TODO: where to get this info
-    this.getDndTeamInfo();
 
     if (ok) {
       members.forEach((member: any) => {
@@ -437,9 +442,9 @@ export default class SlackAPIClient {
   };
 
   setUserSnooze = async (durationInMinutes: number): Promise<boolean> => {
-    const response: any = await this.client.dnd.setSnooze({
+    const response = (await this.client.dnd.setSnooze({
       num_minutes: durationInMinutes
-    });
+    })) as ISnoozeAPIResponse;
     return response.ok && response.snooze_enabled;
   };
 
@@ -448,9 +453,19 @@ export default class SlackAPIClient {
     return response.ok;
   };
 
-  getDndTeamInfo = async () => {
-    // TODO: pass list of user ids here
-    const response = await this.client.dnd.teamInfo();
-    console.log(response);
+  getDndTeamInfo = async (): Promise<IDNDStatusForUser> => {
+    const response: any = await this.client.dnd.teamInfo();
+    const users: IDNDStatusForUser = response.users;
+    let result: IDNDStatusForUser = {};
+
+    const userIds = Object.keys(users);
+    userIds.forEach(userId => {
+      const { dnd_enabled } = users[userId];
+      if (!!dnd_enabled) {
+        result[userId] = users[userId];
+      }
+    });
+
+    return result;
   };
 }

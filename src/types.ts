@@ -221,6 +221,7 @@ export interface IManager {
   getChannelLabels: () => any;
   getUnreadCount: (channel: Channel) => number;
   getCurrentWorkspaceName: () => string | undefined;
+  getUserPresence: (userId: string) => UserPresence | undefined;
   updateMessages: (channelId: string, newMessages: ChannelMessages) => void;
   loadChannelHistory: (channelId: string) => Promise<void>;
   updateReadMarker: () => void;

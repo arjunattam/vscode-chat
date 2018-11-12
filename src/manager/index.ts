@@ -89,7 +89,7 @@ export default class Manager implements IManager, vscode.Disposable {
       case "discord":
         return new DiscordChatProvider(token, this);
       case "slack":
-        return new SlackChatProvider(token);
+        return new SlackChatProvider(token, this);
       case "vsls":
         return new VslsChatProvider();
       default:
@@ -297,6 +297,11 @@ export default class Manager implements IManager, vscode.Disposable {
       }
     }
   };
+
+  getUserPresence(userId: string) {
+    const user = this.store.users[userId];
+    return !!user ? user.presence : undefined;
+  }
 
   updatePresenceForUser = (userId: string, presence: UserPresence) => {
     const { users } = this.store;
