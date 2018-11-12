@@ -453,6 +453,11 @@ export default class SlackAPIClient {
     return response.ok;
   };
 
+  endUserDnd = async (): Promise<boolean> => {
+    const response = await this.client.dnd.endDnd();
+    return response.ok;
+  };
+
   getDndTeamInfo = async (): Promise<IDNDStatusForUser> => {
     const response: any = await this.client.dnd.teamInfo();
     const users: IDNDStatusForUser = response.users;

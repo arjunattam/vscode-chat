@@ -256,15 +256,21 @@ export class SlackChatProvider implements IChatProvider {
     durationInMinutes: number
   ): Promise<UserPresence | undefined> {
     let response;
+    const currentPresence = this.manager.getCurrentUserPresence();
 
     switch (presence) {
       case UserPresence.doNotDisturb:
         response = await this.client.setUserSnooze(durationInMinutes);
         break;
       case UserPresence.available:
-        // TODO: if user is on snooze, and changes to available -->
-        // we need to call endUserSnooze
-        response = await this.client.setUserPresence("auto");
+        if (currentPresence === UserPresence.doNotDisturb) {
+          // client.endUserDnd() can handle both situations -- when user is on
+          // snooze, and when user is on a scheduled dnd
+          response = await this.client.endUserDnd();
+        } else {
+          response = await this.client.setUserPresence("auto");
+        }
+
         break;
       case UserPresence.invisible:
         response = await this.client.setUserPresence("away");

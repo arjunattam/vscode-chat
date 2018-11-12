@@ -303,6 +303,13 @@ export default class Manager implements IManager, vscode.Disposable {
     return !!user ? user.presence : undefined;
   }
 
+  getCurrentUserPresence() {
+    const { currentUserInfo } = this.store;
+    return !!currentUserInfo
+      ? this.getUserPresence(currentUserInfo.id)
+      : undefined;
+  }
+
   updatePresenceForUser = (userId: string, presence: UserPresence) => {
     const { users } = this.store;
 
