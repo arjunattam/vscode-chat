@@ -19,7 +19,7 @@ interface ISnoozeAPIResponse {
   ok: boolean;
   snooze_enabled: boolean;
   snooze_endtime: number;
-  snooze_remaining: 1200;
+  snooze_remaining: number;
 }
 
 const CHANNEL_HISTORY_LIMIT = 50;

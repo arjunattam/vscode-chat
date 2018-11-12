@@ -335,13 +335,19 @@ export function activate(context: vscode.ExtensionContext) {
   const updateSelfPresence = async () => {
     // Called when user triggers a change for self presence
     // using manual command.
+    const isSlack = manager.getSelectedProvider() === "slack";
     const currentPresence = manager.getCurrentPresence();
     const presenceChoices = [
       UserPresence.available,
-      UserPresence.idle, // not available for slack
       UserPresence.doNotDisturb,
       UserPresence.invisible
     ];
+
+    if (!isSlack) {
+      // Slack does not have the idle option
+      presenceChoices.push(UserPresence.idle);
+    }
+
     const items: vscode.QuickPickItem[] = presenceChoices.map(choice => {
       const isCurrent = currentPresence === choice;
       return {
@@ -352,7 +358,6 @@ export function activate(context: vscode.ExtensionContext) {
     const status = await vscode.window.showQuickPick(items);
 
     if (!!status) {
-      const isSlack = manager.getSelectedProvider() === "slack";
       let durationInMinutes = 0;
 
       if (status.label === UserPresence.doNotDisturb && isSlack) {
