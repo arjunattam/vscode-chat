@@ -28,7 +28,7 @@ export const toBaseUser = (peerNumber: number, user: vsls.UserInfo): User => {
   return {
     id: peerNumber.toString(),
     name: displayName,
-    email: emailAddress,
+    email: !!emailAddress ? emailAddress : undefined,
     fullName: displayName,
     imageUrl: avatar,
     smallImageUrl: avatar,

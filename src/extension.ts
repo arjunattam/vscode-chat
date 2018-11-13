@@ -6,6 +6,7 @@ import Logger from "./logger";
 import { Store } from "./store";
 import * as str from "./strings";
 import {
+  User,
   Channel,
   ChatArgs,
   EventType,
@@ -333,7 +334,28 @@ export function activate(context: vscode.ExtensionContext) {
     }
   };
 
-  const updateSelfPresence = async () => {
+  const updateSelfPresence = async (presence: UserPresence) => {
+    const isSlack = manager.getSelectedProvider() === "slack";
+    let durationInMinutes = 0;
+
+    if (presence === UserPresence.doNotDisturb && isSlack) {
+      // Ask for duration for dnd.snooze for slack implementation
+      const options: { [label: string]: number } = {
+        "20 minutes": 20,
+        "1 hour": 60,
+        "2 hours": 120,
+        "4 hours": 240,
+        "8 hours": 480,
+        "24 hours": 1440
+      };
+      const selected = await vscode.window.showQuickPick(Object.keys(options));
+      durationInMinutes = !!selected ? options[selected] : 0;
+    }
+
+    manager.updateSelfPresence(presence, durationInMinutes);
+  };
+
+  const askForSelfPresence = async () => {
     // Called when user triggers a change for self presence
     // using manual command.
     const isSlack = manager.getSelectedProvider() === "slack";
@@ -359,28 +381,7 @@ export function activate(context: vscode.ExtensionContext) {
     const status = await vscode.window.showQuickPick(items);
 
     if (!!status) {
-      let durationInMinutes = 0;
-
-      if (status.label === UserPresence.doNotDisturb && isSlack) {
-        // Ask for duration for dnd.snooze for slack implementation
-        const options: { [label: string]: number } = {
-          "20 minutes": 20,
-          "1 hour": 60,
-          "2 hours": 120,
-          "4 hours": 240,
-          "8 hours": 480,
-          "24 hours": 1440
-        };
-        const selected = await vscode.window.showQuickPick(
-          Object.keys(options)
-        );
-        durationInMinutes = !!selected ? options[selected] : 0;
-      }
-
-      manager.updateSelfPresence(
-        status.label as UserPresence,
-        durationInMinutes
-      );
+      updateSelfPresence(status.label as UserPresence);
     }
   };
 
@@ -499,6 +500,34 @@ export function activate(context: vscode.ExtensionContext) {
     await openChatPanel();
   };
 
+  const chatWithVslsContact = async (item: any) => {
+    const provider = manager.vslsContactProvider;
+    const contact = item.contactModel.contact;
+    let user: User | undefined;
+
+    if (!!provider) {
+      const matchedId = provider.getMatchedUserId(contact.id);
+
+      if (!!matchedId) {
+        user = manager.getUserForId(matchedId);
+      } else {
+        // contact.id can also be a user id
+        user = manager.getUserForId(contact.id);
+      }
+    }
+
+    if (!!user) {
+      const imChannel = manager.getIMChannel(user);
+
+      if (!!imChannel) {
+        // Open the webview
+        // TODO: handle situation where we don't have im channel
+        manager.store.updateLastChannelId(imChannel.id);
+        openChatPanel();
+      }
+    }
+  };
+
   // Setup real-time messenger and updated local state
   setup(true, undefined);
 
@@ -594,7 +623,14 @@ export function activate(context: vscode.ExtensionContext) {
     ),
     vscode.commands.registerCommand(
       SelfCommands.UPDATE_SELF_PRESENCE,
-      updateSelfPresence
+      askForSelfPresence
+    ),
+    vscode.commands.registerCommand(
+      SelfCommands.UPDATE_SELF_PRESENCE_VIA_VSLS,
+      ({ presence }) => updateSelfPresence(presence)
+    ),
+    vscode.commands.registerCommand(SelfCommands.CHAT_WITH_VSLS_CONTACT, item =>
+      chatWithVslsContact(item)
     ),
     vscode.commands.registerCommand(
       SelfCommands.CHANNEL_MARKED,

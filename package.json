@@ -2,7 +2,7 @@
   "name": "chat",
   "displayName": "Team Chat: for Slack, Discord, Live Share",
   "description": "Send and receive chat messages inside VSCode",
-  "version": "0.8.1-dev",
+  "version": "0.8.0-dev-3",
   "homepage": "https://github.com/karigari/vscode-chat",
   "license": "SEE LICENSE IN LICENSE",
   "repository": {
@@ -119,6 +119,14 @@
           "light": "public/icons/light/share.svg",
           "dark": "public/icons/dark/share.svg"
         }
+      },
+      {
+        "command": "extension.chat.startChatWithVslsContact",
+        "title": "Chat with this user",
+        "icon": {
+          "light": "public/icons/light/chat.svg",
+          "dark": "public/icons/dark/chat.svg"
+        }
       }
     ],
     "views": {
@@ -194,6 +202,11 @@
           "command": "extension.chat.startLiveShare",
           "when": "chat:vslsEnabled && viewItem == channel",
           "group": "inline"
+        },
+        {
+          "command": "extension.chat.startChatWithVslsContact",
+          "when": "chat:vslsEnabled && liveshare:showExplorer && view == vsliveshareContactsActivityBar && viewItem == user",
+          "group": "inline"
         }
       ],
       "view/title": [
@@ -243,6 +256,6 @@
     "request": "^2.88.0",
     "request-promise-native": "^1.0.5",
     "semver": "^5.5.1",
-    "vsls": "^0.3.896"
+    "vsls": "^0.3.934"
   }
 }

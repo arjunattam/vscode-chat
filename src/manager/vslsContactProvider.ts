@@ -1,5 +1,7 @@
+import * as vscode from "vscode";
 import { Uri, EventEmitter, Event, CancellationToken } from "vscode";
 import * as vsls from "vsls/vscode";
+import { SelfCommands } from "../constants";
 import {
   ContactServiceProvider,
   Methods,
@@ -13,7 +15,8 @@ import {
   InitializeResponse,
   PresenceChangedNotification,
   InviteReceivedNotification,
-  SelfContactNotification
+  SelfContactNotification,
+  PublishPresenceRequest
 } from "vsls/vsls-contactprotocol";
 import { User, Users, UserPresence } from "../types";
 import Manager from "./index";
@@ -61,6 +64,9 @@ export class VslsContactProvider implements ContactServiceProvider {
         result = await this.presenceRequestHandler(<ContactPresenceRequest>(
           parameters
         ));
+        break;
+      case Methods.RequestPublishPresenceName:
+        await this.publishPresenceHandler(<PublishPresenceRequest>parameters);
         break;
       default:
         throw new Error(`type:${type} not supported`);
@@ -130,6 +136,13 @@ export class VslsContactProvider implements ContactServiceProvider {
     });
   }
 
+  public getMatchedUserId(contactId: string) {
+    const userIds = Object.keys(this.matchedContacts);
+    return userIds.find(
+      userId => this.matchedContacts[userId].id === contactId
+    );
+  }
+
   private async initializeHandler(): Promise<InitializeResponse> {
     this.isInitialized = true;
     return {
@@ -139,7 +152,7 @@ export class VslsContactProvider implements ContactServiceProvider {
         supportsInviteLink: true,
         supportsPresence: true,
         supportsContactPresenceRequest: true,
-        supportsPublishPresence: false,
+        supportsPublishPresence: true,
         supportsSelfContact: true,
         supportsAvailableContacts: true
       }
@@ -212,6 +225,39 @@ export class VslsContactProvider implements ContactServiceProvider {
     };
     return result;
   }
+
+  private publishPresenceHandler = async (params: PublishPresenceRequest) => {
+    const { status } = params;
+    let presence: UserPresence = UserPresence.unknown;
+
+    switch (status) {
+      case PresenceStatus.Available:
+        presence = UserPresence.available;
+        break;
+      case PresenceStatus.Away:
+        presence = UserPresence.invisible; // This could be `idle` as well
+        break;
+      case PresenceStatus.Busy:
+        presence = UserPresence.doNotDisturb;
+        break;
+      case PresenceStatus.DoNotDisturb:
+        presence = UserPresence.doNotDisturb;
+        break;
+      case PresenceStatus.Invisible:
+        presence = UserPresence.invisible;
+        break;
+      case PresenceStatus.Offline:
+        presence = UserPresence.offline;
+        break;
+      case PresenceStatus.Unknown:
+        presence = UserPresence.unknown;
+        break;
+    }
+
+    vscode.commands.executeCommand(SelfCommands.UPDATE_SELF_PRESENCE_VIA_VSLS, {
+      presence
+    });
+  };
 
   private getUserPresence = (user: User): PresenceStatus => {
     switch (user.presence) {
