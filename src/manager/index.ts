@@ -29,10 +29,10 @@ import {
 } from "../utils";
 import { DiscordChatProvider } from "../discord";
 import { SlackChatProvider } from "../slack";
-import { VslsChatProvider } from "../vsls";
+import { VslsChatProvider } from "../vslsChat";
 import { Store } from "../store";
 import { ViewsManager } from "./views";
-import { VSLS_CHAT_CHANNEL } from "../vsls/utils";
+import { VSLS_CHAT_CHANNEL } from "../vslsChat/utils";
 import ConfigHelper from "../config";
 import { VslsContactProvider } from "./vslsContactProvider";
 
