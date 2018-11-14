@@ -1915,9 +1915,9 @@ vscode@^1.1.6:
     url-parse "^1.4.3"
     vinyl-source-stream "^1.1.0"
 
-vsls@^0.3.896:
-  version "0.3.896"
-  resolved "https://registry.yarnpkg.com/vsls/-/vsls-0.3.896.tgz#937e5695c0b98464323b77961a8c73c2366194bc"
+vsls@^0.3.934:
+  version "0.3.934"
+  resolved "https://registry.yarnpkg.com/vsls/-/vsls-0.3.934.tgz#1d6812026af8a287162044fa9229936d62634a3b"
 
 which@^1.2.9:
   version "1.3.1"

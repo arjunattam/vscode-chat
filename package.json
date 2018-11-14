@@ -170,23 +170,6 @@
           "name": "Direct Messages",
           "when": "chat:discord"
         }
-      ],
-      "vsliveshareTreeExplorerActivityBar": [
-        {
-          "id": "chat.treeView.onlineUsers.slack",
-          "name": "Slack Users",
-          "when": "chat:vslsEnabled && chat:slack"
-        },
-        {
-          "id": "chat.treeView.onlineUsers.discord",
-          "name": "Discord Users",
-          "when": "chat:vslsEnabled && chat:discord"
-        },
-        {
-          "id": "chat.treeView.onboarding.vsls",
-          "name": "Online Users",
-          "when": "chat:vslsEnabled && !chat:slack && !chat:discord"
-        }
       ]
     },
     "viewsContainers": {
@@ -260,6 +243,6 @@
     "request": "^2.88.0",
     "request-promise-native": "^1.0.5",
     "semver": "^5.5.1",
-    "vsls": "^0.3.896"
+    "vsls": "^0.3.934"
   }
 }

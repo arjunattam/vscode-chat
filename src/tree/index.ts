@@ -1,7 +1,7 @@
 import * as vscode from "vscode";
 import * as path from "path";
-import { SelfCommands } from "./constants";
-import { equals } from "./utils";
+import { SelfCommands } from "../constants";
+import { equals } from "../utils";
 import {
   Channel,
   User,
@@ -11,7 +11,7 @@ import {
   CurrentUser,
   ChannelType,
   UserPresence
-} from "./types";
+} from "../types";
 
 interface ChatTreeNode {
   label: string;

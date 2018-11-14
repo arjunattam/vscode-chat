@@ -8,6 +8,8 @@ import {
 } from "../status";
 import { OnboardingTreeProvider } from "../onboarding";
 import { SelfCommands } from "../constants";
+import { VslsSessionTreeProvider } from "../tree/vsls";
+import { VSLS_CHAT_CHANNEL } from "../vslsChat/utils";
 
 const PROVIDERS_WITH_TREE = ["slack", "discord"];
 
@@ -15,10 +17,14 @@ export class ViewsManager implements vscode.Disposable {
   statusItem: BaseStatusItem;
   treeViews: TreeViewManager | undefined;
   onboardingTree: OnboardingTreeProvider | undefined;
+  vslsSessionTreeProvider: VslsSessionTreeProvider | undefined; // for vsls chat
 
   constructor(provider: string | undefined, private parentManager: IManager) {
     if (provider === Providers.vsls) {
       this.statusItem = new VslsChatStatusItem();
+
+      this.vslsSessionTreeProvider = new VslsSessionTreeProvider();
+      this.vslsSessionTreeProvider.register();
     } else {
       this.statusItem = new UnreadsStatusItem();
     }
@@ -70,6 +76,17 @@ export class ViewsManager implements vscode.Disposable {
         imChannels
       );
     }
+
+    if (!!this.vslsSessionTreeProvider) {
+      const defaultChannel = this.parentManager.getChannel(
+        VSLS_CHAT_CHANNEL.id
+      );
+
+      if (!!defaultChannel) {
+        const unreads = this.parentManager.getUnreadCount(defaultChannel);
+        this.vslsSessionTreeProvider.updateUnreadCount(unreads);
+      }
+    }
   }
 
   updateWebview() {
@@ -112,6 +129,10 @@ export class ViewsManager implements vscode.Disposable {
 
     if (!!this.onboardingTree) {
       this.onboardingTree.dispose();
+    }
+
+    if (!!this.vslsSessionTreeProvider) {
+      this.vslsSessionTreeProvider.dispose();
     }
   }
 }
