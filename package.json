@@ -2,7 +2,7 @@
   "name": "chat",
   "displayName": "Team Chat: for Slack, Discord, Live Share",
   "description": "Send and receive chat messages inside VSCode",
-  "version": "0.8.0-dev-3",
+  "version": "0.7.4",
   "homepage": "https://github.com/karigari/vscode-chat",
   "license": "SEE LICENSE IN LICENSE",
   "repository": {
@@ -205,7 +205,7 @@
         },
         {
           "command": "extension.chat.startChatWithVslsContact",
-          "when": "chat:vslsEnabled && liveshare:showExplorer && view == vsliveshareContactsActivityBar && viewItem == user",
+          "when": "chat:vslsEnabled && view == liveshare.contacts && viewItem == contacts.contact",
           "group": "inline"
         }
       ],

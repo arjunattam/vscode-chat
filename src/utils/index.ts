@@ -119,3 +119,13 @@ export function toDateString(date: Date) {
 
   return `${date.getFullYear()}-${month}-${day}`;
 }
+
+export function camelCaseToTitle(text: string) {
+  var result = text.replace(/([A-Z])/g, " $1");
+  return result.charAt(0).toUpperCase() + result.slice(1);
+}
+
+export function titleCaseToCamel(text: string) {
+  var result = text.replace(/ /g, "");
+  return result.charAt(0).toLowerCase() + result.slice(1);
+}

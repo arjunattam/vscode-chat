@@ -50,3 +50,10 @@ export const LIVE_SHARE_CONFIRM_SIGN_OUT = (provider: string) =>
   `To use chat over VS Live Share, you need to sign out of your ${provider} account.`;
 
 export const SIGN_OUT = "Sign out";
+
+export const SELECT_SELF_PRESENCE = "Select your presence status";
+
+export const SELECT_DND_DURATION = "Select snooze duration for Slack";
+
+export const UNABLE_TO_MATCH_CONTACT =
+  "Could not start chat: unable to match this contact.";

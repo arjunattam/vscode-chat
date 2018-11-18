@@ -348,7 +348,9 @@ export function activate(context: vscode.ExtensionContext) {
         "8 hours": 480,
         "24 hours": 1440
       };
-      const selected = await vscode.window.showQuickPick(Object.keys(options));
+      const selected = await vscode.window.showQuickPick(Object.keys(options), {
+        placeHolder: str.SELECT_DND_DURATION
+      });
       durationInMinutes = !!selected ? options[selected] : 0;
     }
 
@@ -374,14 +376,16 @@ export function activate(context: vscode.ExtensionContext) {
     const items: vscode.QuickPickItem[] = presenceChoices.map(choice => {
       const isCurrent = currentPresence === choice;
       return {
-        label: choice,
+        label: utils.camelCaseToTitle(choice),
         description: isCurrent ? "current" : ""
       };
     });
-    const status = await vscode.window.showQuickPick(items);
+    const status = await vscode.window.showQuickPick(items, {
+      placeHolder: str.SELECT_SELF_PRESENCE
+    });
 
     if (!!status) {
-      updateSelfPresence(status.label as UserPresence);
+      updateSelfPresence(utils.titleCaseToCamel(status.label) as UserPresence);
     }
   };
 
@@ -517,14 +521,18 @@ export function activate(context: vscode.ExtensionContext) {
     }
 
     if (!!user) {
-      const imChannel = manager.getIMChannel(user);
+      let imChannel = manager.getIMChannel(user);
+
+      if (!imChannel) {
+        imChannel = await manager.createIMChannel(user);
+      }
 
       if (!!imChannel) {
-        // Open the webview
-        // TODO: handle situation where we don't have im channel
         manager.store.updateLastChannelId(imChannel.id);
         openChatPanel();
       }
+    } else {
+      vscode.window.showInformationMessage(str.UNABLE_TO_MATCH_CONTACT);
     }
   };
 

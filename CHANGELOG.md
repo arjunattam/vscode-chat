@@ -2,11 +2,15 @@
 
 All notable changes to the vscode-chat extension will be documented in this file. This follows the [Keep a Changelog](http://keepachangelog.com/) format.
 
-## [0.8.0] - TBD
+## [0.8.0] - 2018-11-18
 
 ### Added
 
-- Update your presence status: go into invisible or do not disturb mode
+- Now you can update your presence status: go invisible on chat, or turn on do-not-disturb mode. Run the `Chat: Update your presence status` command (supports Slack and Discord).
+- VS Live Share integrations:
+  - Show presence statuses for VS Live Share suggested contacts (for Slack and Discord)
+  - Update your presence status from inside VS Live Share (for Slack and Discord)
+  - Open VS Live Share chat from the VS Live Share explorer views
 
 ## [0.7.4] - 2018-11-05
 
