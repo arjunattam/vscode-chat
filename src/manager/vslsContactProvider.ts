@@ -170,9 +170,11 @@ export class VslsContactProvider implements ContactServiceProvider {
     const userToInvite = this.manager.store.users[userIdToInvite];
 
     if (!!userToInvite) {
-      // TODO: in cases where an IM channel does not exist, we can
-      // create a new one.
-      const imChannel = this.manager.getIMChannel(userToInvite);
+      let imChannel = this.manager.getIMChannel(userToInvite);
+
+      if (!imChannel) {
+        imChannel = await this.manager.createIMChannel(userToInvite);
+      }
 
       if (!!imChannel) {
         this.manager.sendMessage(link, imChannel.id, undefined);
