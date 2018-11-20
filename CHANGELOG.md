@@ -2,6 +2,12 @@
 
 All notable changes to the vscode-chat extension will be documented in this file. This follows the [Keep a Changelog](http://keepachangelog.com/) format.
 
+## [0.8.2] - 2018-11-20
+
+### Fixed
+
+- VS Live Share integration: Updated label for chat tree item.
+
 ## [0.8.1] - 2018-11-20
 
 ### Fixed

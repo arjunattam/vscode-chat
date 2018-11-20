@@ -3,7 +3,7 @@ import * as vscode from "vscode";
 import { SelfCommands } from "../constants";
 
 const LIVE_SHARE_VIEW_ID = "liveshare.session";
-const TREE_ITEM_LABEL = "Chat Thread";
+const TREE_ITEM_LABEL = "Chat Channel";
 
 export class VslsSessionTreeProvider
   implements vscode.TreeDataProvider<any>, vscode.Disposable {
