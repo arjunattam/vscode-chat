@@ -2,6 +2,12 @@
 
 All notable changes to the vscode-chat extension will be documented in this file. This follows the [Keep a Changelog](http://keepachangelog.com/) format.
 
+## [0.8.1] - 2018-11-20
+
+### Fixed
+
+- Inviting online users to a Live Share session creates an IM channel with the user, if not already available.
+
 ## [0.8.0] - 2018-11-18
 
 ### Added
