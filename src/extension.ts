@@ -6,14 +6,6 @@ import Logger from "./logger";
 import { Store } from "./store";
 import * as str from "./strings";
 import {
-  User,
-  Channel,
-  ChatArgs,
-  EventType,
-  EventSource,
-  UserPresence
-} from "./types";
-import {
   SelfCommands,
   LiveShareCommands,
   SLACK_OAUTH,

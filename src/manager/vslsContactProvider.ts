@@ -18,7 +18,6 @@ import {
   SelfContactNotification,
   PublishPresenceRequest
 } from "vsls/vsls-contactprotocol";
-import { User, Users, UserPresence } from "../types";
 import Manager from "./index";
 
 export class VslsContactProvider implements ContactServiceProvider {

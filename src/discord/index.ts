@@ -1,21 +1,6 @@
 import * as vscode from "vscode";
 import * as Discord from "discord.js";
 import * as rp from "request-promise-native";
-import {
-  IManager,
-  IChatProvider,
-  CurrentUser,
-  UserPreferences,
-  User,
-  Users,
-  Channel,
-  ChannelType,
-  ChannelMessages,
-  Message,
-  MessageContent,
-  Providers,
-  UserPresence
-} from "../types";
 import { SelfCommands } from "../constants";
 import { toTitleCase } from "../utils";
 import Logger from "../logger";

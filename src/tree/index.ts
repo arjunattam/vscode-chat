@@ -2,16 +2,6 @@ import * as vscode from "vscode";
 import * as path from "path";
 import { SelfCommands } from "../constants";
 import { equals } from "../utils";
-import {
-  Channel,
-  User,
-  EventSource,
-  ChannelLabel,
-  Users,
-  CurrentUser,
-  ChannelType,
-  UserPresence
-} from "../types";
 
 interface ChatTreeNode {
   label: string;
@@ -37,6 +27,7 @@ function notUndefined<T>(x: T | undefined): x is T {
 
 const BASE_PATH = path.join(
   __filename,
+  "..",
   "..",
   "..",
   "public",

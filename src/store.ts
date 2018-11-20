@@ -1,5 +1,4 @@
 import * as vscode from "vscode";
-import { IStore, Channel, CurrentUser, Users } from "./types";
 import { uuidv4 } from "./utils";
 
 // Large discord communities can have lots of users/channels

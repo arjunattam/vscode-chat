@@ -1,7 +1,6 @@
 import * as vscode from "vscode";
 import { ExtensionContext } from "vscode";
 import WebviewContainer from "../webview";
-import { ExtensionMessage, UIMessage, ChannelMessages } from "../types";
 import {
   SLASH_COMMANDS,
   REVERSE_SLASH_COMMANDS,

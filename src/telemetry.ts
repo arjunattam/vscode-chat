@@ -3,7 +3,6 @@ import * as Mixpanel from "mixpanel";
 import { MIXPANEL_TOKEN } from "./constants";
 import ConfigHelper from "./config";
 import Manager from "./manager";
-import { TelemetryEvent, EventType, EventSource } from "./types";
 import { getVersions, Versions, hasVslsExtensionPack } from "./utils";
 
 const BATCH_SIZE = 10;

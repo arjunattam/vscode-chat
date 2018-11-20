@@ -1,6 +1,5 @@
 import * as vscode from "vscode";
 import { SelfCommands } from "../constants";
-import { EventSource } from "../types";
 
 const CHAT_ICON = "$(comment-discussion)";
 

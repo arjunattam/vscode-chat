@@ -1,10 +1,4 @@
 import * as EmojiConvertor from "emoji-js";
-import {
-  UIMessage,
-  ChannelMessages,
-  MessageReply,
-  MessageContent
-} from "../types";
 import * as str from "../strings";
 import * as MarkdownIt from "markdown-it";
 import * as markdownItSlack from "markdown-it-slack";

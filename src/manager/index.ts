@@ -1,24 +1,5 @@
 import * as vscode from "vscode";
 import * as semver from "semver";
-import {
-  Channel,
-  CurrentUser,
-  ChannelMessages,
-  Messages,
-  Users,
-  IManager,
-  User,
-  Team,
-  ChannelType,
-  ChannelLabel,
-  UserPreferences,
-  IChatProvider,
-  MessageReply,
-  MessageReplies,
-  Providers,
-  ChannelMessagesWithUndefined,
-  UserPresence
-} from "../types";
 import Logger from "../logger";
 import {
   getExtensionVersion,

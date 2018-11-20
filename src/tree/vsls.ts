@@ -1,7 +1,6 @@
 import * as vsls from "vsls/vscode";
 import * as vscode from "vscode";
 import { SelfCommands } from "../constants";
-import { EventSource } from "../types";
 
 const LIVE_SHARE_VIEW_ID = "liveshare.session";
 const TREE_ITEM_LABEL = "Chat Thread";

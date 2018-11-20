@@ -1,6 +1,5 @@
 import * as vscode from "vscode";
 import { SelfCommands } from "../constants";
-import { ChannelMessages, User, Users } from "../types";
 import { VslsChatMessage, VSLS_CHAT_CHANNEL, toBaseMessage } from "./utils";
 
 export abstract class VslsBaseService {

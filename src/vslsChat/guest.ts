@@ -1,6 +1,5 @@
 import * as vsls from "vsls/vscode";
 import { REQUEST_NAME, NOTIFICATION_NAME } from "./utils";
-import { User, Users, ChannelMessages } from "../types";
 import { VslsBaseService } from "./base";
 
 export class VslsGuestService extends VslsBaseService {

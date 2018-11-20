@@ -2,18 +2,6 @@ import * as vscode from "vscode";
 import { SelfCommands } from "../constants";
 import SlackAPIClient from "./client";
 import SlackMessenger from "./messenger";
-import {
-  IChatProvider,
-  IManager,
-  User,
-  Channel,
-  Users,
-  Message,
-  ChannelMessages,
-  UserPreferences,
-  CurrentUser,
-  UserPresence
-} from "../types";
 import { IDNDStatusForUser, IDNDStatus } from "./common";
 
 const stripLinkSymbols = (text: string): string => {

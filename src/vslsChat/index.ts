@@ -1,18 +1,5 @@
 import * as vscode from "vscode";
 import * as vsls from "vsls/vscode";
-import {
-  IChatProvider,
-  User,
-  Channel,
-  Users,
-  Message,
-  ChannelMessages,
-  UserPreferences,
-  CurrentUser,
-  Team,
-  Providers,
-  ChannelType
-} from "../types";
 import { VSLS_CHAT_CHANNEL } from "./utils";
 import { VslsHostService } from "./host";
 import { VslsGuestService } from "./guest";

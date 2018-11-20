@@ -6,7 +6,6 @@ import {
   IMsTreeProvider,
   OnlineUsersTreeProvider
 } from "../tree";
-import { ChannelLabel, CurrentUser, Users, Channel } from "../types";
 
 export class TreeViewManager implements vscode.Disposable {
   unreadsTreeProvider: UnreadsTreeProvider;

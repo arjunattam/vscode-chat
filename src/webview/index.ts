@@ -1,16 +1,5 @@
 import * as vscode from "vscode";
 import * as path from "path";
-import {
-  ExtensionMessage,
-  UIMessage,
-  UIMessageGroup,
-  UIMessageDateGroup,
-  ChannelMessages,
-  Message,
-  Users,
-  Channel,
-  CurrentUser
-} from "../types";
 import { toDateString } from "../utils";
 
 const SAME_GROUP_TIME = 5 * 60; // seconds

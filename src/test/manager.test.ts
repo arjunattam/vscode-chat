@@ -1,6 +1,5 @@
 import * as assert from "assert";
 import { Store } from "../store";
-import { Providers } from "../types";
 import Manager from "../manager";
 import { mock, instance, verify, deepEqual } from "ts-mockito";
 

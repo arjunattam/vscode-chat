@@ -6,7 +6,6 @@ import {
   toBaseUser,
   toBaseMessage
 } from "./utils";
-import { User, Users, ChannelMessages } from "../types";
 import { VslsBaseService } from "./base";
 import { LIVE_SHARE_INFO_MESSAGES } from "../strings";
 

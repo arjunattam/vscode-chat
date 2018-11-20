@@ -1,5 +1,4 @@
 import * as vscode from "vscode";
-import { IManager, Providers, Channel } from "../types";
 import { TreeViewManager } from "./treeView";
 import {
   BaseStatusItem,

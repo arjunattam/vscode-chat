@@ -1,18 +1,6 @@
 import { WebClient, WebClientOptions } from "@slack/client";
 import ConfigHelper from "../config";
 import Logger from "../logger";
-import {
-  Users,
-  Channel,
-  ChannelMessages,
-  ChannelType,
-  User,
-  Message,
-  UserPreferences,
-  CurrentUser,
-  Providers,
-  UserPresence
-} from "../types";
 import { IDNDStatusForUser } from "./common";
 
 interface ISnoozeAPIResponse {

@@ -1,7 +1,6 @@
 import * as vscode from "vscode";
 import * as str from "./strings";
 import { SelfCommands } from "./constants";
-import { EventSource } from "./types";
 import { openUrl } from "./utils";
 
 export const setupSlack = () => {
