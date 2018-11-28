@@ -7,7 +7,7 @@ import {
   VSCodeCommands
 } from "../constants";
 import { TravisLinkHandler } from "../bots/travis";
-import ConfigHelper from "../config";
+import { ConfigHelper } from "../config";
 
 export interface MessageCommand {
   namespace: string;

@@ -1,7 +1,7 @@
 import * as vscode from "vscode";
 import * as str from "./strings";
 import IssueReporter from "./issues";
-import ConfigHelper from "./config";
+import { ConfigHelper } from "./config";
 
 export class ExtensionUriHandler implements vscode.UriHandler {
   handleUri(uri: vscode.Uri): vscode.ProviderResult<void> {

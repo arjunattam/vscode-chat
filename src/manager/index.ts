@@ -14,7 +14,7 @@ import { VslsChatProvider } from "../vslsChat";
 import { Store } from "../store";
 import { ViewsManager } from "./views";
 import { VSLS_CHAT_CHANNEL } from "../vslsChat/utils";
-import ConfigHelper from "../config";
+import { ConfigHelper } from "../config";
 import { VslsContactProvider } from "./vslsContactProvider";
 
 export default class Manager implements IManager, vscode.Disposable {

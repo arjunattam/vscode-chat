@@ -1,6 +1,6 @@
 import * as vscode from "vscode";
 import { RTMClient, RTMClientOptions } from "@slack/client";
-import ConfigHelper from "../config";
+import { ConfigHelper } from "../config";
 import { getMessage } from "./client";
 import { SelfCommands } from "../constants";
 import { IDNDStatus } from "./common";

@@ -105,10 +105,6 @@
         "title": "Chat: (Debug) Export Diagnostic Logs"
       },
       {
-        "command": "extension.chat.startVslsChat",
-        "title": "Chat: Chat with VS Live Share participants"
-      },
-      {
         "command": "extension.chat.updateSelfPresence",
         "title": "Chat: Update your presence status"
       },

@@ -18,14 +18,14 @@ import travis from "./bots/travis";
 import { ExtensionUriHandler } from "./uri";
 import * as utils from "./utils";
 import { askForAuth } from "./onboarding";
-import ConfigHelper from "./config";
+import { ConfigHelper } from "./config";
 import TelemetryReporter from "./telemetry";
 import IssueReporter from "./issues";
 
 let store: Store;
 let manager: Manager;
 let controller: ViewController;
-let reporter: TelemetryReporter;
+let telemetry: TelemetryReporter;
 
 const SUPPORTED_PROVIDERS = ["slack", "discord"];
 
@@ -33,7 +33,7 @@ export function activate(context: vscode.ExtensionContext) {
   Logger.log("Activating vscode-chat");
   store = new Store(context);
   manager = new Manager(store);
-  reporter = new TelemetryReporter(manager);
+  telemetry = new TelemetryReporter(manager);
 
   controller = new ViewController(
     context,
@@ -48,8 +48,8 @@ export function activate(context: vscode.ExtensionContext) {
 
   const setupFreshInstall = () => {
     const installationId = manager.store.generateInstallationId();
-    reporter.setUniqueId(installationId);
-    reporter.record(EventType.extensionInstalled, undefined, undefined);
+    telemetry.setUniqueId(installationId);
+    telemetry.record(EventType.extensionInstalled, undefined, undefined);
   };
 
   const handleNoToken = (canPromptForAuth: boolean) => {
@@ -99,7 +99,7 @@ export function activate(context: vscode.ExtensionContext) {
 
   const sendMessage = (text: string, parentTimestamp: string | undefined) => {
     const { lastChannelId } = manager.store;
-    reporter.record(EventType.messageSent, undefined, lastChannelId);
+    telemetry.record(EventType.messageSent, undefined, lastChannelId);
     manager.updateReadMarker();
 
     if (!!lastChannelId) {
@@ -187,7 +187,7 @@ export function activate(context: vscode.ExtensionContext) {
     return chatChannelId;
   };
 
-  const openChatPanel = async (args?: ChatArgs) => {
+  const openChatWebview = async (args?: ChatArgs) => {
     if (!!manager.token) {
       controller.loadUi();
     }
@@ -203,7 +203,7 @@ export function activate(context: vscode.ExtensionContext) {
 
     if (!!lastChannelId) {
       const source = !!args ? args.source : EventSource.command;
-      reporter.record(EventType.viewOpened, source, lastChannelId);
+      telemetry.record(EventType.viewOpened, source, lastChannelId);
       manager.loadChannelHistory(lastChannelId);
     }
   };
@@ -243,14 +243,14 @@ export function activate(context: vscode.ExtensionContext) {
     // TODO: when triggered from the search icon in the tree view,
     // this should be filtered to the `type` of the tree view section
     const hasArgs = !!args && !!args.source;
-    reporter.record(
+    telemetry.record(
       EventType.channelChanged,
       hasArgs ? args.source : EventSource.command,
       undefined
     );
 
     const selectedChannel = await askForChannel();
-    return !!selectedChannel ? openChatPanel(args) : null;
+    return !!selectedChannel ? openChatWebview(args) : null;
   };
 
   const shareVslsLink = async (args?: ChatArgs) => {
@@ -260,7 +260,7 @@ export function activate(context: vscode.ExtensionContext) {
       // liveshare.share() creates a new session if required
       const vslsUri = await liveshare.share({ suppressNotification: true });
       let channelId = await getChatChannelId(args);
-      reporter.record(EventType.vslsShared, EventSource.activity, channelId);
+      telemetry.record(EventType.vslsShared, EventSource.activity, channelId);
 
       if (vslsUri && channelId) {
         manager.sendMessage(vslsUri.toString(), channelId, undefined);
@@ -304,7 +304,7 @@ export function activate(context: vscode.ExtensionContext) {
       slack: SLACK_OAUTH,
       discord: DISCORD_OAUTH
     };
-    reporter.record(
+    telemetry.record(
       EventType.authStarted,
       hasArgs ? args.source : EventSource.command,
       undefined
@@ -407,7 +407,7 @@ export function activate(context: vscode.ExtensionContext) {
   };
 
   const configureToken = async () => {
-    reporter.record(EventType.tokenConfigured, EventSource.command, undefined);
+    telemetry.record(EventType.tokenConfigured, EventSource.command, undefined);
     const provider = await askForProvider();
 
     if (!!provider) {
@@ -459,43 +459,6 @@ export function activate(context: vscode.ExtensionContext) {
     return IssueReporter.openNewIssue(title, body);
   };
 
-  const startVslsChat = async () => {
-    // Verify that we have an ongoing Live Share session
-    const liveshare = await vsls.getApi();
-    const hasSession = !!liveshare && !!liveshare.session.id;
-
-    if (!hasSession) {
-      vscode.window.showInformationMessage(str.LIVE_SHARE_CHAT_NO_SESSION);
-      return;
-    }
-
-    // Resume on existing VS Live Share chat if possible
-    const currentProvider = manager.getSelectedProvider();
-    const hasOtherProvider = currentProvider !== "vsls";
-    const isOtherConnected = !!manager.chatProvider
-      ? manager.chatProvider.isConnected()
-      : false;
-
-    if (hasOtherProvider || isOtherConnected) {
-      // Logged in with Slack/Discord, ask for confirmation to sign out
-      const msg = str.LIVE_SHARE_CONFIRM_SIGN_OUT(
-        utils.toTitleCase(currentProvider as string)
-      );
-      const response = await vscode.window.showInformationMessage(
-        msg,
-        str.SIGN_OUT
-      );
-
-      if (!!response && response === str.SIGN_OUT) {
-        await reset("vsls");
-      } else {
-        return;
-      }
-    }
-
-    await openChatPanel();
-  };
-
   const chatWithVslsContact = async (item: any) => {
     const provider = manager.vslsContactProvider;
     const contact = item.contactModel.contact;
@@ -521,7 +484,7 @@ export function activate(context: vscode.ExtensionContext) {
 
       if (!!imChannel) {
         manager.store.updateLastChannelId(imChannel.id);
-        openChatPanel();
+        openChatWebview();
       }
     } else {
       vscode.window.showInformationMessage(str.UNABLE_TO_MATCH_CONTACT);
@@ -536,7 +499,7 @@ export function activate(context: vscode.ExtensionContext) {
 
   const uriHandler = new ExtensionUriHandler();
   context.subscriptions.push(
-    vscode.commands.registerCommand(SelfCommands.OPEN_WEBVIEW, openChatPanel),
+    vscode.commands.registerCommand(SelfCommands.OPEN_WEBVIEW, openChatWebview),
     vscode.commands.registerCommand(
       SelfCommands.CHANGE_WORKSPACE,
       changeWorkspace
@@ -577,10 +540,6 @@ export function activate(context: vscode.ExtensionContext) {
     vscode.commands.registerCommand(
       SelfCommands.LIVE_SHARE_JOIN_PROMPT,
       ({ senderId, messageUri }) => promptVslsJoin(senderId, messageUri)
-    ),
-    vscode.commands.registerCommand(
-      SelfCommands.LIVE_SHARE_CHAT_START,
-      startVslsChat
     ),
     vscode.commands.registerCommand(
       SelfCommands.LIVE_SHARE_SESSION_CHANGED,
@@ -675,7 +634,7 @@ export function activate(context: vscode.ExtensionContext) {
     vscode.workspace.registerTextDocumentContentProvider(TRAVIS_SCHEME, travis),
     vscode.window.registerUriHandler(uriHandler),
     manager,
-    reporter
+    telemetry
   );
 }
 

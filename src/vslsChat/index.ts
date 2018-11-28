@@ -4,7 +4,6 @@ import { VSLS_CHAT_CHANNEL } from "./utils";
 import { VslsHostService } from "./host";
 import { VslsGuestService } from "./guest";
 import { SelfCommands } from "../constants";
-import { VslsSessionTreeProvider } from "../tree/vsls";
 
 const VSLS_CHAT_SERVICE_NAME = "vsls-chat";
 
@@ -196,7 +195,7 @@ export class VslsChatProvider implements IChatProvider {
     return Promise.resolve({});
   }
 
-  fetchChannels(users: Users): Promise<Channel[]> {
+  async fetchChannels(users: Users): Promise<Channel[]> {
     const readTimestamp = (+new Date() / 1000.0).toString();
     const defaultChannel: Channel = {
       id: VSLS_CHAT_CHANNEL.id,
@@ -205,7 +204,7 @@ export class VslsChatProvider implements IChatProvider {
       readTimestamp,
       unreadCount: 0
     };
-    return Promise.resolve([defaultChannel]);
+    return [defaultChannel];
   }
 
   fetchChannelInfo(channel: Channel): Promise<Channel> {

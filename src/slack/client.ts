@@ -1,5 +1,5 @@
 import { WebClient, WebClientOptions } from "@slack/client";
-import ConfigHelper from "../config";
+import { ConfigHelper } from "../config";
 import Logger from "../logger";
 import { IDNDStatusForUser } from "./common";
 

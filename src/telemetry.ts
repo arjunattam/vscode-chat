@@ -1,7 +1,7 @@
 import * as vscode from "vscode";
 import * as Mixpanel from "mixpanel";
 import { MIXPANEL_TOKEN } from "./constants";
-import ConfigHelper from "./config";
+import { ConfigHelper } from "./config";
 import Manager from "./manager";
 import { getVersions, Versions, hasVslsExtensionPack } from "./utils";
 

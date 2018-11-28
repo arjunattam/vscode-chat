@@ -10,7 +10,7 @@ const TELEMETRY_CONFIG_KEY = "enableTelemetry";
 const CREDENTIAL_SERVICE_NAME = "vscode-chat";
 const VSLS_CHAT_TOKEN = "vsls-placeholder-token";
 
-class ConfigHelper {
+export class ConfigHelper {
   static getRootConfig() {
     return vscode.workspace.getConfiguration(CONFIG_ROOT);
   }
@@ -105,5 +105,3 @@ class ConfigHelper {
     }
   }
 }
-
-export default ConfigHelper;
