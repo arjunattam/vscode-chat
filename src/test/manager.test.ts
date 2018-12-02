@@ -16,10 +16,13 @@ suite("Manager tests", function() {
       currentTeamId: "team-id",
       provider: Providers.slack
     };
+
+    manager.initializeToken();
   });
 
   test("Get enabled providers works", function() {
-    assert.equal(manager.getEnabledProviders(), ["slack"]);
+    const enabledProviders = manager.getEnabledProviders();
+    assert.equal(enabledProviders.indexOf("slack") >= 0, true);
   });
 
   test("Clear all works", function() {

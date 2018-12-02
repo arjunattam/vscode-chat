@@ -36,7 +36,6 @@ export class ChatProviderManager {
   };
 
   isAuthenticated() {
-    // TODO: maybe this should accept a provider string?
     const { currentUserInfo } = this.store;
     return !!currentUserInfo && !!currentUserInfo.id;
   }
