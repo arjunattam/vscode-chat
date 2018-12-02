@@ -47,7 +47,6 @@ export class ConfigHelper {
   }
 
   static async setToken(token: string, providerName: string): Promise<void> {
-    // TODO: There is no token validation. We need to add one.
     // TODO: it is possible that the keychain will fail
     // See https://github.com/Microsoft/vscode-pull-request-github/commit/306dc5d27460599f3402f4b9e01d97bf638c639f
     await KeychainHelper.set(CREDENTIAL_SERVICE_NAME, providerName, token);

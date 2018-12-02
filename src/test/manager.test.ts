@@ -18,8 +18,8 @@ suite("Manager tests", function() {
     };
   });
 
-  test("Get provider works", function() {
-    assert.equal(manager.getSelectedProvider(), "slack");
+  test("Get enabled providers works", function() {
+    assert.equal(manager.getEnabledProviders(), ["slack"]);
   });
 
   test("Clear all works", function() {
@@ -31,8 +31,8 @@ suite("Manager tests", function() {
   });
 
   test("Authentication check works", function() {
-    assert.equal(manager.isAuthenticated(), true);
+    assert.equal(manager.isAuthenticated("slack"), true);
     store.currentUserInfo = undefined;
-    assert.equal(manager.isAuthenticated(), false);
+    assert.equal(manager.isAuthenticated("slack"), false);
   });
 });

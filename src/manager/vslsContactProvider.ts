@@ -28,13 +28,13 @@ export class VslsContactProvider implements ContactServiceProvider {
     NotifyContactServiceEventArgs
   >();
 
-  constructor(private description: string, private manager: Manager) {}
+  constructor(public presenceProviderName: string, private manager: Manager) {}
 
   async register() {
     const liveshare = await vsls.getApiAsync();
 
     if (!!liveshare) {
-      liveshare.registerContactServiceProvider(this.description, this);
+      liveshare.registerContactServiceProvider(this.presenceProviderName, this);
     }
   }
 
@@ -145,7 +145,7 @@ export class VslsContactProvider implements ContactServiceProvider {
   private async initializeHandler(): Promise<InitializeResponse> {
     this.isInitialized = true;
     return {
-      description: this.description,
+      description: this.presenceProviderName,
       capabilities: {
         supportsDispose: false,
         supportsInviteLink: true,
@@ -173,11 +173,19 @@ export class VslsContactProvider implements ContactServiceProvider {
       let imChannel = this.manager.getIMChannel(userToInvite);
 
       if (!imChannel) {
-        imChannel = await this.manager.createIMChannel(userToInvite);
+        imChannel = await this.manager.createIMChannel(
+          this.presenceProviderName,
+          userToInvite
+        );
       }
 
       if (!!imChannel) {
-        this.manager.sendMessage(link, imChannel.id, undefined);
+        this.manager.sendMessage(
+          this.presenceProviderName,
+          link,
+          imChannel.id,
+          undefined
+        );
       }
     }
   }
@@ -256,7 +264,8 @@ export class VslsContactProvider implements ContactServiceProvider {
     }
 
     vscode.commands.executeCommand(SelfCommands.UPDATE_SELF_PRESENCE_VIA_VSLS, {
-      presence
+      presence,
+      provider: this.presenceProviderName
     });
   };
 

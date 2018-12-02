@@ -29,6 +29,7 @@ export class VslsSessionTreeProvider
         });
       }
     );
+    this._disposables.push(this.disposableCommand);
   }
 
   updateUnreadCount(count: number) {

@@ -28,11 +28,12 @@ class ViewController {
   ui: WebviewContainer | undefined;
   isUIReady: Boolean = false; // Vuejs loaded
   pendingMessage: UIMessage | undefined = undefined;
+  currentProvider: string | undefined;
 
   constructor(
     private context: ExtensionContext,
-    private onUIVisible: () => void,
-    private onUIFocus: () => void
+    private onUIVisible: (provider: string | undefined) => void,
+    private onUIFocus: (provider: string | undefined) => void
   ) {}
 
   isUILoaded = () => !!this.ui;
@@ -48,7 +49,7 @@ class ViewController {
           this.ui = undefined;
           this.isUIReady = false;
         },
-        isVisible => (isVisible ? this.onUIVisible() : null)
+        isVisible => (isVisible ? this.onUIVisible(this.currentProvider) : null)
       );
       this.ui.setMessageHandler(this.sendToExtension);
     }
@@ -96,7 +97,9 @@ class ViewController {
         if (namespace === "live" && subcommand === "share") {
           // Temporary bypass for "/live share" till we move
           // all of this to the common command handlers
-          return vscode.commands.executeCommand(SelfCommands.LIVE_SHARE_SLASH);
+          return vscode.commands.executeCommand(SelfCommands.LIVE_SHARE_SLASH, {
+            provider: this.currentProvider
+          });
         } else {
           return this.dispatchCommand(parsed);
         }
@@ -122,27 +125,31 @@ class ViewController {
     }
 
     if (text === "is_focused") {
-      this.onUIFocus();
+      this.onUIFocus(this.currentProvider);
     }
 
     if (text === "fetch_replies") {
       const { parentTimestamp } = message;
-      vscode.commands.executeCommand(
-        SelfCommands.FETCH_REPLIES,
-        parentTimestamp
-      );
+      vscode.commands.executeCommand(SelfCommands.FETCH_REPLIES, {
+        parentTimestamp,
+        provider: this.currentProvider
+      });
     }
   };
 
   sendTextMessage = (text: string) => {
-    return vscode.commands.executeCommand(SelfCommands.SEND_MESSAGE, { text });
+    return vscode.commands.executeCommand(SelfCommands.SEND_MESSAGE, {
+      text,
+      provider: this.currentProvider
+    });
   };
 
   sendThreadReply = (payload: any) => {
     const { text, parentTimestamp } = payload;
     return vscode.commands.executeCommand(SelfCommands.SEND_THREAD_REPLY, {
       text,
-      parentTimestamp
+      parentTimestamp,
+      provider: this.currentProvider
     });
   };
 
@@ -196,6 +203,8 @@ class ViewController {
   };
 
   sendToUI = (uiMessage: UIMessage) => {
+    this.currentProvider = uiMessage.currentProvider;
+
     if (!this.isUIReady) {
       this.pendingMessage = uiMessage;
     } else {

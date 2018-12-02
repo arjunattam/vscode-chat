@@ -112,7 +112,8 @@ export class SlackChatProvider implements IChatProvider {
   private updateUserPresence(userId: string, presence: UserPresence) {
     vscode.commands.executeCommand(SelfCommands.UPDATE_PRESENCE_STATUSES, {
       userId,
-      presence
+      presence,
+      provider: "slack"
     });
   }
 
@@ -152,7 +153,7 @@ export class SlackChatProvider implements IChatProvider {
       // Impending end event, so define a start timer
       const delay = (dndEnd - currentTime) * 1000;
       const timer = setTimeout(() => {
-        // If user is dnd, change to avaiable
+        // If user is dnd, change to available
         const presence = this.manager.getUserPresence(userId);
 
         if (presence === UserPresence.doNotDisturb) {
@@ -232,7 +233,8 @@ export class SlackChatProvider implements IChatProvider {
 
       vscode.commands.executeCommand(SelfCommands.UPDATE_MESSAGES, {
         channelId,
-        messages: newMessages
+        messages: newMessages,
+        provider: "slack"
       });
     } catch (error) {
       return console.error(error);
@@ -244,7 +246,7 @@ export class SlackChatProvider implements IChatProvider {
     durationInMinutes: number
   ): Promise<UserPresence | undefined> {
     let response;
-    const currentPresence = this.manager.getCurrentUserPresence();
+    const currentPresence = this.manager.getCurrentPresence();
 
     switch (presence) {
       case UserPresence.doNotDisturb:

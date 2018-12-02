@@ -150,7 +150,8 @@ export class DiscordChatProvider implements IChatProvider {
         const { id: userId, presence } = newMember;
         vscode.commands.executeCommand(SelfCommands.UPDATE_PRESENCE_STATUSES, {
           userId,
-          presence: getPresence(presence)
+          presence: getPresence(presence),
+          provider: "discord"
         });
       });
 
@@ -189,7 +190,8 @@ export class DiscordChatProvider implements IChatProvider {
       newMessages[timestamp] = parsed;
       vscode.commands.executeCommand(SelfCommands.UPDATE_MESSAGES, {
         channelId,
-        messages: newMessages
+        messages: newMessages,
+        provider: "discord"
       });
     }
   }

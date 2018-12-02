@@ -58,12 +58,13 @@ export default class TelemetryReporter implements vscode.Disposable {
   record(
     name: EventType,
     source: EventSource | undefined,
-    channelId: string | undefined
+    channelId: string | undefined,
+    provider: string | undefined
   ) {
     let channelType = undefined;
 
-    if (!!channelId) {
-      const channel = this.manager.getChannel(channelId);
+    if (!!channelId && !!provider) {
+      const channel = this.manager.getChannel(provider, channelId);
       channelType = !!channel ? channel.type : undefined;
     }
 
@@ -71,6 +72,7 @@ export default class TelemetryReporter implements vscode.Disposable {
       type: name,
       time: new Date(),
       properties: {
+        provider,
         source: source,
         channel_type: channelType
       }
@@ -88,6 +90,7 @@ export default class TelemetryReporter implements vscode.Disposable {
   getMxEvent(event: TelemetryEvent): Mixpanel.Event {
     const { os, extension, editor } = this.versions;
     const { type: name, properties, time } = event;
+    const { provider } = properties;
     return {
       event: name,
       properties: {
@@ -96,8 +99,7 @@ export default class TelemetryReporter implements vscode.Disposable {
         os_version: os,
         editor_version: editor,
         has_extension_pack: this.hasExtensionPack,
-        is_authenticated: this.manager.isAuthenticated(),
-        provider: this.manager.getSelectedProvider(),
+        is_authenticated: this.manager.isAuthenticated(provider),
         ...properties,
         time
       }

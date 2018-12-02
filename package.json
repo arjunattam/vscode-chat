@@ -101,10 +101,6 @@
         "title": "Chat: Configure Access Token"
       },
       {
-        "command": "extension.chat.diagnostic",
-        "title": "Chat: (Debug) Export Diagnostic Logs"
-      },
-      {
         "command": "extension.chat.updateSelfPresence",
         "title": "Chat: Update your presence status"
       },

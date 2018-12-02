@@ -3,8 +3,7 @@ import {
   UnreadsTreeProvider,
   ChannelTreeProvider,
   GroupTreeProvider,
-  IMsTreeProvider,
-  OnlineUsersTreeProvider
+  IMsTreeProvider
 } from "../tree";
 
 export class TreeViewManager implements vscode.Disposable {
@@ -12,27 +11,19 @@ export class TreeViewManager implements vscode.Disposable {
   channelsTreeProvider: ChannelTreeProvider;
   imsTreeProvider: IMsTreeProvider;
   groupsTreeProvider: GroupTreeProvider;
-  // usersTreeProvider: OnlineUsersTreeProvider;
 
   constructor(provider: string) {
-    // this.usersTreeProvider = new OnlineUsersTreeProvider(provider);
     this.unreadsTreeProvider = new UnreadsTreeProvider(provider);
     this.channelsTreeProvider = new ChannelTreeProvider(provider);
     this.groupsTreeProvider = new GroupTreeProvider(provider);
     this.imsTreeProvider = new IMsTreeProvider(provider);
   }
 
-  updateData(
-    channelLabels: ChannelLabel[],
-    currentUser: CurrentUser,
-    users: Users,
-    imChannels: { [userId: string]: Channel }
-  ) {
+  updateData(channelLabels: ChannelLabel[]) {
     this.unreadsTreeProvider.update(channelLabels);
     this.channelsTreeProvider.update(channelLabels);
     this.groupsTreeProvider.update(channelLabels);
     this.imsTreeProvider.update(channelLabels);
-    // this.usersTreeProvider.updateData(currentUser, users, imChannels);
   }
 
   dispose() {
@@ -40,6 +31,5 @@ export class TreeViewManager implements vscode.Disposable {
     this.channelsTreeProvider.dispose();
     this.groupsTreeProvider.dispose();
     this.imsTreeProvider.dispose();
-    // this.usersTreeProvider.dispose();
   }
 }

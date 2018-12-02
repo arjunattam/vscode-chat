@@ -182,6 +182,7 @@ interface ExtensionMessage {
 }
 
 interface UIMessage {
+  currentProvider: string;
   messages: ChannelMessages;
   users: Users;
   channel: Channel;
@@ -209,37 +210,52 @@ interface IStore {
   currentUserInfo: CurrentUser | undefined;
   users: Users;
   existingVersion: string | undefined;
+
+  // New fields
+  updateUsers: any;
+  updateChannels: any;
+  updateCurrentUser: any;
+  updateLastChannelId: any;
 }
 
 interface IManager {
-  token: string | undefined;
+  isTokenInitialized: boolean;
   store: IStore;
-  messages: Messages;
-  isAuthenticated: () => boolean;
-  getSelectedProvider: () => string | undefined;
-  getChannel: (channelId: string | undefined) => Channel | undefined;
+  // messages: Messages;
+  isAuthenticated: (provider: string) => boolean;
+  getChannel: (
+    provider: string,
+    channelId: string | undefined
+  ) => Channel | undefined;
   getIMChannel: (user: User) => Channel | undefined;
-  getChannelLabels: () => any;
-  getUnreadCount: (channel: Channel) => number;
+  getChannelLabels: (provider: string) => any;
+  getUnreadCount: (provider: string, channel: Channel) => number;
   getCurrentWorkspaceName: () => string | undefined;
   getUserPresence: (userId: string) => UserPresence | undefined;
-  getCurrentUserPresence: () => UserPresence | undefined;
-  updateMessages: (channelId: string, newMessages: ChannelMessages) => void;
-  loadChannelHistory: (channelId: string) => Promise<void>;
-  updateReadMarker: () => void;
-  updatePresenceForUser: (userId: string, presence: UserPresence) => void;
-  addReaction: (
-    channelId: string,
-    msgTimestamp: string,
-    userId: string,
-    reactionName: string
-  ) => void;
-  removeReaction: (
-    channelId: string,
-    msgTimestamp: string,
-    userId: string,
-    reactionName: string
-  ) => void;
+  getCurrentPresence: () => UserPresence | undefined;
+  getCurrentProvider: () => string;
+  // updateMessages: (channelId: string, newMessages: ChannelMessages) => void;
+  // loadChannelHistory: (channelId: string) => Promise<void>;
+  // updateReadMarker: () => void;
+  // updatePresenceForUser: (userId: string, presence: UserPresence) => void;
+  // addReaction: (
+  //   channelId: string,
+  //   msgTimestamp: string,
+  //   userId: string,
+  //   reactionName: string
+  // ) => void;
+  // removeReaction: (
+  //   channelId: string,
+  //   msgTimestamp: string,
+  //   userId: string,
+  //   reactionName: string
+  // ) => void;
+
+  // New fields
+  viewsManager: any;
+  vslsContactProvider: any;
+  updateAllUI: any;
+  getMessages: (provider: string) => Messages;
 }
 
 interface ChatArgs {
@@ -267,6 +283,7 @@ const enum EventType {
 }
 
 interface EventProperties {
+  provider: string | undefined;
   source: EventSource | undefined;
   channel_type: ChannelType | undefined;
 }

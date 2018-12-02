@@ -24,7 +24,8 @@ export abstract class VslsBaseService {
 
     vscode.commands.executeCommand(SelfCommands.UPDATE_MESSAGES, {
       channelId: VSLS_CHAT_CHANNEL.id,
-      messages: newMessages
+      messages: newMessages,
+      provider: "vsls"
     });
   }
 }

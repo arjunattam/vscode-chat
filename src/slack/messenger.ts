@@ -80,7 +80,8 @@ class SlackMessenger {
               {
                 parentTimestamp: thread_ts,
                 channelId: channel,
-                reply
+                reply,
+                provider: "slack"
               }
             );
           } else {
@@ -102,7 +103,8 @@ class SlackMessenger {
       // send duplicate messages to the webview.
       vscode.commands.executeCommand(SelfCommands.UPDATE_MESSAGES, {
         channelId: event.channel,
-        messages: newMessages
+        messages: newMessages,
+        provider: "slack"
       });
     });
 
@@ -113,7 +115,8 @@ class SlackMessenger {
         userId,
         channelId,
         msgTimestamp,
-        reactionName
+        reactionName,
+        provider: "slack"
       });
     });
 
@@ -124,7 +127,8 @@ class SlackMessenger {
         userId,
         channelId,
         msgTimestamp,
-        reactionName
+        reactionName,
+        provider: "slack"
       });
     });
 
@@ -133,7 +137,8 @@ class SlackMessenger {
       vscode.commands.executeCommand(SelfCommands.CHANNEL_MARKED, {
         channelId: channel,
         readTimestamp: ts,
-        unreadCount: unread_count_display
+        unreadCount: unread_count_display,
+        provider: "slack"
       });
     });
 
@@ -142,7 +147,8 @@ class SlackMessenger {
       vscode.commands.executeCommand(SelfCommands.CHANNEL_MARKED, {
         channelId: channel,
         readTimestamp: ts,
-        unreadCount: unread_count_display
+        unreadCount: unread_count_display,
+        provider: "slack"
       });
     });
 
@@ -151,7 +157,8 @@ class SlackMessenger {
       vscode.commands.executeCommand(SelfCommands.CHANNEL_MARKED, {
         channelId: channel,
         readTimestamp: ts,
-        unreadCount: unread_count_display
+        unreadCount: unread_count_display,
+        provider: "slack"
       });
     });
 
