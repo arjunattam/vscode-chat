@@ -1,5 +1,4 @@
 import * as vscode from "vscode";
-import { IStore, Channel, CurrentUser, Users } from "./types";
 import { uuidv4 } from "./utils";
 
 // Large discord communities can have lots of users/channels
@@ -16,36 +15,37 @@ const stateKeys = {
 };
 
 export class Store implements IStore {
-  currentUserInfo: CurrentUser;
+  currentUserInfo: CurrentUser | undefined;
   channels: Channel[] = [];
   users: Users = {};
-  lastChannelId: string;
-  installationId: string;
-  existingVersion: string;
+  lastChannelId: string | undefined;
+  installationId: string | undefined;
+  existingVersion: string | undefined;
 
   constructor(private context: vscode.ExtensionContext) {
     const { globalState } = context;
-    this.channels = globalState.get(stateKeys.CHANNELS);
-    this.currentUserInfo = globalState.get(stateKeys.USER_INFO);
-    this.users = globalState.get(stateKeys.USERS);
-    this.lastChannelId = globalState.get(stateKeys.LAST_CHANNEL_ID);
     this.installationId = globalState.get(stateKeys.INSTALLATION_ID);
+    this.channels = globalState.get(stateKeys.CHANNELS) || [];
+    this.currentUserInfo = globalState.get(stateKeys.USER_INFO);
+    this.users = globalState.get(stateKeys.USERS) || {};
+    this.lastChannelId = globalState.get(stateKeys.LAST_CHANNEL_ID);
     this.existingVersion = globalState.get(stateKeys.EXTENSION_VERSION);
   }
 
-  generateInstallationId() {
+  generateInstallationId(): string {
     const uuidStr = uuidv4();
     const { globalState } = this.context;
     globalState.update(stateKeys.INSTALLATION_ID, uuidStr);
     this.installationId = uuidStr;
+    return uuidStr;
   }
 
-  updateExtensionVersion(version) {
+  updateExtensionVersion(version: string) {
     const { globalState } = this.context;
     globalState.update(stateKeys.EXTENSION_VERSION, version);
   }
 
-  updateLastChannelId = (channelId: string): Thenable<void> => {
+  updateLastChannelId = (channelId: string | undefined): Thenable<void> => {
     this.lastChannelId = channelId;
     return this.context.globalState.update(
       stateKeys.LAST_CHANNEL_ID,
@@ -53,23 +53,27 @@ export class Store implements IStore {
     );
   };
 
-  updateUsers = (users): Thenable<void> => {
+  updateUsers = (users: Users): Thenable<void> => {
     this.users = users;
 
     if (Object.keys(this.users).length <= VALUE_LENGTH_LIMIT) {
       return this.context.globalState.update(stateKeys.USERS, this.users);
     }
+
+    return Promise.resolve();
   };
 
-  updateChannels = (channels): Thenable<void> => {
+  updateChannels = (channels: Channel[]): Thenable<void> => {
     this.channels = channels;
 
     if (this.channels.length <= VALUE_LENGTH_LIMIT) {
       return this.context.globalState.update(stateKeys.CHANNELS, this.channels);
     }
+
+    return Promise.resolve();
   };
 
-  updateCurrentUser = (userInfo: CurrentUser): Thenable<void> => {
+  updateCurrentUser = (userInfo: CurrentUser | undefined): Thenable<void> => {
     this.currentUserInfo = userInfo;
     return this.context.globalState.update(
       stateKeys.USER_INFO,

@@ -1,14 +1,17 @@
-export interface IChatProvider {
+interface IChatProvider {
   getToken: (currentTeamId: string) => Promise<string>;
-  validateToken: (token: string) => Promise<CurrentUser>;
+  validateToken: (token: string) => Promise<CurrentUser | undefined>;
   fetchUsers: () => Promise<Users>;
-  fetchUserInfo: (userId: string) => Promise<User>;
+  fetchUserInfo: (userId: string) => Promise<User | undefined>;
   fetchChannels: (users: Users) => Promise<Channel[]>;
-  fetchChannelInfo: (channel: Channel) => Promise<Channel>;
+  fetchChannelInfo: (channel: Channel) => Promise<Channel | undefined>;
   loadChannelHistory: (channelId: string) => Promise<ChannelMessages>;
-  getUserPrefs: () => Promise<UserPreferences>;
-  markChannel: (channel: Channel, ts: string) => Promise<Channel>;
-  fetchThreadReplies: (channelId: string, ts: string) => Promise<Message>;
+  getUserPreferences: () => Promise<UserPreferences | undefined>;
+  markChannel: (channel: Channel, ts: string) => Promise<Channel | undefined>;
+  fetchThreadReplies: (
+    channelId: string,
+    ts: string
+  ) => Promise<Message | undefined>;
   sendMessage: (
     text: string,
     currentUserId: string,
@@ -20,53 +23,66 @@ export interface IChatProvider {
     channelId: string,
     parentTimestamp: string
   ) => Promise<void>;
-  connect: () => Promise<CurrentUser>;
+  connect: () => Promise<CurrentUser | undefined>;
   isConnected: () => boolean;
+  updateSelfPresence: (
+    presence: UserPresence,
+    durationInMinutes: number
+  ) => Promise<UserPresence | undefined>;
   subscribePresence: (users: Users) => void;
-  createIMChannel: (user: User) => Promise<Channel>;
+  createIMChannel: (user: User) => Promise<Channel | undefined>;
   destroy: () => Promise<void>;
-  signout: (userInfo: CurrentUser) => Promise<void>;
+  signout: (userInfo: CurrentUser | undefined) => Promise<void>;
 }
 
-export interface User {
+const enum UserPresence {
+  unknown = "unknown",
+  available = "available",
+  idle = "idle",
+  doNotDisturb = "doNotDisturb",
+  invisible = "invisible",
+  offline = "offline"
+}
+
+interface User {
   id: string;
   name: string;
+  email?: string; // Discord does not have emails, hence the ?
   fullName: string;
   internalName?: string; // Used by slack provider to associate DMs
   imageUrl: string;
   smallImageUrl: string;
-  isOnline: boolean;
+  presence: UserPresence;
   isBot?: boolean;
   isDeleted?: boolean;
   roleName?: string;
 }
 
-export interface UserPreferences {
+interface UserPreferences {
   mutedChannels?: string[];
 }
 
-export enum Providers {
+const enum Providers {
   slack = "slack",
   discord = "discord",
   vsls = "vsls"
 }
 
-export interface CurrentUser {
+interface CurrentUser {
   id: string;
   name: string;
-  token: string; // deprecated
   teams: Team[];
-  currentTeamId: string;
+  currentTeamId: string | undefined;
   provider: Providers;
 }
 
-export interface Team {
+interface Team {
   // Team represents workspace for Slack, guild for Discord
   id: string;
   name: string;
 }
 
-export interface Users {
+interface Users {
   [id: string]: User;
 }
 
@@ -75,7 +91,7 @@ interface MessageAttachment {
   permalink: string;
 }
 
-export interface MessageContent {
+interface MessageContent {
   author: string;
   authorIcon?: string;
   pretext: string;
@@ -94,7 +110,7 @@ interface MessageReaction {
   userIds: string[];
 }
 
-export interface MessageReply {
+interface MessageReply {
   userId: string;
   timestamp: string;
   text?: string;
@@ -102,55 +118,59 @@ export interface MessageReply {
   textHTML?: string;
 }
 
-export interface MessageReplies {
+interface MessageReplies {
   [timestamp: string]: MessageReply;
 }
 
-export interface Message {
+interface Message {
   timestamp: string;
   userId: string;
   text: string;
   textHTML?: string;
   isEdited?: Boolean;
   attachment?: MessageAttachment;
-  content: MessageContent;
+  content: MessageContent | undefined;
   reactions: MessageReaction[];
   replies: MessageReplies;
   // TODO - add
   // subscribed (for threads)
 }
 
-export interface ChannelMessages {
+interface ChannelMessages {
   [timestamp: string]: Message;
 }
 
-export interface Messages {
+interface ChannelMessagesWithUndefined {
+  [timestamp: string]: Message | undefined;
+}
+
+interface Messages {
   [channelId: string]: ChannelMessages;
 }
 
-export enum ChannelType {
+const enum ChannelType {
   channel = "channel",
   group = "group",
   im = "im"
 }
 
-export interface Channel {
+interface Channel {
   id: string;
   name: string;
   type: ChannelType;
-  readTimestamp: string;
+  readTimestamp: string | undefined;
   unreadCount: number;
   categoryName?: string; // for Discord
 }
 
-export interface ChannelLabel {
+interface ChannelLabel {
   channel: Channel;
   unread: number;
   label: string;
-  isOnline: boolean;
+  presence: UserPresence;
 }
 
-enum MessageType {
+const enum MessageType {
   text = "text",
   thread_reply = "thread_reply",
   command = "command",
@@ -158,12 +178,12 @@ enum MessageType {
   internal = "internal"
 }
 
-export interface ExtensionMessage {
+interface ExtensionMessage {
   type: MessageType;
   text: string;
 }
 
-export interface UIMessage {
+interface UIMessage {
   messages: ChannelMessages;
   users: Users;
   channel: Channel;
@@ -171,12 +191,12 @@ export interface UIMessage {
   statusText: string;
 }
 
-export interface UIMessageDateGroup {
+interface UIMessageDateGroup {
   groups: UIMessageGroup[];
   date: string;
 }
 
-export interface UIMessageGroup {
+interface UIMessageGroup {
   messages: Message[];
   userId: string;
   user: User;
@@ -184,35 +204,37 @@ export interface UIMessageGroup {
   key: string;
 }
 
-export interface IStore {
-  installationId: string;
-  lastChannelId: string;
+interface IStore {
+  installationId: string | undefined; // TODO: remove undefined
+  lastChannelId: string | undefined;
   channels: Channel[];
-  currentUserInfo: CurrentUser;
+  currentUserInfo: CurrentUser | undefined;
   users: Users;
-  existingVersion: string;
+  existingVersion: string | undefined;
 }
 
-export type InitializeState = {
+type InitializeState = {
   provider: string;
   currentTeamId: string;
 };
 
-export interface IManager {
-  token: string;
+interface IManager {
+  token: string | undefined;
   store: IStore;
   messages: Messages;
   isAuthenticated: () => boolean;
-  getInitialState: () => InitializeState;
-  getChannel: (channelId: string) => Channel | undefined;
+  getInitialState: () => InitializeState | undefined;
+  getChannel: (channelId: string | undefined) => Channel | undefined;
   getIMChannel: (user: User) => Channel | undefined;
   getChannelLabels: () => any;
   getUnreadCount: (channel: Channel) => number;
-  getCurrentWorkspaceName: () => string;
+  getCurrentWorkspaceName: () => string | undefined;
+  getUserPresence: (userId: string) => UserPresence | undefined;
+  getCurrentUserPresence: () => UserPresence | undefined;
   updateMessages: (channelId: string, newMessages: ChannelMessages) => void;
   loadChannelHistory: (channelId: string) => Promise<void>;
   updateReadMarker: () => void;
-  updateUserPresence: (userId: string, isOnline: boolean) => void;
+  updatePresenceForUser: (userId: string, presence: UserPresence) => void;
   addReaction: (
     channelId: string,
     msgTimestamp: string,
@@ -227,13 +249,13 @@ export interface IManager {
   ) => void;
 }
 
-export interface ChatArgs {
-  channel: Channel;
-  user: User;
+interface ChatArgs {
+  channel?: Channel;
+  user?: User;
   source: EventSource;
 }
 
-export enum EventSource {
+const enum EventSource {
   status = "status_item",
   command = "command_palette",
   activity = "activity_bar",
@@ -241,7 +263,7 @@ export enum EventSource {
   slash = "slash_command"
 }
 
-export enum EventType {
+const enum EventType {
   extensionInstalled = "extension_installed",
   viewOpened = "webview_opened",
   messageSent = "message_sent",
@@ -251,12 +273,12 @@ export enum EventType {
   authStarted = "auth_started"
 }
 
-export interface EventProperties {
+interface EventProperties {
   source: EventSource | undefined;
   channel_type: ChannelType | undefined;
 }
 
-export interface TelemetryEvent {
+interface TelemetryEvent {
   type: EventType;
   time: Date;
   properties: EventProperties;

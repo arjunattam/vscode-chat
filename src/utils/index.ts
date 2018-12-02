@@ -8,19 +8,21 @@ import {
 } from "../constants";
 
 export const openUrl = (url: string) => {
-  const parsed = vscode.Uri.parse(url);
-  return vscode.commands.executeCommand(VSCodeCommands.OPEN, parsed);
+  const parsedUrl = vscode.Uri.parse(url);
+  return vscode.commands.executeCommand(VSCodeCommands.OPEN, parsedUrl);
 };
 
 export const openSettings = () => {
   vscode.commands.executeCommand(VSCodeCommands.OPEN_SETTINGS);
 };
 
-export const setVsContext = (name, value) => {
+export const setVsContext = (name: string, value: boolean) => {
   return vscode.commands.executeCommand("setContext", name, value);
 };
 
-export const getExtension = (extensionId): vscode.Extension<any> => {
+export const getExtension = (
+  extensionId: string
+): vscode.Extension<any> | undefined => {
   return vscode.extensions.getExtension(extensionId);
 };
 
@@ -65,7 +67,7 @@ export function uuidv4(): string {
   });
 }
 
-export function isSuperset(set, subset): boolean {
+export function isSuperset(set: Set<any>, subset: Set<any>): boolean {
   for (var elem of subset) {
     if (!set.has(elem)) {
       return false;
@@ -74,7 +76,7 @@ export function isSuperset(set, subset): boolean {
   return true;
 }
 
-export function difference(setA, setB) {
+export function difference(setA: Set<any>, setB: Set<any>) {
   var _difference = new Set(setA);
   for (var elem of setB) {
     _difference.delete(elem);
@@ -82,7 +84,7 @@ export function difference(setA, setB) {
   return _difference;
 }
 
-export function equals(setA, setB) {
+export function equals(setA: Set<any>, setB: Set<any>) {
   if (setA.size !== setB.size) {
     return false;
   }
@@ -96,7 +98,7 @@ export function equals(setA, setB) {
   return true;
 }
 
-export function toTitleCase(str) {
+export function toTitleCase(str: string) {
   return str.replace(/\w\S*/g, function(txt) {
     return txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase();
   });
@@ -116,4 +118,14 @@ export function toDateString(date: Date) {
   }
 
   return `${date.getFullYear()}-${month}-${day}`;
+}
+
+export function camelCaseToTitle(text: string) {
+  var result = text.replace(/([A-Z])/g, " $1");
+  return result.charAt(0).toUpperCase() + result.slice(1);
+}
+
+export function titleCaseToCamel(text: string) {
+  var result = text.replace(/ /g, "");
+  return result.charAt(0).toLowerCase() + result.slice(1);
 }

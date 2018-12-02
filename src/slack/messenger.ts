@@ -2,14 +2,8 @@ import * as vscode from "vscode";
 import { RTMClient, RTMClientOptions } from "@slack/client";
 import ConfigHelper from "../config";
 import { getMessage } from "./client";
-import {
-  ChannelMessages,
-  CurrentUser,
-  Users,
-  MessageReply,
-  Providers
-} from "../types";
 import { SelfCommands } from "../constants";
+import { IDNDStatus } from "./common";
 
 const RTMEvents = {
   AUTHENTICATED: "authenticated",
@@ -20,7 +14,9 @@ const RTMEvents = {
   PRESENCE_CHANGE: "presence_change",
   CHANNEL_MARKED: "channel_marked",
   GROUP_MARKED: "group_marked",
-  IM_MARKED: "im_marked"
+  IM_MARKED: "im_marked",
+  DND_UPDATED_SELF: "dnd_updated",
+  DND_UPDATED_USER: "dnd_updated_user"
 };
 
 const EventSubTypes = {
@@ -32,7 +28,11 @@ const EventSubTypes = {
 class SlackMessenger {
   rtmClient: RTMClient;
 
-  constructor(private token: string) {
+  constructor(
+    token: string,
+    private onPresenceChanged: any,
+    private onDndStateChanged: any
+  ) {
     // We can also use { useRtmConnect: false } for rtm.start
     // instead of rtm.connect, which has more fields in the payload
     let options: RTMClientOptions = {};
@@ -45,7 +45,7 @@ class SlackMessenger {
     this.rtmClient = new RTMClient(token, options);
     this.rtmClient.on(RTMEvents.MESSAGE, event => {
       const { subtype } = event;
-      let newMessages: ChannelMessages = {};
+      let newMessages: ChannelMessagesWithUndefined = {};
 
       switch (subtype) {
         case EventSubTypes.DELETED:
@@ -128,15 +128,6 @@ class SlackMessenger {
       });
     });
 
-    this.rtmClient.on(RTMEvents.PRESENCE_CHANGE, event => {
-      const { user: userId, presence } = event;
-      const isOnline = presence === "active";
-      vscode.commands.executeCommand(SelfCommands.UPDATE_USER_PRESENCE, {
-        userId,
-        isOnline
-      });
-    });
-
     this.rtmClient.on(RTMEvents.CHANNEL_MARKED, event => {
       const { channel, ts, unread_count_display } = event;
       vscode.commands.executeCommand(SelfCommands.CHANNEL_MARKED, {
@@ -163,6 +154,25 @@ class SlackMessenger {
         unreadCount: unread_count_display
       });
     });
+
+    this.rtmClient.on(RTMEvents.PRESENCE_CHANGE, event => {
+      const { user: userId, presence: rawPresence } = event;
+      this.onPresenceChanged(userId, rawPresence);
+    });
+
+    this.rtmClient.on(RTMEvents.DND_UPDATED_SELF, event => {
+      // This is a no-op, since the DND_UPDATED_USER handler does everything
+      const { user: userId } = event;
+      const dndStatus: IDNDStatus = event.dnd_status;
+    });
+
+    this.rtmClient.on(RTMEvents.DND_UPDATED_USER, event => {
+      // This event is not fired when the snooze ends for a user
+      // Hence, we need to maintain that via dnd timers
+      const { user: userId } = event;
+      const dndStatus: IDNDStatus = event.dnd_status;
+      this.onDndStateChanged(userId, dndStatus);
+    });
   }
 
   isConnected(): boolean {
@@ -178,7 +188,6 @@ class SlackMessenger {
           const { id, name } = self;
           const { id: teamId, name: teamName } = team;
           return resolve({
-            token: this.token,
             id,
             name,
             teams: [{ id: teamId, name: teamName }],
@@ -197,8 +206,8 @@ class SlackMessenger {
     });
   };
 
-  sendMessage = ({ channel, text }) => {
-    return this.rtmClient.sendMessage(text, channel);
+  sendMessage = (channelId: string, text: string) => {
+    return this.rtmClient.sendMessage(text, channelId);
   };
 
   handleMessageLinks = (incoming: ChannelMessages) => {

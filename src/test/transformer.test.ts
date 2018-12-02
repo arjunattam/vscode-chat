@@ -31,7 +31,7 @@ suite("Transformer tests", function() {
 
     const INPUT_3 = "[link](href_value)";
     const OUTPUT_3 =
-      '<p><a href="href_value" onclick="openLink(\'href_value\'); return false;" tabindex="-1">link</a></p>\n';
+      '<p><a href="unparseable-href-href_value" onclick="openLink(\'href_value\'); return false;" tabindex="-1">link</a></p>\n';
     assert.equal(markdownify(getMessage(INPUT_3)).timestamp.textHTML, OUTPUT_3);
   });
 

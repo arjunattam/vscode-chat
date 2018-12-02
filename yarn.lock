@@ -60,9 +60,19 @@
   version "4.0.1"
   resolved "https://registry.yarnpkg.com/@types/keytar/-/keytar-4.0.1.tgz#e2cf6405dc33861424e59b67516c66d2cf7bc21b"
 
+"@types/linkify-it@*":
+  version "2.0.4"
+  resolved "https://registry.yarnpkg.com/@types/linkify-it/-/linkify-it-2.0.4.tgz#80a7f9aec4c9283e8333debda5a88511d4a529a7"
+
 "@types/loglevel@^1.5.3":
   version "1.5.3"
   resolved "https://registry.yarnpkg.com/@types/loglevel/-/loglevel-1.5.3.tgz#adfce55383edc5998a2170ad581b3e23d6adb5b8"
+
+"@types/markdown-it@^0.0.7":
+  version "0.0.7"
+  resolved "https://registry.yarnpkg.com/@types/markdown-it/-/markdown-it-0.0.7.tgz#75070485a3d8ad11e7deb8287f4430be15bf4d39"
+  dependencies:
+    "@types/linkify-it" "*"
 
 "@types/mixpanel@^2.14.0":
   version "2.14.0"
@@ -1905,9 +1915,9 @@ vscode@^1.1.6:
     url-parse "^1.4.3"
     vinyl-source-stream "^1.1.0"
 
-vsls@^0.3.426:
-  version "0.3.426"
-  resolved "https://registry.yarnpkg.com/vsls/-/vsls-0.3.426.tgz#c4976c6f22f58de637c416136b0ccaab6d5ef576"
+vsls@^0.3.934:
+  version "0.3.934"
+  resolved "https://registry.yarnpkg.com/vsls/-/vsls-0.3.934.tgz#1d6812026af8a287162044fa9229936d62634a3b"
 
 which@^1.2.9:
   version "1.3.1"

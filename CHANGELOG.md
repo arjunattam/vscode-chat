@@ -2,13 +2,41 @@
 
 All notable changes to the vscode-chat extension will be documented in this file. This follows the [Keep a Changelog](http://keepachangelog.com/) format.
 
-## [0.7.4] - tbd
+## [0.9.0] - tbd
 
 ### Added
 
 - Slack: Support for multiple workspaces is available for preview. Run the `Sign In with Slack` command to sign into another workspace, and `Change Workspace` to switch between Slack workspaces.
 - Discord: Handle file attachments in Discord messages
 - Discord: Token string is sanitised to remove whitespaces and quotation characters
+
+## [0.8.2] - 2018-11-20
+
+### Fixed
+
+- VS Live Share integration: Updated label for chat tree item.
+
+## [0.8.1] - 2018-11-20
+
+### Fixed
+
+- Inviting online users to a Live Share session creates an IM channel with the user, if not already available.
+
+## [0.8.0] - 2018-11-18
+
+### Added
+
+- Now you can update your presence status: go invisible on chat, or turn on do-not-disturb mode. Run the `Chat: Update your presence status` command (supports Slack and Discord).
+- VS Live Share integrations:
+  - Show presence statuses for VS Live Share suggested contacts (for Slack and Discord)
+  - Update your presence status from inside VS Live Share (for Slack and Discord)
+  - Open VS Live Share chat from the VS Live Share explorer views
+
+## [0.7.4] - 2018-11-05
+
+### Fixed
+
+- Fixed bad instantiation for users and channels state causing VS Live Share chat to not work.
 
 ## [0.7.3] - 2018-10-16
 

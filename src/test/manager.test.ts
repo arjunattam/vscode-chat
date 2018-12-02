@@ -1,6 +1,5 @@
 import * as assert from "assert";
 import { Store } from "../store";
-import { Providers } from "../types";
 import Manager from "../manager";
 import { mock, instance, verify, deepEqual } from "ts-mockito";
 
@@ -13,7 +12,6 @@ suite("Manager tests", function() {
     store.currentUserInfo = {
       id: "user-id",
       name: "user-name",
-      token: "user-token",
       teams: [{ name: "team-name", id: "team-id" }],
       currentTeamId: "team-id",
       provider: Providers.slack

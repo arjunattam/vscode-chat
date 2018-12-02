@@ -1,7 +1,6 @@
 import * as vscode from "vscode";
 import { ExtensionContext } from "vscode";
 import WebviewContainer from "../webview";
-import { ExtensionMessage, UIMessage } from "../types";
 import {
   SLASH_COMMANDS,
   REVERSE_SLASH_COMMANDS,
@@ -12,7 +11,7 @@ import Logger from "../logger";
 import CommandDispatch, { MessageCommand } from "./commands";
 import markdownTransform from "./markdowner";
 
-export const getCommand = (text: string): MessageCommand => {
+export const getCommand = (text: string): MessageCommand | undefined => {
   const pattern = /^\/(\w+) (\w+)$/;
   const trimmed = text.trim();
   const matched = trimmed.match(pattern);
@@ -28,7 +27,7 @@ export const getCommand = (text: string): MessageCommand => {
 class ViewController {
   ui: WebviewContainer | undefined;
   isUIReady: Boolean = false; // Vuejs loaded
-  pendingMessage: UIMessage = undefined;
+  pendingMessage: UIMessage | undefined = undefined;
 
   constructor(
     private context: ExtensionContext,
@@ -68,7 +67,7 @@ class ViewController {
     });
   }
 
-  isValidCommand = (text: string, commandList: Object) => {
+  isValidCommand = (text: string, commandList: { [name: string]: any }) => {
     const parsed = getCommand(text);
 
     if (parsed) {
@@ -90,14 +89,17 @@ class ViewController {
   handleCommand = (text: string) => {
     if (this.isValidCommand(text, SLASH_COMMANDS)) {
       const parsed = getCommand(text);
-      const { namespace, subcommand } = parsed;
 
-      if (namespace === "live" && subcommand === "share") {
-        // Temporary bypass for "/live share" till we move
-        // all of this to the common command handlers
-        return vscode.commands.executeCommand(SelfCommands.LIVE_SHARE_SLASH);
-      } else {
-        return this.dispatchCommand(parsed);
+      if (!!parsed) {
+        const { namespace, subcommand } = parsed;
+
+        if (namespace === "live" && subcommand === "share") {
+          // Temporary bypass for "/live share" till we move
+          // all of this to the common command handlers
+          return vscode.commands.executeCommand(SelfCommands.LIVE_SHARE_SLASH);
+        } else {
+          return this.dispatchCommand(parsed);
+        }
       }
     }
 
@@ -166,7 +168,7 @@ class ViewController {
     // Reverse commands are slash commands fired by other Slack users
     // For example, `/live request` requests someone to host a session
     const { currentUser, messages } = uiMessage;
-    let handledMessages = {};
+    let handledMessages: ChannelMessages = {};
 
     Object.keys(messages).forEach(ts => {
       // Any of these messages might be reverse commands
@@ -210,8 +212,10 @@ class ViewController {
       const message = this.handleReverseCommands(mdMessages);
 
       // Send to UI after markdown
-      this.ui.update(message);
-      this.pendingMessage = null;
+      if (this.ui) {
+        this.ui.update(message);
+        this.pendingMessage = undefined;
+      }
     }
   };
 }

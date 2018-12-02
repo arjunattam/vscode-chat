@@ -1,8 +1,7 @@
 import * as vsls from "vsls/vscode";
 import * as gravatar from "gravatar-api";
-import { User, Message } from "../types";
 
-export const VSLS_CHANNEL = {
+export const VSLS_CHAT_CHANNEL = {
   id: "vsls-channel-id",
   name: "Live Share Chat"
 };
@@ -17,9 +16,8 @@ export const toBaseMessage = (raw: VslsChatMessage): Message => {
   return { ...raw, content: undefined, reactions: [], replies: {} };
 };
 
-export const toBaseUser = (peer: vsls.Peer): User => {
-  const { peerNumber } = peer;
-  const { displayName, emailAddress } = peer.user;
+export const toBaseUser = (peerNumber: number, user: vsls.UserInfo): User => {
+  const { displayName, emailAddress } = user;
   const avatar = gravatar.imageUrl({
     email: emailAddress,
     parameters: { size: "200", d: "retro" },
@@ -29,10 +27,11 @@ export const toBaseUser = (peer: vsls.Peer): User => {
   return {
     id: peerNumber.toString(),
     name: displayName,
+    email: !!emailAddress ? emailAddress : undefined,
     fullName: displayName,
     imageUrl: avatar,
     smallImageUrl: avatar,
-    isOnline: true
+    presence: UserPresence.available
   };
 };
 

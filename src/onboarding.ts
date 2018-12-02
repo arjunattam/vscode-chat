@@ -1,7 +1,6 @@
 import * as vscode from "vscode";
 import * as str from "./strings";
 import { SelfCommands } from "./constants";
-import { EventSource } from "./types";
 import { openUrl } from "./utils";
 
 export const setupSlack = () => {
@@ -57,13 +56,13 @@ const OnboardingCommands = {
 
 export class OnboardingTreeProvider
   implements vscode.TreeDataProvider<OnboardingTreeNode>, vscode.Disposable {
-  private vslsViewId = "chat.treeView.onboarding.vsls";
+  // private vslsViewId = "chat.treeView.onboarding.vsls";
   private mainViewId = "chat.treeView.onboarding.main";
   private _disposables: vscode.Disposable[] = [];
 
   constructor() {
     this._disposables.push(
-      vscode.window.registerTreeDataProvider(this.vslsViewId, this),
+      // vscode.window.registerTreeDataProvider(this.vslsViewId, this),
       vscode.window.registerTreeDataProvider(this.mainViewId, this),
       vscode.commands.registerCommand(
         OnboardingCommands.SETUP_SLACK,

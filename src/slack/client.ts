@@ -1,26 +1,30 @@
 import { WebClient, WebClientOptions } from "@slack/client";
 import ConfigHelper from "../config";
 import Logger from "../logger";
-import {
-  Users,
-  Channel,
-  ChannelMessages,
-  ChannelType,
-  User,
-  Message,
-  UserPreferences,
-  CurrentUser,
-  Providers
-} from "../types";
+import { IDNDStatusForUser } from "./common";
+
+interface ISnoozeAPIResponse {
+  ok: boolean;
+  snooze_enabled: boolean;
+  snooze_endtime: number;
+  snooze_remaining: number;
+}
 
 const CHANNEL_HISTORY_LIMIT = 50;
+
 const USER_LIST_LIMIT = 1000;
 
-const getFile = rawFile => {
+// User-defined type guard
+// https://github.com/Microsoft/TypeScript/issues/20707#issuecomment-351874491
+function notUndefined<T>(x: T | undefined): x is T {
+  return x !== undefined;
+}
+
+const getFile = (rawFile: any) => {
   return { name: rawFile.name, permalink: rawFile.permalink };
 };
 
-const getContent = attachment => {
+const getContent = (attachment: any) => {
   return {
     author: attachment.author_name,
     authorIcon: attachment.author_icon,
@@ -33,13 +37,13 @@ const getContent = attachment => {
   };
 };
 
-const getReaction = reaction => ({
+const getReaction = (reaction: any) => ({
   name: `:${reaction.name}:`,
   count: reaction.count,
   userIds: reaction.users
 });
 
-const getUser = (member): User => {
+const getUser = (member: any): User => {
   const { id, profile, real_name, name, deleted } = member;
   const { display_name, image_72, image_24 } = profile;
 
@@ -47,11 +51,12 @@ const getUser = (member): User => {
     id,
     // Conditional required for bots like @paperbot
     name: display_name ? display_name : name,
+    email: profile.email,
     fullName: real_name,
     internalName: name,
     imageUrl: image_72,
     smallImageUrl: image_24,
-    isOnline: undefined,
+    presence: UserPresence.unknown,
     isDeleted: deleted
   };
 };
@@ -66,11 +71,16 @@ export const getMessage = (raw: any): ChannelMessages => {
     timestamp: ts,
     isEdited: !!edited,
     text: text,
-    attachment: files ? getFile(files[0]) : null,
-    reactions: reactions ? reactions.map(r => getReaction(r)) : [],
-    content: attachments ? getContent(attachments[0]) : null,
+    attachment: files ? getFile(files[0]) : undefined,
+    reactions: reactions
+      ? reactions.map((reaction: any) => getReaction(reaction))
+      : [],
+    content: attachments ? getContent(attachments[0]) : undefined,
     replies: replies
-      ? replies.map(({ user, ts }) => ({ userId: user, timestamp: ts }))
+      ? replies.map((reply: any) => ({
+          userId: reply.user,
+          timestamp: reply.ts
+        }))
       : []
   };
 
@@ -95,14 +105,13 @@ export default class SlackAPIClient {
     });
   }
 
-  authTest = async (): Promise<CurrentUser> => {
+  authTest = async (): Promise<CurrentUser | undefined> => {
     const response: any = await this.client.auth.test();
     const { ok } = response;
 
     if (ok) {
       const { team, user, user_id, team_id } = response;
       return {
-        token: this.token,
         id: user_id,
         name: user,
         teams: [{ id: team_id, name: team }],
@@ -123,10 +132,10 @@ export default class SlackAPIClient {
     let result = {};
 
     if (ok) {
-      messages.forEach(message => {
+      messages.forEach((rawMessage: any) => {
         result = {
           ...result,
-          ...getMessage(message)
+          ...getMessage(rawMessage)
         };
       });
     }
@@ -142,7 +151,7 @@ export default class SlackAPIClient {
     let users: Users = {};
 
     if (ok) {
-      members.forEach(member => {
+      members.forEach((member: any) => {
         const user = getUser(member);
         const { id } = user;
         users[id] = user;
@@ -150,9 +159,11 @@ export default class SlackAPIClient {
 
       return users;
     }
+
+    return {};
   }
 
-  async getBotInfo(botId: string): Promise<User> {
+  async getBotInfo(botId: string): Promise<User | undefined> {
     const response: any = await this.client.bots.info({
       bot: botId
     });
@@ -166,13 +177,13 @@ export default class SlackAPIClient {
         fullName: name,
         imageUrl: icons.image_72,
         smallImageUrl: icons.image_24,
-        isOnline: false,
+        presence: UserPresence.unknown,
         isBot: true
       };
     }
   }
 
-  async getUserInfo(userId: string): Promise<User> {
+  async getUserInfo(userId: string): Promise<User | undefined> {
     const response: any = await this.client.users.info({ user: userId });
     const { ok, user } = response;
 
@@ -191,7 +202,7 @@ export default class SlackAPIClient {
 
     if (ok) {
       return channels
-        .map(channel => {
+        .map((channel: any) => {
           const { is_channel, is_mpim, is_im, is_group, is_member } = channel;
 
           if (is_channel && is_member) {
@@ -220,7 +231,9 @@ export default class SlackAPIClient {
 
             if (matched) {
               const first = matched[1];
-              const rest = matched[2].split("--").filter(element => !!element);
+              const rest = matched[2]
+                .split("--")
+                .filter((element: string) => !!element);
               const members = [first, ...rest];
               const memberUsers = members
                 .map(memberName =>
@@ -228,7 +241,7 @@ export default class SlackAPIClient {
                     ({ internalName }) => internalName === memberName
                   )
                 )
-                .filter(Boolean);
+                .filter(notUndefined);
               const isAnyUserDeleted = memberUsers.filter(
                 ({ isDeleted }) => isDeleted
               );
@@ -266,122 +279,187 @@ export default class SlackAPIClient {
         })
         .filter(Boolean);
     }
+
+    return [];
   }
 
-  getChannelInfo = async (originalChannel: Channel): Promise<Channel> => {
+  getChannelInfo = async (
+    originalChannel: Channel
+  ): Promise<Channel | undefined> => {
     const { id, type } = originalChannel;
+    let response: any;
     let channel;
-    let response;
 
-    const getChannel = response => {
-      const { unread_count_display, last_read } = response;
+    try {
+      switch (type) {
+        case "group":
+          response = await this.client.groups.info({ channel: id });
+          channel = response.group;
+          break;
+        case "channel":
+          response = await this.client.channels.info({ channel: id });
+          channel = response.channel;
+          break;
+        case "im":
+          response = await this.client.conversations.info({
+            channel: id
+          });
+          channel = response.channel;
+          break;
+      }
+
+      const { unread_count_display, last_read } = channel;
       return {
         ...originalChannel,
         unreadCount: unread_count_display,
         readTimestamp: last_read
       };
-    };
-
-    switch (type) {
-      case "group":
-        response = await this.client.groups.info({ channel: id });
-        channel = response.group;
-        break;
-      case "channel":
-        response = await this.client.channels.info({ channel: id });
-        channel = response.channel;
-        break;
-      case "im":
-        response = await this.client.conversations.info({
-          channel: id
-        });
-        channel = response.channel;
-        break;
+    } catch (error) {
+      // TODO: this is failing for private groups -> need to investigate why
+      console.log("Error fetching channel:", originalChannel.name);
     }
-
-    return getChannel(channel);
   };
 
-  sendMessage = ({ channel, text, thread_ts }): Promise<any> => {
+  sendMessage = (
+    channelId: string,
+    text: string,
+    threadTs: string
+  ): Promise<any> => {
     return this.client.chat.postMessage({
-      channel,
+      channel: channelId,
       text,
-      thread_ts,
+      thread_ts: threadTs,
       as_user: true
     });
   };
 
-  markChannel = ({ channel, ts }): Promise<any> => {
+  markChannel = async (
+    channel: Channel,
+    ts: string
+  ): Promise<Channel | undefined> => {
     const { id, type } = channel;
+    let response: any;
+
     switch (type) {
-      case "channel":
-        return this.client.channels.mark({ channel: id, ts });
-      case "group":
-        return this.client.groups.mark({ channel: id, ts });
-      case "im":
-        return this.client.im.mark({ channel: id, ts });
+      case ChannelType.channel:
+        response = await this.client.channels.mark({ channel: id, ts });
+        break;
+      case ChannelType.group:
+        response = await this.client.groups.mark({ channel: id, ts });
+        break;
+      case ChannelType.im:
+        response = await this.client.im.mark({ channel: id, ts });
+        break;
+    }
+
+    const { ok } = response;
+
+    if (ok) {
+      return {
+        ...channel,
+        readTimestamp: ts,
+        unreadCount: 0
+      };
     }
   };
 
-  openIMChannel = (user: User): Promise<Channel> => {
+  openIMChannel = async (user: User): Promise<Channel | undefined> => {
     const { id, name } = user;
-    return this.client.im
-      .open({ user: id, return_im: true })
-      .then((response: any) => {
-        const { ok, channel } = response;
-
-        if (ok) {
-          return {
-            id: channel.id,
-            name: `@${name}`,
-            type: ChannelType.im,
-            unreadCount: 0,
-            readTimestamp: null
-          };
-        }
-      });
-  };
-
-  getUserPrefs = (): Promise<UserPreferences> => {
-    // Undocumented API: https://github.com/ErikKalkoken/slackApiDoc/blob/master/users.prefs.get.md
-    return this.client.apiCall("users.prefs.get").then((response: any) => {
-      const { ok, prefs } = response;
-
-      if (ok) {
-        const { muted_channels } = prefs;
-        return {
-          mutedChannels: muted_channels.split(",")
-        };
-      }
+    let response: any = await this.client.im.open({
+      user: id,
+      return_im: true
     });
+    const { ok, channel } = response;
+
+    if (ok) {
+      return {
+        id: channel.id,
+        name: `@${name}`,
+        type: ChannelType.im,
+        unreadCount: 0,
+        readTimestamp: undefined
+      };
+    }
   };
 
-  getReplies = (
+  getUserPrefs = async (): Promise<UserPreferences | undefined> => {
+    // Undocumented API: https://github.com/ErikKalkoken/slackApiDoc/blob/master/users.prefs.get.md
+    let response: any = await this.client.apiCall("users.prefs.get");
+    const { ok, prefs } = response;
+
+    if (ok) {
+      const { muted_channels } = prefs;
+      return {
+        mutedChannels: muted_channels.split(",")
+      };
+    }
+  };
+
+  getReplies = async (
     channelId: string,
     messageTimestamp: string
-  ): Promise<Message> => {
+  ): Promise<Message | undefined> => {
     // https://api.slack.com/methods/conversations.replies
-    return this.client.conversations
-      .replies({ channel: channelId, ts: messageTimestamp })
-      .then((response: any) => {
-        // Does not handle has_more in the response yet, could break
-        // for large threads
-        const { ok, messages } = response;
+    let response: any = await this.client.conversations.replies({
+      channel: channelId,
+      ts: messageTimestamp
+    });
+    // Does not handle has_more in the response yet, could break
+    // for large threads
+    const { ok, messages } = response;
 
-        if (ok) {
-          const parent = messages.find(msg => msg.thread_ts === msg.ts);
-          const replies = messages.filter(msg => msg.thread_ts !== msg.ts);
-          const parentMessage = getMessage(parent);
-          return {
-            ...parentMessage[messageTimestamp],
-            replies: replies.map(reply => ({
-              userId: reply.user,
-              timestamp: reply.ts,
-              text: reply.text,
-              attachment: !!reply.files ? getFile(reply.files[0]) : null
-            }))
-          };
-        }
-      });
+    if (ok) {
+      const parent = messages.find((msg: any) => msg.thread_ts === msg.ts);
+      const replies = messages.filter((msg: any) => msg.thread_ts !== msg.ts);
+      const parentMessage = getMessage(parent);
+
+      return {
+        ...parentMessage[messageTimestamp],
+        replies: replies.map((reply: any) => ({
+          userId: reply.user,
+          timestamp: reply.ts,
+          text: reply.text,
+          attachment: !!reply.files ? getFile(reply.files[0]) : null
+        }))
+      };
+    }
+  };
+
+  setUserPresence = async (presence: "auto" | "away"): Promise<boolean> => {
+    const response = await this.client.users.setPresence({ presence });
+    return response.ok;
+  };
+
+  setUserSnooze = async (durationInMinutes: number): Promise<boolean> => {
+    const response = (await this.client.dnd.setSnooze({
+      num_minutes: durationInMinutes
+    })) as ISnoozeAPIResponse;
+    return response.ok && response.snooze_enabled;
+  };
+
+  endUserSnooze = async (): Promise<boolean> => {
+    const response = await this.client.dnd.endSnooze();
+    return response.ok;
+  };
+
+  endUserDnd = async (): Promise<boolean> => {
+    const response = await this.client.dnd.endDnd();
+    return response.ok;
+  };
+
+  getDndTeamInfo = async (): Promise<IDNDStatusForUser> => {
+    const response: any = await this.client.dnd.teamInfo();
+    const users: IDNDStatusForUser = response.users;
+    let result: IDNDStatusForUser = {};
+
+    const userIds = Object.keys(users);
+    userIds.forEach(userId => {
+      const { dnd_enabled } = users[userId];
+      if (!!dnd_enabled) {
+        result[userId] = users[userId];
+      }
+    });
+
+    return result;
   };
 }

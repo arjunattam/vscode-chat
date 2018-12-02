@@ -35,7 +35,10 @@ export const SelfCommands = {
   FETCH_REPLIES: "extension.chat.fetchReplies",
   UPDATE_MESSAGES: "extension.chat.updateMessages",
   UPDATE_MESSAGE_REPLIES: "extension.chat.updateReplies",
-  UPDATE_USER_PRESENCE: "extension.chat.updateUserPresence",
+  UPDATE_PRESENCE_STATUSES: "extension.chat.updatePresenceStatuses",
+  UPDATE_SELF_PRESENCE: "extension.chat.updateSelfPresence",
+  UPDATE_SELF_PRESENCE_VIA_VSLS: "extension.chat.updateSelfPresenceVsls",
+  CHAT_WITH_VSLS_CONTACT: "extension.chat.startChatWithVslsContact",
   ADD_MESSAGE_REACTION: "extension.chat.addMessageReaction",
   REMOVE_MESSAGE_REACTION: "extension.chat.removeMessageReaction",
   SEND_MESSAGE: "extension.chat.sendMessage",
@@ -45,7 +48,7 @@ export const SelfCommands = {
   SEND_TO_WEBVIEW: "extension.chat.sendToWebview"
 };
 
-export const SLASH_COMMANDS = {
+export const SLASH_COMMANDS: any = {
   live: {
     share: {
       action: LiveShareCommands.START,

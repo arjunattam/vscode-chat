@@ -2,7 +2,7 @@
   "name": "chat",
   "displayName": "Team Chat: for Slack, Discord, Live Share",
   "description": "Send and receive chat messages inside VSCode",
-  "version": "0.7.3",
+  "version": "0.8.2",
   "homepage": "https://github.com/karigari/vscode-chat",
   "license": "SEE LICENSE IN LICENSE",
   "repository": {
@@ -109,11 +109,23 @@
         "title": "Chat: Chat with VS Live Share participants"
       },
       {
+        "command": "extension.chat.updateSelfPresence",
+        "title": "Chat: Update your presence status"
+      },
+      {
         "command": "extension.chat.startLiveShare",
         "title": "Invite to Live Share",
         "icon": {
           "light": "public/icons/light/share.svg",
           "dark": "public/icons/dark/share.svg"
+        }
+      },
+      {
+        "command": "extension.chat.startChatWithVslsContact",
+        "title": "Chat with this user",
+        "icon": {
+          "light": "public/icons/light/chat.svg",
+          "dark": "public/icons/dark/chat.svg"
         }
       }
     ],
@@ -166,23 +178,6 @@
           "name": "Direct Messages",
           "when": "chat:discord"
         }
-      ],
-      "vsliveshareTreeExplorerActivityBar": [
-        {
-          "id": "chat.treeView.onlineUsers.slack",
-          "name": "Slack Users",
-          "when": "chat:vslsEnabled && chat:slack"
-        },
-        {
-          "id": "chat.treeView.onlineUsers.discord",
-          "name": "Discord Users",
-          "when": "chat:vslsEnabled && chat:discord"
-        },
-        {
-          "id": "chat.treeView.onboarding.vsls",
-          "name": "Online Users",
-          "when": "chat:vslsEnabled && !chat:slack && !chat:discord"
-        }
       ]
     },
     "viewsContainers": {
@@ -206,6 +201,11 @@
         {
           "command": "extension.chat.startLiveShare",
           "when": "chat:vslsEnabled && viewItem == channel",
+          "group": "inline"
+        },
+        {
+          "command": "extension.chat.startChatWithVslsContact",
+          "when": "chat:vslsEnabled && view == liveshare.contacts && viewItem == contacts.contact",
           "group": "inline"
         }
       ],
@@ -232,6 +232,7 @@
   "devDependencies": {
     "@types/http-proxy-agent": "^2.0.0",
     "@types/keytar": "^4.0.1",
+    "@types/markdown-it": "^0.0.7",
     "@types/mixpanel": "^2.14.0",
     "@types/mocha": "^2.2.42",
     "@types/node": "^8.0.0",
@@ -255,6 +256,6 @@
     "request": "^2.88.0",
     "request-promise-native": "^1.0.5",
     "semver": "^5.5.1",
-    "vsls": "^0.3.426"
+    "vsls": "^0.3.934"
   }
 }
