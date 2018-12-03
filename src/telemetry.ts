@@ -58,7 +58,7 @@ export default class TelemetryReporter implements vscode.Disposable {
   record(
     name: EventType,
     source: EventSource | undefined,
-    channelId: string | undefined,
+    channelId: string | undefined, // TODO: change this to channelType
     provider: string | undefined
   ) {
     let channelType = undefined;

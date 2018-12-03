@@ -12,11 +12,11 @@ export class TreeViewManager implements vscode.Disposable {
   imsTreeProvider: IMsTreeProvider;
   groupsTreeProvider: GroupTreeProvider;
 
-  constructor(provider: string) {
-    this.unreadsTreeProvider = new UnreadsTreeProvider(provider);
-    this.channelsTreeProvider = new ChannelTreeProvider(provider);
-    this.groupsTreeProvider = new GroupTreeProvider(provider);
-    this.imsTreeProvider = new IMsTreeProvider(provider);
+  constructor(provider: string, team: Team) {
+    this.unreadsTreeProvider = new UnreadsTreeProvider(provider, team);
+    this.channelsTreeProvider = new ChannelTreeProvider(provider, team);
+    this.groupsTreeProvider = new GroupTreeProvider(provider, team);
+    this.imsTreeProvider = new IMsTreeProvider(provider, team);
   }
 
   updateData(channelLabels: ChannelLabel[]) {

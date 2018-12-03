@@ -112,7 +112,7 @@ export class VslsChatProvider implements IChatProvider {
 
     const sessionTeam: Team = {
       id: sessionId,
-      name: sessionId
+      name: VSLS_CHAT_CHANNEL.name
     };
 
     return {

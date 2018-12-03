@@ -98,6 +98,12 @@ export function equals(setA: Set<any>, setB: Set<any>) {
   return true;
 }
 
+// User-defined type guard
+// https://github.com/Microsoft/TypeScript/issues/20707#issuecomment-351874491
+export function notUndefined<T>(x: T | undefined): x is T {
+  return x !== undefined;
+}
+
 export function toTitleCase(str: string) {
   return str.replace(/\w\S*/g, function(txt) {
     return txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase();

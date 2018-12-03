@@ -1,5 +1,6 @@
 import * as vscode from "vscode";
 import { SelfCommands } from "../constants";
+import { VSLS_CHAT_CHANNEL } from "../vslsChat/utils";
 
 const CHAT_OCTICON = "$(comment-discussion)";
 
@@ -9,7 +10,7 @@ export abstract class BaseStatusItem {
   protected unreadCount: number = 0;
   protected isVisible: boolean = false;
 
-  constructor(baseCommand: string) {
+  constructor(baseCommand: string, commandArgs: ChatArgs) {
     this.item = vscode.window.createStatusBarItem(
       vscode.StatusBarAlignment.Left
     );
@@ -18,9 +19,7 @@ export abstract class BaseStatusItem {
     // From: https://github.com/Microsoft/vscode/issues/22353#issuecomment-325293438
     const compound = `${baseCommand}.status`;
     this.disposableCommand = vscode.commands.registerCommand(compound, () => {
-      return vscode.commands.executeCommand(baseCommand, {
-        source: EventSource.status
-      });
+      return vscode.commands.executeCommand(baseCommand, commandArgs);
     });
 
     this.item.command = compound;
@@ -52,13 +51,26 @@ export class UnreadsStatusItem extends BaseStatusItem {
   teamName: string;
   providerName: string;
 
-  constructor(providerName: string, teamName: string, hasChannels: boolean) {
+  constructor(providerName: string, teamName: string, isVslsChat: boolean) {
     // Status bar item for vsls chat does not have any channels,
     // hence we will not trigger the the change_channel command
-    const baseCommand = hasChannels
-      ? SelfCommands.CHANGE_CHANNEL
-      : SelfCommands.OPEN_WEBVIEW;
-    super(baseCommand);
+    const baseCommand = isVslsChat
+      ? SelfCommands.OPEN_WEBVIEW
+      : SelfCommands.CHANGE_CHANNEL;
+
+    let chatArgs: ChatArgs = {
+      providerName,
+      source: EventSource.status
+    };
+
+    if (isVslsChat) {
+      chatArgs = {
+        ...chatArgs,
+        channelId: VSLS_CHAT_CHANNEL.id
+      };
+    }
+
+    super(baseCommand, chatArgs);
     this.providerName = providerName;
     this.teamName = teamName;
   }

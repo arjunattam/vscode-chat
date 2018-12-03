@@ -12,13 +12,18 @@ export class ChatProviderManager {
     private providerName: string,
     private chatProvider: IChatProvider,
     private parentManager: IManager
-  ) {
-    // TODO: whenever the store is called, use provider namespace
-  }
+  ) {}
 
   getTeams(): Team[] {
     const currentUser = this.store.getCurrentUser(this.providerName);
     return !!currentUser ? currentUser.teams : [];
+  }
+
+  getCurrentTeam(): Team | undefined {
+    const currentUser = this.store.getCurrentUser(this.providerName);
+    return !!currentUser
+      ? currentUser.teams.find(team => team.id === currentUser.currentTeamId)
+      : undefined;
   }
 
   initializeProvider = async (): Promise<any> => {
@@ -47,6 +52,17 @@ export class ChatProviderManager {
 
   destroy() {
     this.chatProvider.destroy();
+  }
+
+  updateWebviewForLastChannel() {
+    const lastChannelId = this.store.getLastChannelId(this.providerName);
+
+    if (!!lastChannelId) {
+      this.parentManager.updateWebviewForProvider(
+        this.providerName,
+        lastChannelId
+      );
+    }
   }
 
   async fetchThreadReplies(parentTimestamp: string) {
@@ -189,7 +205,7 @@ export class ChatProviderManager {
       this.fillUpUsers(difference(userIds, knownUserIds));
     }
 
-    this.parentManager.updateWebviewForProvider(this.providerName);
+    this.updateWebviewForLastChannel();
     this.parentManager.updateStatusItemsForProvider(this.providerName);
     this.parentManager.updateTreeViewsForProvider(this.providerName);
   };
@@ -213,7 +229,7 @@ export class ChatProviderManager {
     );
 
     this.store.updateUsers(this.providerName, usersCopy);
-    this.parentManager.updateWebviewForProvider(this.providerName);
+    this.updateWebviewForLastChannel();
   }
 
   updateMessageReply(
@@ -392,7 +408,7 @@ export class ChatProviderManager {
 
     if (!!channel) {
       this.updateChannel({ ...channel, readTimestamp, unreadCount });
-      this.parentManager.updateWebviewForProvider(this.providerName);
+      this.updateWebviewForLastChannel();
       this.parentManager.updateStatusItemsForProvider(this.providerName);
       this.parentManager.updateTreeViewsForProvider(this.providerName);
     }
@@ -542,7 +558,7 @@ export class ChatProviderManager {
 
         if (!!updatedChannel) {
           this.updateChannel(updatedChannel);
-          this.parentManager.updateWebviewForProvider(this.providerName);
+          this.updateWebviewForLastChannel();
           this.parentManager.updateStatusItemsForProvider(this.providerName);
           this.parentManager.updateTreeViewsForProvider(this.providerName);
         }
@@ -585,10 +601,7 @@ export class ChatProviderManager {
     const channels = this.store.getChannels(this.providerName);
     const users = this.store.getUsers(this.providerName);
     const providerName = toTitleCase(this.providerName);
-    const currentUser = this.store.getCurrentUser(this.providerName);
-    const currentTeam = !!currentUser
-      ? currentUser.teams.find(team => team.id === currentUser.currentTeamId)
-      : undefined;
+    const currentTeam = this.getCurrentTeam();
     const teamName = !!currentTeam ? currentTeam.name : "";
 
     return channels.map(channel => {

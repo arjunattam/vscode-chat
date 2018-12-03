@@ -228,9 +228,25 @@ export default class Manager implements IManager, vscode.Disposable {
     }
   }
 
-  updateWebviewForProvider(provider: string) {
-    if (!!this.viewsManager) {
-      this.viewsManager.updateWebview(provider);
+  async updateWebviewForProvider(provider: string, channelId: string) {
+    const currentUser = this.store.getCurrentUser(provider);
+    const channel = this.store
+      .getChannels(provider)
+      .find(channel => channel.id === channelId);
+
+    if (!!currentUser && !!channel && !!this.viewsManager) {
+      await this.store.updateLastChannelId(provider, channelId);
+      const users = this.store.getUsers(provider);
+      const allMessages = this.getMessages(provider);
+      const messages = allMessages[channel.id] || {};
+
+      this.viewsManager.updateWebview(
+        currentUser,
+        provider,
+        users,
+        channel,
+        messages
+      );
     }
   }
 
@@ -256,8 +272,13 @@ export default class Manager implements IManager, vscode.Disposable {
       const providers = Array.from(this.chatProviders.keys());
 
       providers.forEach(provider => {
+        const lastChannelId = this.store.getLastChannelId(provider);
+
+        if (!!lastChannelId) {
+          this.updateWebviewForProvider(provider, lastChannelId);
+        }
+
         this.updateStatusItemsForProvider(provider);
-        this.updateWebviewForProvider(provider);
         this.updateTreeViewsForProvider(provider);
       });
     }

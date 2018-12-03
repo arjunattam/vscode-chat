@@ -35,11 +35,11 @@ export class ViewsManager implements vscode.Disposable {
     enabledProviders.forEach(provider => {
       const teams = providerTeams[provider];
       teams.forEach(team => {
-        const hasChannels = provider !== "vsls";
+        const isVslsChat = provider !== "vsls";
         const statusItem = new UnreadsStatusItem(
           provider,
           team.name,
-          hasChannels
+          isVslsChat
         );
         this.statusItems.set(getStatusItemKey(provider, team), statusItem);
       });
@@ -47,7 +47,9 @@ export class ViewsManager implements vscode.Disposable {
 
     enabledProviders.forEach(provider => {
       if (PROVIDERS_WITH_TREE.indexOf(provider) >= 0) {
-        this.treeViews = new TreeViewManager(provider as string);
+        // TODO: is this safe? is it possible that providerTeams is empty?
+        const team = providerTeams[provider][0];
+        this.treeViews = new TreeViewManager(provider as string, team);
       }
     });
 
@@ -101,32 +103,25 @@ export class ViewsManager implements vscode.Disposable {
     }
   }
 
-  updateWebview(provider: string) {
-    const lastChannelId = this.parentManager.store.getLastChannelId(provider);
-    const users = this.parentManager.store.getUsers(provider);
-    const currentUserInfo = this.parentManager.store.getCurrentUser(provider);
-    const channel = this.parentManager.getChannel(provider, lastChannelId);
-    const messages = this.parentManager.getMessages(provider);
-    let channelMessages = {};
+  updateWebview(
+    currentUser: CurrentUser,
+    provider: string,
+    users: Users,
+    channel: Channel,
+    messages: ChannelMessages
+  ) {
+    let uiMessage: UIMessage = {
+      currentProvider: provider,
+      messages,
+      users,
+      currentUser,
+      channel,
+      statusText: ""
+    };
 
-    if (!!lastChannelId && lastChannelId in messages) {
-      channelMessages = messages[lastChannelId];
-    }
-
-    if (!!channel && currentUserInfo) {
-      let uiMessage: UIMessage = {
-        currentProvider: provider,
-        messages: channelMessages,
-        users,
-        currentUser: currentUserInfo,
-        channel,
-        statusText: ""
-      };
-
-      vscode.commands.executeCommand(SelfCommands.SEND_TO_WEBVIEW, {
-        uiMessage
-      });
-    }
+    vscode.commands.executeCommand(SelfCommands.SEND_TO_WEBVIEW, {
+      uiMessage
+    });
   }
 
   dispose() {

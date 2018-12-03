@@ -1,6 +1,7 @@
 import * as vsls from "vsls/vscode";
 import * as vscode from "vscode";
 import { SelfCommands } from "../constants";
+import { VSLS_CHAT_CHANNEL } from "../vslsChat/utils";
 
 const LIVE_SHARE_VIEW_ID = "liveshare.session";
 const TREE_ITEM_LABEL = "Chat Channel";
@@ -21,13 +22,14 @@ export class VslsSessionTreeProvider
 
     // Construct a compound command around base command to send
     // the correct event source value for telemetry
+    const chatArgs: ChatArgs = {
+      source: EventSource.activity,
+      providerName: "vsls",
+      channelId: VSLS_CHAT_CHANNEL.id
+    };
     this.disposableCommand = vscode.commands.registerCommand(
       this.commandName,
-      () => {
-        return vscode.commands.executeCommand(baseCommand, {
-          source: EventSource.activity
-        });
-      }
+      () => vscode.commands.executeCommand(baseCommand, chatArgs)
     );
     this._disposables.push(this.disposableCommand);
   }

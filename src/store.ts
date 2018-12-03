@@ -17,19 +17,19 @@ const stateKeys = {
 export class Store implements IStore {
   public installationId: string | undefined;
   public existingVersion: string | undefined;
-  private currentUserInfo: CurrentUser | undefined;
-  private channels: Channel[] = [];
-  private users: Users = {};
-  private lastChannelId: string | undefined;
+  private currentUserInfo: { [provider: string]: CurrentUser };
+  private channels: { [provider: string]: Channel[] };
+  private users: { [provider: string]: Users };
+  private lastChannelId: { [provider: string]: string };
 
   constructor(private context: vscode.ExtensionContext) {
     const { globalState } = context;
     this.installationId = globalState.get(stateKeys.INSTALLATION_ID);
-    this.channels = globalState.get(stateKeys.CHANNELS) || [];
-    this.currentUserInfo = globalState.get(stateKeys.USER_INFO);
-    this.users = globalState.get(stateKeys.USERS) || {};
-    this.lastChannelId = globalState.get(stateKeys.LAST_CHANNEL_ID);
     this.existingVersion = globalState.get(stateKeys.EXTENSION_VERSION);
+    this.channels = globalState.get(stateKeys.CHANNELS) || {};
+    this.currentUserInfo = globalState.get(stateKeys.USER_INFO) || {};
+    this.users = globalState.get(stateKeys.USERS) || {};
+    this.lastChannelId = globalState.get(stateKeys.LAST_CHANNEL_ID) || {};
   }
 
   generateInstallationId(): string {
@@ -46,30 +46,41 @@ export class Store implements IStore {
   }
 
   getCurrentUser = (provider: string): CurrentUser | undefined => {
-    return this.currentUserInfo;
+    return this.currentUserInfo[provider];
   };
 
   getCurrentUserForAll = (): CurrentUser[] => {
-    return !!this.currentUserInfo ? [this.currentUserInfo] : [];
+    const providers = Object.keys(this.currentUserInfo);
+    return providers.map(provider => this.currentUserInfo[provider]);
   };
 
   getUsers = (provider: string): Users => {
-    return this.users;
+    return this.users[provider] || {};
   };
 
   getChannels = (provider: string): Channel[] => {
-    return this.channels;
+    return this.channels[provider] || [];
   };
 
   getLastChannelId = (provider: string): string | undefined => {
-    return this.lastChannelId;
+    return this.lastChannelId[provider];
   };
 
   updateLastChannelId = (
     provider: string,
     channelId: string | undefined
   ): Thenable<void> => {
-    this.lastChannelId = channelId;
+    const lastChannels = {
+      ...this.lastChannelId,
+      [provider]: channelId
+    };
+    this.lastChannelId = {};
+    Object.keys(lastChannels).forEach(key => {
+      const value = lastChannels[key];
+      if (!!value) {
+        this.lastChannelId[key] = value;
+      }
+    });
     return this.context.globalState.update(
       stateKeys.LAST_CHANNEL_ID,
       this.lastChannelId
@@ -77,9 +88,12 @@ export class Store implements IStore {
   };
 
   updateUsers = (provider: string, users: Users): Thenable<void> => {
-    this.users = users;
+    this.users = {
+      ...this.users,
+      [provider]: users
+    };
 
-    if (Object.keys(this.users).length <= VALUE_LENGTH_LIMIT) {
+    if (Object.keys(users).length <= VALUE_LENGTH_LIMIT) {
       return this.context.globalState.update(stateKeys.USERS, this.users);
     }
 
@@ -87,22 +101,26 @@ export class Store implements IStore {
   };
 
   updateUser = (provider: string, userId: string, user: User) => {
-    // This does not store to the local storage
-    // TODO: support provider stuff
-    this.users[userId] = {
-      ...user
+    // NOTE: This does not store to the local storage
+    const providerUsers = this.users[provider] || {};
+    this.users = {
+      ...this.users,
+      [provider]: {
+        ...providerUsers,
+        [userId]: { ...user }
+      }
     };
   };
 
-  getUser = (provider: string, userId: string) => {
-    // TODO: support provider stuff
-    return this.users[userId];
+  getUser = (provider: string, userId: string): User | undefined => {
+    const providerUsers = this.users[provider] || {};
+    return providerUsers[userId];
   };
 
   updateChannels = (provider: string, channels: Channel[]): Thenable<void> => {
-    this.channels = channels;
+    this.channels = { ...this.channels, [provider]: channels };
 
-    if (this.channels.length <= VALUE_LENGTH_LIMIT) {
+    if (channels.length <= VALUE_LENGTH_LIMIT) {
       return this.context.globalState.update(stateKeys.CHANNELS, this.channels);
     }
 
@@ -113,23 +131,37 @@ export class Store implements IStore {
     provider: string,
     userInfo: CurrentUser | undefined
   ): Thenable<void> => {
+    const cachedCurrentUser = this.currentUserInfo[provider];
+    let newCurrentUser: CurrentUser | undefined;
     // In the case of discord, we need to know the current team (guild)
     // If that is available in the store, we should use that
     if (!userInfo) {
       // Resetting userInfo
-      this.currentUserInfo = userInfo;
+      newCurrentUser = userInfo;
     } else {
-      let currentTeamId = !!this.currentUserInfo
-        ? this.currentUserInfo.currentTeamId
+      let currentTeamId = !!cachedCurrentUser
+        ? cachedCurrentUser.currentTeamId
         : undefined;
 
       if (!!userInfo.currentTeamId) {
         currentTeamId = userInfo.currentTeamId;
       }
 
-      this.currentUserInfo = { ...userInfo, currentTeamId };
+      newCurrentUser = { ...userInfo, currentTeamId };
     }
 
+    const updatedCurrentUserInfo = {
+      ...this.currentUserInfo,
+      [provider]: !!newCurrentUser ? { ...newCurrentUser } : undefined
+    };
+    this.currentUserInfo = {};
+    Object.keys(updatedCurrentUserInfo).forEach(key => {
+      // Don't copy undefined
+      const value = updatedCurrentUserInfo[key];
+      if (!!value) {
+        this.currentUserInfo[key] = value;
+      }
+    });
     return this.context.globalState.update(
       stateKeys.USER_INFO,
       this.currentUserInfo

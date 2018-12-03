@@ -26,8 +26,6 @@ let manager: Manager;
 let controller: ViewController;
 let telemetry: TelemetryReporter;
 
-const SUPPORTED_PROVIDERS = ["slack", "discord"];
-
 export function activate(context: vscode.ExtensionContext) {
   Logger.log("Activating vscode-chat");
   store = new Store(context);
@@ -185,11 +183,11 @@ export function activate(context: vscode.ExtensionContext) {
     }
 
     if (!!args) {
-      if (!!args.channel) {
+      if (!!args.channelId) {
         // We have a channel in args
-        const { channel } = args;
-        manager.store.updateLastChannelId(providerName, channel.id);
-        chatChannelId = channel.id;
+        const { channelId } = args;
+        manager.store.updateLastChannelId(providerName, channelId);
+        chatChannelId = channelId;
       } else if (!!args.user) {
         // We have a user, but no corresponding channel
         // So we create one -->
@@ -214,26 +212,23 @@ export function activate(context: vscode.ExtensionContext) {
     return chatChannelId;
   };
 
-  const openChatWebview = async (args?: ChatArgs) => {
+  const openChatWebview = async (chatArgs?: ChatArgs) => {
     if (manager.isTokenInitialized) {
       controller.loadUi();
     }
 
-    // TODO: incorrect to get current provider like this
-    const provider = manager.getCurrentProvider();
-    await setup(true, undefined);
-    await getChatChannelId(provider, args);
+    let provider: string, channelId: string;
 
-    if (!!manager.viewsManager) {
-      manager.viewsManager.updateWebview(provider);
-    }
+    // TODO: fix case where chatArgs is not available
+    if (!!chatArgs && !!chatArgs.channelId) {
+      provider = chatArgs.providerName;
+      channelId = chatArgs.channelId;
 
-    const lastChannelId = manager.store.getLastChannelId(provider);
-
-    if (!!lastChannelId) {
-      const source = !!args ? args.source : EventSource.command;
-      telemetry.record(EventType.viewOpened, source, lastChannelId, provider);
-      manager.loadChannelHistory(provider, lastChannelId);
+      await setup(true, undefined);
+      await manager.updateWebviewForProvider(provider, channelId);
+      const source = !!chatArgs ? chatArgs.source : EventSource.command;
+      telemetry.record(EventType.viewOpened, source, channelId, provider);
+      manager.loadChannelHistory(provider, channelId);
     }
   };
 
@@ -283,13 +278,15 @@ export function activate(context: vscode.ExtensionContext) {
     return !!selectedChannel ? openChatWebview(args) : null;
   };
 
-  const shareVslsLink = async (providerName: string, args?: ChatArgs) => {
+  const shareVslsLink = async (chatArgs: ChatArgs) => {
+    const { providerName } = chatArgs;
     const liveshare = await vsls.getApi();
 
     if (!!liveshare) {
       // liveshare.share() creates a new session if required
       const vslsUri = await liveshare.share({ suppressNotification: true });
-      let channelId = await getChatChannelId(providerName, args);
+      let channelId = await getChatChannelId(providerName, chatArgs);
+      // TODO: why is get chat channel id called here?
       telemetry.record(
         EventType.vslsShared,
         EventSource.activity,
@@ -413,6 +410,7 @@ export function activate(context: vscode.ExtensionContext) {
   };
 
   const askForProvider = async () => {
+    const SUPPORTED_PROVIDERS = ["slack", "discord"];
     const values = SUPPORTED_PROVIDERS.map(name => utils.toTitleCase(name));
     const selection = await vscode.window.showQuickPick(values, {
       placeHolder: str.CHANGE_PROVIDER_TITLE
@@ -529,9 +527,10 @@ export function activate(context: vscode.ExtensionContext) {
     vscode.commands.registerCommand(
       SelfCommands.LIVE_SHARE_FROM_MENU,
       (item: ChatTreeNode) => {
-        return shareVslsLink(item.providerName, {
-          channel: item.channel,
+        return shareVslsLink({
+          channelId: item.channel ? item.channel.id : undefined,
           user: item.user,
+          providerName: item.providerName,
           source: EventSource.activity
         });
       }
@@ -540,9 +539,10 @@ export function activate(context: vscode.ExtensionContext) {
       SelfCommands.LIVE_SHARE_SLASH,
       ({ provider }) => {
         const channelId = manager.store.getLastChannelId(provider);
-        shareVslsLink(provider, {
-          channel: manager.getChannel(provider, channelId),
+        shareVslsLink({
+          channelId,
           user: undefined,
+          providerName: provider,
           source: EventSource.slash
         });
       }
@@ -554,6 +554,8 @@ export function activate(context: vscode.ExtensionContext) {
 
         if (enabledProviders.indexOf("vsls") >= 0) {
           manager.store.updateCurrentUser("vsls", currentUser);
+          // Now that we have teams for vsls chat -> we initialize status item
+          manager.initializeViewsManager();
         }
       }
     ),

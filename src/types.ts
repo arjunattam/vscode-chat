@@ -212,7 +212,7 @@ interface IStore {
   getCurrentUser: (provider: string) => CurrentUser | undefined;
   getCurrentUserForAll: () => CurrentUser[];
   getUsers: (provider: string) => Users;
-  getUser: (provider: string, userId: string) => User;
+  getUser: (provider: string, userId: string) => User | undefined;
   getChannels: (provider: string) => Channel[];
   getLastChannelId: (provider: string) => string | undefined;
   updateUsers: (provider: string, users: Users) => Thenable<void>;
@@ -247,7 +247,7 @@ interface IManager {
   updateAllUI: () => void;
   updateTreeViewsForProvider: (provider: string) => void;
   updateStatusItemsForProvider: (provider: string) => void;
-  updateWebviewForProvider: (provider: string) => void;
+  updateWebviewForProvider: (provider: string, channelId: string) => void;
   getMessages: (provider: string) => Messages;
 }
 
@@ -258,8 +258,9 @@ interface IViewsManager {
 }
 
 interface ChatArgs {
-  channel?: Channel;
+  channelId?: string;
   user?: User;
+  providerName: string;
   source: EventSource;
 }
 
@@ -300,4 +301,5 @@ interface ChatTreeNode {
   isCategory: boolean;
   presence: UserPresence;
   providerName: string;
+  team: Team;
 }
