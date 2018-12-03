@@ -163,6 +163,8 @@ interface Channel {
 
 interface ChannelLabel {
   channel: Channel;
+  providerName: string;
+  teamName: string;
   unread: number;
   label: string;
   presence: UserPresence;
@@ -227,6 +229,7 @@ interface IStore {
 interface IManager {
   isTokenInitialized: boolean;
   store: IStore;
+  vslsContactProvider: any;
   isAuthenticated: (provider: string) => boolean;
   getChannel: (
     provider: string,
@@ -235,41 +238,23 @@ interface IManager {
   getIMChannel: (provider: string, user: User) => Channel | undefined;
   getChannelLabels: (provider: string) => any;
   getUnreadCount: (provider: string, channel: Channel) => number;
-  getCurrentWorkspaceName: () => string | undefined;
   getUserPresence: (
     provider: string,
     userId: string
   ) => UserPresence | undefined;
   getCurrentUserPresence: (provider: string) => UserPresence | undefined;
   getCurrentProvider: () => string;
-  // updateMessages: (channelId: string, newMessages: ChannelMessages) => void;
-  // loadChannelHistory: (channelId: string) => Promise<void>;
-  // updateReadMarker: () => void;
-  // updatePresenceForUser: (userId: string, presence: UserPresence) => void;
-  // addReaction: (
-  //   channelId: string,
-  //   msgTimestamp: string,
-  //   userId: string,
-  //   reactionName: string
-  // ) => void;
-  // removeReaction: (
-  //   channelId: string,
-  //   msgTimestamp: string,
-  //   userId: string,
-  //   reactionName: string
-  // ) => void;
-  viewsManager: IViewsManager | undefined;
-  vslsContactProvider: any;
   updateAllUI: () => void;
+  updateTreeViewsForProvider: (provider: string) => void;
+  updateStatusItemsForProvider: (provider: string) => void;
+  updateWebviewForProvider: (provider: string) => void;
   getMessages: (provider: string) => Messages;
 }
 
 interface IViewsManager {
   updateTreeViews: (provider: string) => void;
   updateWebview: (provider: string) => void;
-
-  // TODO: fix this
-  updateStatusItem: () => void;
+  updateStatusItem: (provider: string, team: Team) => void;
 }
 
 interface ChatArgs {

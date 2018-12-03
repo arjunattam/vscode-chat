@@ -1,10 +1,6 @@
 import * as vscode from "vscode";
 import { TreeViewManager } from "./treeView";
-import {
-  BaseStatusItem,
-  UnreadsStatusItem,
-  VslsChatStatusItem
-} from "../status";
+import { BaseStatusItem, UnreadsStatusItem } from "../status";
 import { OnboardingTreeProvider } from "../onboarding";
 import { SelfCommands } from "../constants";
 import { VslsSessionTreeProvider } from "../tree/vsls";
@@ -13,23 +9,41 @@ import { setVsContext } from "../utils";
 
 const PROVIDERS_WITH_TREE = ["slack", "discord"];
 
+const getStatusItemKey = (provider: string, team: Team) => {
+  return `${provider}:${team.id}`;
+};
+
 export class ViewsManager implements vscode.Disposable {
-  statusItem: BaseStatusItem;
+  statusItems: Map<string, BaseStatusItem>;
   treeViews: TreeViewManager | undefined;
   onboardingTree: OnboardingTreeProvider | undefined;
   vslsSessionTreeProvider: VslsSessionTreeProvider | undefined; // for vsls chat tree item
 
-  constructor(enabledProviders: string[], private parentManager: IManager) {
+  constructor(
+    enabledProviders: string[],
+    private providerTeams: { [providerName: string]: Team[] },
+    private parentManager: IManager
+  ) {
     const hasVslsEnabled = enabledProviders.indexOf("vsls") >= 0;
 
     if (hasVslsEnabled) {
-      // TODO: merge status bar item behaviour --> vsls will also only show unreads
-      this.statusItem = new VslsChatStatusItem();
       this.vslsSessionTreeProvider = new VslsSessionTreeProvider();
       this.vslsSessionTreeProvider.register();
-    } else {
-      this.statusItem = new UnreadsStatusItem();
     }
+
+    this.statusItems = new Map();
+    enabledProviders.forEach(provider => {
+      const teams = providerTeams[provider];
+      teams.forEach(team => {
+        const hasChannels = provider !== "vsls";
+        const statusItem = new UnreadsStatusItem(
+          provider,
+          team.name,
+          hasChannels
+        );
+        this.statusItems.set(getStatusItemKey(provider, team), statusItem);
+      });
+    });
 
     enabledProviders.forEach(provider => {
       if (PROVIDERS_WITH_TREE.indexOf(provider) >= 0) {
@@ -52,16 +66,17 @@ export class ViewsManager implements vscode.Disposable {
     }
   }
 
-  updateStatusItem() {
-    // TODO: this provider is incorrect
-    const provider = this.parentManager.getCurrentProvider();
-    const channels = this.parentManager.store.getChannels(provider);
-    const unreads = channels.map(channel => {
-      return this.parentManager.getUnreadCount(provider, channel);
-    });
-    const totalUnreads = unreads.reduce((a, b) => a + b, 0);
-    const workspaceName = this.parentManager.getCurrentWorkspaceName();
-    this.statusItem.updateCount(totalUnreads, workspaceName);
+  updateStatusItem(provider: string, team: Team) {
+    const statusItem = this.statusItems.get(getStatusItemKey(provider, team));
+
+    if (statusItem) {
+      const channels = this.parentManager.store.getChannels(provider);
+      const unreads = channels.map(channel => {
+        return this.parentManager.getUnreadCount(provider, channel);
+      });
+      const totalUnreads = unreads.reduce((a, b) => a + b, 0);
+      statusItem.updateCount(totalUnreads);
+    }
   }
 
   updateTreeViews(provider: string) {
@@ -114,17 +129,10 @@ export class ViewsManager implements vscode.Disposable {
     }
   }
 
-  updateVslsStatus = (isSessionActive: boolean) => {
-    if (isSessionActive) {
-      this.statusItem.show();
-    } else {
-      this.statusItem.hide();
-    }
-  };
-
   dispose() {
-    if (!!this.statusItem) {
-      this.statusItem.dispose();
+    for (let entry of Array.from(this.statusItems.entries())) {
+      let statusItem = entry[1];
+      statusItem.dispose();
     }
 
     if (!!this.treeViews) {

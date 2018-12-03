@@ -103,12 +103,6 @@ export default class Manager implements IManager, vscode.Disposable {
       enabledProviders.push(newProvider);
     }
 
-    if (!!this.viewsManager) {
-      this.viewsManager.dispose();
-    }
-
-    this.viewsManager = new ViewsManager(enabledProviders, this);
-
     for (const provider of enabledProviders) {
       const token = await ConfigHelper.getToken(provider);
 
@@ -121,6 +115,27 @@ export default class Manager implements IManager, vscode.Disposable {
         this.isTokenInitialized = true;
       }
     }
+
+    this.initializeViewsManager();
+  };
+
+  initializeViewsManager = () => {
+    if (!!this.viewsManager) {
+      this.viewsManager.dispose();
+    }
+
+    const enabledProviders = Array.from(this.chatProviders.keys());
+    let providerTeams: { [provider: string]: Team[] } = {};
+
+    enabledProviders.forEach(provider => {
+      const chatProvider = this.chatProviders.get(provider);
+
+      if (!!chatProvider) {
+        providerTeams[provider] = chatProvider.getTeams();
+      }
+    });
+
+    this.viewsManager = new ViewsManager(enabledProviders, providerTeams, this);
   };
 
   initializeProviders = async (): Promise<any> => {
@@ -213,11 +228,38 @@ export default class Manager implements IManager, vscode.Disposable {
     }
   }
 
+  updateWebviewForProvider(provider: string) {
+    if (!!this.viewsManager) {
+      this.viewsManager.updateWebview(provider);
+    }
+  }
+
+  updateStatusItemsForProvider(provider: string) {
+    const cp = this.chatProviders.get(provider as Providers);
+
+    if (!!cp && !!this.viewsManager) {
+      const teams = cp.getTeams();
+      teams.forEach(team => {
+        (this.viewsManager as ViewsManager).updateStatusItem(provider, team);
+      });
+    }
+  }
+
+  updateTreeViewsForProvider(provider: string) {
+    if (!!this.viewsManager) {
+      this.viewsManager.updateTreeViews(provider);
+    }
+  }
+
   updateAllUI() {
     if (!!this.viewsManager) {
-      this.viewsManager.updateStatusItem();
-      this.viewsManager.updateTreeViews(this.getCurrentProvider());
-      this.viewsManager.updateWebview(this.getCurrentProvider());
+      const providers = Array.from(this.chatProviders.keys());
+
+      providers.forEach(provider => {
+        this.updateStatusItemsForProvider(provider);
+        this.updateWebviewForProvider(provider);
+        this.updateTreeViewsForProvider(provider);
+      });
     }
   }
 
@@ -250,23 +292,6 @@ export default class Manager implements IManager, vscode.Disposable {
     const cp = this.chatProviders.get(providerName as Providers);
     return !!cp ? cp.createIMChannel(user) : undefined;
   }
-
-  getCurrentWorkspaceName = () => {
-    // TODO: fix this implementation after new status bar item
-    //
-    //
-    // const { currentUserInfo } = this.store;
-
-    // if (!!currentUserInfo) {
-    //   const { teams, currentTeamId } = currentUserInfo;
-
-    //   if (!!currentTeamId) {
-    //     const team = teams.find(team => team.id === currentTeamId);
-    //     return !!team ? team.name : undefined;
-    //   }
-    // }
-    return `workspace`;
-  };
 
   getUserPresence(provider: string, userId: string) {
     const cp = this.chatProviders.get(provider as Providers);

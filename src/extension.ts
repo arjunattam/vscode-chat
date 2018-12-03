@@ -139,12 +139,17 @@ export function activate(context: vscode.ExtensionContext) {
     const qpickItems: vscode.QuickPickItem[] = channelList.map(
       channelLabel => ({
         label: channelLabel.label,
-        description: channelLabel.channel.categoryName
+        description: channelLabel.channel.categoryName,
+        detail: `${channelLabel.providerName} · ${channelLabel.teamName}`
       })
     );
     const selected = await vscode.window.showQuickPick(
       [...qpickItems, { label: str.RELOAD_CHANNELS }],
-      { placeHolder: str.CHANGE_CHANNEL_TITLE }
+      {
+        placeHolder: str.CHANGE_CHANNEL_TITLE,
+        matchOnDescription: true,
+        matchOnDetail: true
+      }
     );
 
     if (!!selected) {
@@ -457,7 +462,6 @@ export function activate(context: vscode.ExtensionContext) {
 
   const chatWithVslsContact = async (item: any) => {
     const contactProvider = manager.vslsContactProvider;
-
     const contact = item.contactModel.contact;
     let user: User | undefined;
 
@@ -550,10 +554,6 @@ export function activate(context: vscode.ExtensionContext) {
 
         if (enabledProviders.indexOf("vsls") >= 0) {
           manager.store.updateCurrentUser("vsls", currentUser);
-
-          if (!!manager.viewsManager) {
-            manager.viewsManager.updateVslsStatus(isSessionActive);
-          }
         }
       }
     ),

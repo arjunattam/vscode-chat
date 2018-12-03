@@ -1,4 +1,4 @@
-import { isSuperset, difference } from "../utils";
+import { isSuperset, difference, toTitleCase } from "../utils";
 import { VSLS_CHAT_CHANNEL } from "../vslsChat/utils";
 
 export class ChatProviderManager {
@@ -14,6 +14,11 @@ export class ChatProviderManager {
     private parentManager: IManager
   ) {
     // TODO: whenever the store is called, use provider namespace
+  }
+
+  getTeams(): Team[] {
+    const currentUser = this.store.getCurrentUser(this.providerName);
+    return !!currentUser ? currentUser.teams : [];
   }
 
   initializeProvider = async (): Promise<any> => {
@@ -99,8 +104,8 @@ export class ChatProviderManager {
         presence
       });
 
-      if (presence !== existingPresence && !!this.parentManager.viewsManager) {
-        this.parentManager.viewsManager.updateTreeViews(this.providerName);
+      if (presence !== existingPresence) {
+        this.parentManager.updateTreeViewsForProvider(this.providerName);
       }
 
       if (!!this.parentManager.vslsContactProvider) {
@@ -184,7 +189,9 @@ export class ChatProviderManager {
       this.fillUpUsers(difference(userIds, knownUserIds));
     }
 
-    this.parentManager.updateAllUI();
+    this.parentManager.updateWebviewForProvider(this.providerName);
+    this.parentManager.updateStatusItemsForProvider(this.providerName);
+    this.parentManager.updateTreeViewsForProvider(this.providerName);
   };
 
   private async fillUpUsers(missingIds: Set<any>): Promise<void> {
@@ -206,10 +213,7 @@ export class ChatProviderManager {
     );
 
     this.store.updateUsers(this.providerName, usersCopy);
-
-    if (!!this.parentManager.viewsManager) {
-      return this.parentManager.viewsManager.updateWebview(this.providerName);
-    }
+    this.parentManager.updateWebviewForProvider(this.providerName);
   }
 
   updateMessageReply(
@@ -332,10 +336,7 @@ export class ChatProviderManager {
     if (!!response) {
       // We could also save the muted channels to local storage
       this.currentUserPrefs = response;
-
-      if (!!this.parentManager.viewsManager) {
-        this.parentManager.viewsManager.updateStatusItem();
-      }
+      this.parentManager.updateStatusItemsForProvider(this.providerName);
     }
   }
 
@@ -379,10 +380,7 @@ export class ChatProviderManager {
     }
 
     this.store.updateChannels(this.providerName, updatedChannels);
-
-    if (!!this.parentManager.viewsManager) {
-      this.parentManager.viewsManager.updateTreeViews(this.providerName);
-    }
+    this.parentManager.updateTreeViewsForProvider(this.providerName);
   };
 
   updateChannelMarked(
@@ -394,7 +392,9 @@ export class ChatProviderManager {
 
     if (!!channel) {
       this.updateChannel({ ...channel, readTimestamp, unreadCount });
-      this.parentManager.updateAllUI();
+      this.parentManager.updateWebviewForProvider(this.providerName);
+      this.parentManager.updateStatusItemsForProvider(this.providerName);
+      this.parentManager.updateTreeViewsForProvider(this.providerName);
     }
   }
 
@@ -410,10 +410,7 @@ export class ChatProviderManager {
     });
 
     await Promise.all(promises);
-
-    if (!!this.parentManager.viewsManager) {
-      this.parentManager.viewsManager.updateStatusItem();
-    }
+    this.parentManager.updateStatusItemsForProvider(this.providerName);
   };
 
   fetchUsers = async (): Promise<Users> => {
@@ -455,11 +452,7 @@ export class ChatProviderManager {
     const channels = await this.chatProvider.fetchChannels(users);
     await this.store.updateChannels(this.providerName, channels);
     this.updateChannelsFetchedAt();
-
-    if (!!this.parentManager.viewsManager) {
-      this.parentManager.viewsManager.updateTreeViews(this.providerName);
-    }
-
+    this.parentManager.updateTreeViewsForProvider(this.providerName);
     this.fetchUnreadCounts(channels);
     return channels;
   };
@@ -491,11 +484,11 @@ export class ChatProviderManager {
     const users = this.store.getUsers(this.providerName);
     return isNotEmpty(users)
       ? new Promise(resolve => {
-        if (this.shouldFetchNew(this.usersFetchedAt)) {
-          this.fetchUsers(); // async update
-        }
-        resolve(users);
-      })
+          if (this.shouldFetchNew(this.usersFetchedAt)) {
+            this.fetchUsers(); // async update
+          }
+          resolve(users);
+        })
       : this.fetchUsers();
   }
 
@@ -504,12 +497,12 @@ export class ChatProviderManager {
     const channels = this.store.getChannels(this.providerName);
     return !!channels
       ? new Promise(resolve => {
-        if (this.shouldFetchNew(this.channelsFetchedAt)) {
-          this.fetchChannels(); // async update
-        }
+          if (this.shouldFetchNew(this.channelsFetchedAt)) {
+            this.fetchChannels(); // async update
+          }
 
-        resolve(channels);
-      })
+          resolve(channels);
+        })
       : this.fetchChannels();
   }
 
@@ -549,7 +542,9 @@ export class ChatProviderManager {
 
         if (!!updatedChannel) {
           this.updateChannel(updatedChannel);
-          this.parentManager.updateAllUI();
+          this.parentManager.updateWebviewForProvider(this.providerName);
+          this.parentManager.updateStatusItemsForProvider(this.providerName);
+          this.parentManager.updateTreeViewsForProvider(this.providerName);
         }
       }
     }
@@ -589,6 +584,12 @@ export class ChatProviderManager {
   getChannelLabels(): ChannelLabel[] {
     const channels = this.store.getChannels(this.providerName);
     const users = this.store.getUsers(this.providerName);
+    const providerName = toTitleCase(this.providerName);
+    const currentUser = this.store.getCurrentUser(this.providerName);
+    const currentTeam = !!currentUser
+      ? currentUser.teams.find(team => team.id === currentUser.currentTeamId)
+      : undefined;
+    const teamName = !!currentTeam ? currentTeam.name : "";
 
     return channels.map(channel => {
       const unread = this.getUnreadCount(channel);
@@ -624,7 +625,9 @@ export class ChatProviderManager {
         channel,
         unread,
         label,
-        presence
+        presence,
+        providerName,
+        teamName
       };
     });
   }
