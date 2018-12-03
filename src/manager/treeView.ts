@@ -12,7 +12,7 @@ export class TreeViewManager implements vscode.Disposable {
   imsTreeProvider: IMsTreeProvider;
   groupsTreeProvider: GroupTreeProvider;
 
-  constructor(provider: string, team: Team) {
+  constructor(public provider: string, team: Team) {
     this.unreadsTreeProvider = new UnreadsTreeProvider(provider, team);
     this.channelsTreeProvider = new ChannelTreeProvider(provider, team);
     this.groupsTreeProvider = new GroupTreeProvider(provider, team);

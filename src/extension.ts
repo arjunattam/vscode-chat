@@ -556,6 +556,7 @@ export function activate(context: vscode.ExtensionContext) {
           manager.store.updateCurrentUser("vsls", currentUser);
           // Now that we have teams for vsls chat -> we initialize status item
           manager.initializeViewsManager();
+          manager.updateAllUI();
         }
       }
     ),

@@ -229,7 +229,6 @@ class SlackMessenger {
 
     try {
       if (text.startsWith("http")) {
-        // TODO: this gets called even when the message is not sent to the current user
         uri = vscode.Uri.parse(text);
         vscode.commands.executeCommand(SelfCommands.HANDLE_INCOMING_LINKS, {
           senderId: userId,

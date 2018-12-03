@@ -83,8 +83,10 @@ export class ViewsManager implements vscode.Disposable {
 
   updateTreeViews(provider: string) {
     if (!!this.treeViews && this.parentManager.isAuthenticated(provider)) {
-      const channelLabels = this.parentManager.getChannelLabels(provider);
-      this.treeViews.updateData(channelLabels);
+      if (this.treeViews.provider === provider) {
+        const channelLabels = this.parentManager.getChannelLabels(provider);
+        this.treeViews.updateData(channelLabels);
+      }
     }
 
     if (!!this.vslsSessionTreeProvider) {
