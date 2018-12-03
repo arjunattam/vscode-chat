@@ -3,14 +3,6 @@ import * as path from "path";
 import { SelfCommands } from "../constants";
 import { equals } from "../utils";
 
-interface ChatTreeNode {
-  label: string;
-  channel: Channel | undefined;
-  user: User | undefined;
-  isCategory: boolean;
-  presence: UserPresence;
-}
-
 interface ISortingFunction {
   (a: ChannelLabel, b: ChannelLabel): number;
 }
@@ -41,7 +33,7 @@ const PRESENCE_ICONS = {
   yellow: path.join(BASE_PATH, "yellow.svg")
 };
 
-class CustomChatTreeItem extends vscode.TreeItem {
+class ChatTreeItem extends vscode.TreeItem {
   constructor(
     label: string,
     presence: UserPresence,
@@ -100,7 +92,7 @@ class BaseTreeProvider
   protected _disposables: vscode.Disposable[] = [];
   protected channelLabels: ChannelLabel[] = [];
 
-  constructor(protected viewId: string) {
+  constructor(protected providerName: string, protected viewId: string) {
     this._disposables.push(
       vscode.window.registerTreeDataProvider(this.viewId, this)
     );
@@ -158,15 +150,17 @@ class BaseTreeProvider
     });
   }
 
-  getParent(element: ChatTreeNode): vscode.ProviderResult<ChatTreeNode> {
+  getParent = (element: ChatTreeNode): vscode.ProviderResult<ChatTreeNode> => {
     const { channel } = element;
 
     if (!!channel && !!channel.categoryName) {
       return Promise.resolve(this.getItemForCategory(channel.categoryName));
     }
-  }
+  };
 
-  getChildren(element?: ChatTreeNode): vscode.ProviderResult<ChatTreeNode[]> {
+  getChildren = (
+    element?: ChatTreeNode
+  ): vscode.ProviderResult<ChatTreeNode[]> => {
     if (!element) {
       return this.getRootChildren();
     }
@@ -174,11 +168,11 @@ class BaseTreeProvider
     if (!!element && element.isCategory) {
       return this.getChildrenForCategory(element);
     }
-  }
+  };
 
-  getChildrenForCategory(
+  getChildrenForCategory = (
     element: ChatTreeNode
-  ): vscode.ProviderResult<ChatTreeNode[]> {
+  ): vscode.ProviderResult<ChatTreeNode[]> => {
     const { label: category } = element;
     const channels = this.channelLabels
       .filter(channelLabel => {
@@ -187,9 +181,9 @@ class BaseTreeProvider
       })
       .map(this.getItemForChannel);
     return Promise.resolve(channels);
-  }
+  };
 
-  getRootChildren(): vscode.ProviderResult<ChatTreeNode[]> {
+  getRootChildren = (): vscode.ProviderResult<ChatTreeNode[]> => {
     const channelsWithoutCategories = this.channelLabels
       .filter(channelLabel => !channelLabel.channel.categoryName)
       .map(this.getItemForChannel);
@@ -200,34 +194,36 @@ class BaseTreeProvider
       .filter((item, pos) => categories.indexOf(item) === pos)
       .map(category => this.getItemForCategory(category));
     return Promise.resolve([...channelsWithoutCategories, ...uniqueCategories]);
-  }
+  };
 
-  getItemForChannel(channelLabel: ChannelLabel): ChatTreeNode {
+  getItemForChannel = (channelLabel: ChannelLabel): ChatTreeNode => {
     const { label, presence, channel } = channelLabel;
     return {
       label,
       presence,
       channel,
       isCategory: false,
-      user: undefined
+      user: undefined,
+      providerName: this.providerName
     };
-  }
+  };
 
-  getItemForCategory(category: string): ChatTreeNode {
+  getItemForCategory = (category: string): ChatTreeNode => {
     return {
       label: category,
       presence: UserPresence.unknown,
       isCategory: true,
       channel: undefined,
-      user: undefined
+      user: undefined,
+      providerName: this.providerName
     };
-  }
+  };
 
-  getTreeItem(element: ChatTreeNode): vscode.TreeItem {
+  getTreeItem = (element: ChatTreeNode): vscode.TreeItem => {
     // TODO: when selected, the highlight on the tree item seems to stick. This might
     // be because we don't use URIs (~= each channel is a URI) to open/close. Need to investigate.
     const { label, presence, isCategory, channel, user } = element;
-    const treeItem = new CustomChatTreeItem(
+    const treeItem = new ChatTreeItem(
       label,
       presence,
       isCategory,
@@ -235,7 +231,7 @@ class BaseTreeProvider
       user
     );
     return treeItem;
-  }
+  };
 }
 
 export class UnreadsTreeProvider extends BaseTreeProvider {
@@ -243,7 +239,7 @@ export class UnreadsTreeProvider extends BaseTreeProvider {
   protected sortingFn: ISortingFunction = (a, b) => b.unread - a.unread;
 
   constructor(provider: string) {
-    super(`chat.treeView.unreads.${provider}`);
+    super(provider, `chat.treeView.unreads.${provider}`);
   }
 }
 
@@ -252,7 +248,7 @@ export class ChannelTreeProvider extends BaseTreeProvider {
     c.channel.type === ChannelType.channel;
 
   constructor(provider: string) {
-    super(`chat.treeView.channels.${provider}`);
+    super(provider, `chat.treeView.channels.${provider}`);
   }
 }
 
@@ -261,7 +257,7 @@ export class GroupTreeProvider extends BaseTreeProvider {
     c.channel.type === ChannelType.group;
 
   constructor(provider: string) {
-    super(`chat.treeView.groups.${provider}`);
+    super(provider, `chat.treeView.groups.${provider}`);
   }
 }
 
@@ -269,7 +265,7 @@ export class IMsTreeProvider extends BaseTreeProvider {
   protected filterFn: IFilterFunction = c => c.channel.type === ChannelType.im;
 
   constructor(provider: string) {
-    super(`chat.treeView.ims.${provider}`);
+    super(provider, `chat.treeView.ims.${provider}`);
   }
 }
 
@@ -279,8 +275,8 @@ export class OnlineUsersTreeProvider extends BaseTreeProvider {
   private DM_ROLE_NAME = "Direct Messages";
   private OTHERS_ROLE_NAME = "Others";
 
-  constructor(private providerName: string) {
-    super(`chat.treeView.onlineUsers.${providerName}`);
+  constructor(providerName: string) {
+    super(providerName, `chat.treeView.onlineUsers.${providerName}`);
   }
 
   updateData(
@@ -314,11 +310,12 @@ export class OnlineUsersTreeProvider extends BaseTreeProvider {
       presence: user.presence,
       isCategory: false,
       user,
-      channel: this.imChannels[user.id]
+      channel: this.imChannels[user.id],
+      providerName: this.providerName
     };
   }
 
-  getChildrenForCategory(element: ChatTreeNode) {
+  getChildrenForCategory = (element: ChatTreeNode) => {
     const { label: role } = element;
 
     if (role === this.DM_ROLE_NAME) {
@@ -341,9 +338,9 @@ export class OnlineUsersTreeProvider extends BaseTreeProvider {
       .filter(user => user.roleName === role)
       .map(user => this.getItemForUser(user));
     return Promise.resolve(users);
-  }
+  };
 
-  getRootChildren(): vscode.ProviderResult<ChatTreeNode[]> {
+  getRootChildren = (): vscode.ProviderResult<ChatTreeNode[]> => {
     if (this.providerName === "slack") {
       return Promise.resolve(this.users.map(user => this.getItemForUser(user)));
     }
@@ -378,9 +375,9 @@ export class OnlineUsersTreeProvider extends BaseTreeProvider {
     }
 
     return Promise.resolve(rootElements);
-  }
+  };
 
-  getParent(element: ChatTreeNode): vscode.ProviderResult<ChatTreeNode> {
+  getParent = (element: ChatTreeNode): vscode.ProviderResult<ChatTreeNode> => {
     return;
-  }
+  };
 }

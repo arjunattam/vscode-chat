@@ -522,15 +522,16 @@ export function activate(context: vscode.ExtensionContext) {
       ({ text, parentTimestamp, provider }) =>
         sendMessage(provider, text, parentTimestamp)
     ),
-    vscode.commands.registerCommand(SelfCommands.LIVE_SHARE_FROM_MENU, item => {
-      console.log(item);
-      // TODO: get provider from item
-      // return shareVslsLink({
-      //   channel: item.channel,
-      //   user: item.user,
-      //   source: EventSource.activity
-      // });
-    }),
+    vscode.commands.registerCommand(
+      SelfCommands.LIVE_SHARE_FROM_MENU,
+      (item: ChatTreeNode) => {
+        return shareVslsLink(item.providerName, {
+          channel: item.channel,
+          user: item.user,
+          source: EventSource.activity
+        });
+      }
+    ),
     vscode.commands.registerCommand(
       SelfCommands.LIVE_SHARE_SLASH,
       ({ provider }) => {

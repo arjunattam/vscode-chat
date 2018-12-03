@@ -21,7 +21,6 @@ export class ViewsManager implements vscode.Disposable {
 
   constructor(enabledProviders: string[], private parentManager: IManager) {
     const hasVslsEnabled = enabledProviders.indexOf("vsls") >= 0;
-    const showOnboarding = enabledProviders.length === 1 && hasVslsEnabled;
 
     if (hasVslsEnabled) {
       // TODO: merge status bar item behaviour --> vsls will also only show unreads
@@ -42,6 +41,11 @@ export class ViewsManager implements vscode.Disposable {
       const hasProviderEnabled = enabledProviders.indexOf(treeProvider) >= 0;
       setVsContext(`chat:${treeProvider}`, hasProviderEnabled);
     });
+
+    const nonVslsProviders = enabledProviders.filter(
+      provider => provider !== "vsls"
+    );
+    const showOnboarding = nonVslsProviders.length === 0;
 
     if (showOnboarding) {
       this.onboardingTree = new OnboardingTreeProvider();

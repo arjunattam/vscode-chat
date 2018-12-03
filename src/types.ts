@@ -307,3 +307,12 @@ interface TelemetryEvent {
   time: Date;
   properties: EventProperties;
 }
+
+interface ChatTreeNode {
+  label: string;
+  channel: Channel | undefined;
+  user: User | undefined;
+  isCategory: boolean;
+  presence: UserPresence;
+  providerName: string;
+}
