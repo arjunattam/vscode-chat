@@ -5,7 +5,6 @@ import { getExtensionVersion, hasVslsExtension } from "../utils";
 import { DiscordChatProvider } from "../discord";
 import { SlackChatProvider } from "../slack";
 import { VslsChatProvider } from "../vslsChat";
-import { Store } from "../store";
 import { ViewsManager } from "./views";
 import { ConfigHelper } from "../config";
 import { VslsContactProvider } from "./vslsContactProvider";
@@ -17,23 +16,17 @@ export default class Manager implements IManager, vscode.Disposable {
   vslsContactProvider: VslsContactProvider | undefined;
   chatProviders = new Map<Providers, ChatProviderManager>();
 
-  constructor(public store: Store) {
+  constructor(public store: IStore) {
     const existingVersion = this.store.existingVersion;
     const currentVersion = getExtensionVersion();
 
     if (!!currentVersion && existingVersion !== currentVersion) {
-      // There has been an upgrade. Apply data migrations if required.
       Logger.log(`Extension updated to ${currentVersion}`);
 
       if (!!existingVersion) {
-        if (semver.lt(existingVersion, "0.6.0")) {
-          Logger.log("Migration for 0.6.0: add slack as default provider");
-          const { currentUserInfo } = this.store;
-
-          if (!!currentUserInfo) {
-            const userInfo = { ...currentUserInfo, provider: Providers.slack };
-            this.store.updateCurrentUser(userInfo);
-          }
+        if (semver.lt(existingVersion, "0.9.0")) {
+          Logger.log("Migration for 0.9.0");
+          // TODO:
         }
       }
 
@@ -42,13 +35,10 @@ export default class Manager implements IManager, vscode.Disposable {
   }
 
   getEnabledProviders(): string[] {
-    const { currentUserInfo } = this.store;
-    let providers: string[] = [];
-
-    if (!!currentUserInfo) {
-      providers.push(currentUserInfo.provider);
-    }
-
+    let currentUserInfos = this.store.getCurrentUserForAll();
+    let providers: string[] = currentUserInfos.map(
+      currentUser => currentUser.provider
+    );
     const hasVsls = hasVslsExtension();
 
     if (hasVsls) {
@@ -171,17 +161,22 @@ export default class Manager implements IManager, vscode.Disposable {
   initializeVslsContactProvider = async (): Promise<any> => {
     // This method is called after the users state has been initialized, since
     // the vsls contact provider uses list of users to match with vsls contacts.
-    const provider = this.getCurrentProvider();
-    const hasNonVslsChatProvider = !!provider && provider !== "vsls";
+    const enabledProviders = this.getEnabledProviders();
+    const nonVslsProviders = enabledProviders.filter(
+      provider => provider !== "vsls"
+    );
 
-    if (hasVslsExtension() && hasNonVslsChatProvider) {
+    if (hasVslsExtension() && nonVslsProviders.length > 0) {
+      const presenceProvider = nonVslsProviders[0]; // we are restricting this to only one
       const isNotAlreadyInit =
         !this.vslsContactProvider || !this.vslsContactProvider.isInitialized;
-      const { currentUserInfo, users } = this.store;
+
+      const currentUserInfo = this.store.getCurrentUser(presenceProvider);
+      const users = this.store.getUsers(presenceProvider);
 
       if (isNotAlreadyInit && !!currentUserInfo) {
         this.vslsContactProvider = new VslsContactProvider(
-          <string>provider,
+          presenceProvider,
           this
         );
         await this.vslsContactProvider.register();
@@ -195,16 +190,17 @@ export default class Manager implements IManager, vscode.Disposable {
   };
 
   clearAll() {
-    this.store.updateCurrentUser(undefined);
+    // TODO: fix logging out/reset
+    // this.store.updateCurrentUser(undefined);
     this.clearOldWorkspace();
   }
 
   clearOldWorkspace() {
     // This clears workspace info, does not clear current user
-    this.store.updateLastChannelId(undefined);
-    this.store.updateChannels([]);
-    this.store.updateUsers({});
-    // this.messages = {};
+    // TODO: fix logging out/reset
+    // this.store.updateLastChannelId(undefined);
+    // this.store.updateChannels([]);
+    // this.store.updateUsers({});
     this.isTokenInitialized = false;
 
     for (let key of Array.from(this.chatProviders.keys())) {
@@ -236,14 +232,14 @@ export default class Manager implements IManager, vscode.Disposable {
     return !!cp ? cp.getChannelLabels() : [];
   }
 
-  getUserForId(userId: string) {
-    return this.store.users[userId];
+  getUserForId(provider: string, userId: string) {
+    return this.store.getUser(provider, userId);
   }
 
-  getIMChannel(user: User): Channel | undefined {
+  getIMChannel(provider: string, user: User): Channel | undefined {
     // DM channels look like `name`
+    const channels = this.store.getChannels(provider);
     const { name } = user;
-    const { channels } = this.store;
     return channels.find(channel => channel.name === name);
   }
 
@@ -256,45 +252,45 @@ export default class Manager implements IManager, vscode.Disposable {
   }
 
   getCurrentWorkspaceName = () => {
-    // TODO: move inside chat manager?
-    const { currentUserInfo } = this.store;
+    // TODO: fix this implementation after new status bar item
+    //
+    //
+    // const { currentUserInfo } = this.store;
 
-    if (!!currentUserInfo) {
-      const { teams, currentTeamId } = currentUserInfo;
+    // if (!!currentUserInfo) {
+    //   const { teams, currentTeamId } = currentUserInfo;
 
-      if (!!currentTeamId) {
-        const team = teams.find(team => team.id === currentTeamId);
-        return !!team ? team.name : undefined;
-      }
-    }
+    //   if (!!currentTeamId) {
+    //     const team = teams.find(team => team.id === currentTeamId);
+    //     return !!team ? team.name : undefined;
+    //   }
+    // }
+    return `workspace`;
   };
 
-  getUserPresence(userId: string) {
-    // TODO: move inside chat manager?
-    const user = this.store.users[userId];
-    return !!user ? user.presence : undefined;
+  getUserPresence(provider: string, userId: string) {
+    const cp = this.chatProviders.get(provider as Providers);
+    return !!cp ? cp.getUserPresence(userId) : undefined;
   }
 
-  getCurrentPresence = () => {
-    // TODO: move inside chat manager?
-    const { currentUserInfo, users } = this.store;
-
-    if (!!currentUserInfo) {
-      const currentUser = users[currentUserInfo.id];
-      return currentUser.presence;
-    }
+  getCurrentUserPresence = (provider: string) => {
+    const cp = this.chatProviders.get(provider as Providers);
+    return !!cp ? cp.getCurrentUserPresence() : undefined;
   };
 
-  updateCurrentWorkspace = (
+  updateCurrentWorkspace = async (
     team: Team,
     existingUserInfo: CurrentUser
-  ): Thenable<void> => {
+  ): Promise<void> => {
     const newCurrentUser: CurrentUser = {
       ...existingUserInfo,
       currentTeamId: team.id
     };
-    // TODO: move to chat manager?
-    return this.store.updateCurrentUser(newCurrentUser);
+    // TODO: fix this after the workspace stuff is working
+    //
+    //
+    // return this.store.updateCurrentUser(newCurrentUser);
+    return;
   };
 
   async loadChannelHistory(

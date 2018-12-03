@@ -7,7 +7,6 @@ import { Store } from "./store";
 import * as str from "./strings";
 import {
   SelfCommands,
-  LiveShareCommands,
   SLACK_OAUTH,
   DISCORD_OAUTH,
   LIVE_SHARE_BASE_URL,
@@ -38,9 +37,12 @@ export function activate(context: vscode.ExtensionContext) {
   controller = new ViewController(
     context,
     provider => {
-      const { lastChannelId } = manager.store;
-      if (lastChannelId && provider) {
-        return manager.loadChannelHistory(provider, lastChannelId);
+      if (provider) {
+        const lastChannelId = manager.store.getLastChannelId(provider);
+
+        if (lastChannelId) {
+          return manager.loadChannelHistory(provider, lastChannelId);
+        }
       }
     },
     provider => (!!provider ? manager.updateReadMarker(provider) : undefined)
@@ -82,7 +84,10 @@ export function activate(context: vscode.ExtensionContext) {
     }
 
     await manager.initializeProviders();
-    const { currentUserInfo } = manager.store;
+
+    // TODO: checking for current user for only current provider is incorrect
+    const currentProvider = manager.getCurrentProvider();
+    const currentUserInfo = manager.store.getCurrentUser(currentProvider);
 
     if (!!currentUserInfo && !currentUserInfo.currentTeamId) {
       // If no current team is available, we need to ask
@@ -102,8 +107,7 @@ export function activate(context: vscode.ExtensionContext) {
     text: string,
     parentTimestamp: string | undefined
   ) => {
-    // TODO: cannot access store like this!
-    const { lastChannelId } = manager.store;
+    const lastChannelId = manager.store.getLastChannelId(providerName);
     telemetry.record(
       EventType.messageSent,
       undefined,
@@ -158,7 +162,7 @@ export function activate(context: vscode.ExtensionContext) {
 
       if (!!selectedChannelLabel) {
         const { channel } = selectedChannelLabel;
-        manager.store.updateLastChannelId(channel.id);
+        manager.store.updateLastChannelId(providerName, channel.id);
         return channel;
       }
     }
@@ -168,7 +172,7 @@ export function activate(context: vscode.ExtensionContext) {
     providerName: string,
     args?: ChatArgs
   ): Promise<string | undefined> => {
-    const { lastChannelId } = manager.store;
+    const lastChannelId = manager.store.getLastChannelId(providerName);
     let chatChannelId: string | undefined;
 
     if (!!lastChannelId) {
@@ -179,7 +183,7 @@ export function activate(context: vscode.ExtensionContext) {
       if (!!args.channel) {
         // We have a channel in args
         const { channel } = args;
-        manager.store.updateLastChannelId(channel.id);
+        manager.store.updateLastChannelId(providerName, channel.id);
         chatChannelId = channel.id;
       } else if (!!args.user) {
         // We have a user, but no corresponding channel
@@ -187,7 +191,7 @@ export function activate(context: vscode.ExtensionContext) {
         const channel = await manager.createIMChannel(providerName, args.user);
 
         if (!!channel) {
-          manager.store.updateLastChannelId(channel.id);
+          manager.store.updateLastChannelId(providerName, channel.id);
           chatChannelId = channel.id;
         }
       }
@@ -210,6 +214,7 @@ export function activate(context: vscode.ExtensionContext) {
       controller.loadUi();
     }
 
+    // TODO: incorrect to get current provider like this
     const provider = manager.getCurrentProvider();
     await setup(true, undefined);
     await getChatChannelId(provider, args);
@@ -218,7 +223,7 @@ export function activate(context: vscode.ExtensionContext) {
       manager.viewsManager.updateWebview(provider);
     }
 
-    const { lastChannelId } = manager.store;
+    const lastChannelId = manager.store.getLastChannelId(provider);
 
     if (!!lastChannelId) {
       const source = !!args ? args.source : EventSource.command;
@@ -228,7 +233,8 @@ export function activate(context: vscode.ExtensionContext) {
   };
 
   const askForWorkspace = async () => {
-    const { currentUserInfo } = manager.store;
+    const provider = manager.getCurrentProvider();
+    const currentUserInfo = manager.store.getCurrentUser(provider);
 
     if (!!currentUserInfo) {
       const { teams } = currentUserInfo;
@@ -297,35 +303,6 @@ export function activate(context: vscode.ExtensionContext) {
     }
   };
 
-  const promptVslsJoin = (senderId: string, messageUri: vscode.Uri) => {
-    const { currentUserInfo } = manager.store;
-
-    if (!!currentUserInfo && senderId === currentUserInfo.id) {
-      // This is our own message, ignore it
-      return;
-    }
-
-    const user = manager.store.users[senderId];
-
-    if (!!user) {
-      // We should prompt for auto-joining here
-      const infoMessage = str.LIVE_SHARE_INVITE(user.name);
-      const actionItems = ["Join", "Ignore"];
-      vscode.window
-        .showInformationMessage(infoMessage, ...actionItems)
-        .then(selected => {
-          if (selected === "Join") {
-            const opts = { newWindow: false };
-            vscode.commands.executeCommand(
-              LiveShareCommands.JOIN,
-              messageUri.toString(),
-              opts
-            );
-          }
-        });
-    }
-  };
-
   const authenticate = (args?: any) => {
     const hasArgs = !!args && !!args.source;
     const provider = "slack"; // Only Slack OAuth is supported
@@ -384,7 +361,7 @@ export function activate(context: vscode.ExtensionContext) {
     const currentProvider = manager.getCurrentProvider();
     // TODO: presence change is only possible for slack or discord (not vsls)
     const isSlack = currentProvider === "slack";
-    const currentPresence = manager.getCurrentPresence();
+    const currentPresence = manager.getCurrentUserPresence(currentProvider);
     const presenceChoices = [
       UserPresence.available,
       UserPresence.doNotDisturb,
@@ -489,21 +466,21 @@ export function activate(context: vscode.ExtensionContext) {
       const matchedId = contactProvider.getMatchedUserId(contact.id);
 
       if (!!matchedId) {
-        user = manager.getUserForId(matchedId);
+        user = manager.getUserForId(presenceProvider, matchedId);
       } else {
         // contact.id can also be a user id
-        user = manager.getUserForId(contact.id);
+        user = manager.getUserForId(presenceProvider, contact.id);
       }
 
       if (!!user) {
-        let imChannel = manager.getIMChannel(user);
+        let imChannel = manager.getIMChannel(presenceProvider, user);
 
         if (!imChannel) {
           imChannel = await manager.createIMChannel(presenceProvider, user);
         }
 
         if (!!imChannel) {
-          manager.store.updateLastChannelId(imChannel.id);
+          manager.store.updateLastChannelId(presenceProvider, imChannel.id);
           openChatWebview();
         }
       } else {
@@ -557,16 +534,13 @@ export function activate(context: vscode.ExtensionContext) {
     vscode.commands.registerCommand(
       SelfCommands.LIVE_SHARE_SLASH,
       ({ provider }) => {
+        const channelId = manager.store.getLastChannelId(provider);
         shareVslsLink(provider, {
-          channel: manager.getChannel(provider, manager.store.lastChannelId),
+          channel: manager.getChannel(provider, channelId),
           user: undefined,
           source: EventSource.slash
         });
       }
-    ),
-    vscode.commands.registerCommand(
-      SelfCommands.LIVE_SHARE_JOIN_PROMPT,
-      ({ senderId, messageUri }) => promptVslsJoin(senderId, messageUri)
     ),
     vscode.commands.registerCommand(
       SelfCommands.LIVE_SHARE_SESSION_CHANGED,
@@ -574,7 +548,7 @@ export function activate(context: vscode.ExtensionContext) {
         const enabledProviders = manager.getEnabledProviders();
 
         if (enabledProviders.indexOf("vsls") >= 0) {
-          manager.store.updateCurrentUser(currentUser);
+          manager.store.updateCurrentUser("vsls", currentUser);
 
           if (!!manager.viewsManager) {
             manager.viewsManager.updateVslsStatus(isSessionActive);
@@ -654,14 +628,6 @@ export function activate(context: vscode.ExtensionContext) {
       SelfCommands.HANDLE_INCOMING_LINKS,
       ({ uri, senderId }) => {
         if (uri.authority === LIVE_SHARE_BASE_URL) {
-          // We are replacing our own prompt with the live share prompt.
-          // TODO: Clear up the rest of the code for vsls join prompt.
-
-          // vscode.commands.executeCommand(SelfCommands.LIVE_SHARE_JOIN_PROMPT, {
-          //   senderId,
-          //   messageUri: uri
-          // });
-
           if (!!manager.vslsContactProvider) {
             manager.vslsContactProvider.notifyInviteReceived(senderId, uri);
           }

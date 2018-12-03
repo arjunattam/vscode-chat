@@ -139,7 +139,7 @@ export class SlackChatProvider implements IChatProvider {
       const delay = (dndStart - currentTime) * 1000;
       const timer = setTimeout(() => {
         // If user is available, change to dnd
-        const presence = this.manager.getUserPresence(userId);
+        const presence = this.manager.getUserPresence("slack", userId);
 
         if (presence === UserPresence.available) {
           this.updateUserPresence(userId, UserPresence.doNotDisturb);
@@ -154,7 +154,7 @@ export class SlackChatProvider implements IChatProvider {
       const delay = (dndEnd - currentTime) * 1000;
       const timer = setTimeout(() => {
         // If user is dnd, change to available
-        const presence = this.manager.getUserPresence(userId);
+        const presence = this.manager.getUserPresence("slack", userId);
 
         if (presence === UserPresence.doNotDisturb) {
           this.updateUserPresence(userId, UserPresence.available);
@@ -246,7 +246,7 @@ export class SlackChatProvider implements IChatProvider {
     durationInMinutes: number
   ): Promise<UserPresence | undefined> {
     let response;
-    const currentPresence = this.manager.getCurrentPresence();
+    const currentPresence = this.manager.getCurrentUserPresence("slack");
 
     switch (presence) {
       case UserPresence.doNotDisturb:

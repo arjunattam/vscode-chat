@@ -231,7 +231,7 @@ export class DiscordChatProvider implements IChatProvider {
   }
 
   getCurrentGuild(): Discord.Guild | undefined {
-    const { currentUserInfo } = this.manager.store;
+    const currentUserInfo = this.manager.store.getCurrentUser("discord");
 
     if (!!currentUserInfo) {
       const { currentTeamId } = currentUserInfo;
@@ -305,7 +305,7 @@ export class DiscordChatProvider implements IChatProvider {
           }
         });
 
-      const { currentUserInfo } = this.manager.store;
+      const currentUserInfo = this.manager.store.getCurrentUser("discord");
       const guildChannels: Channel[] = guild.channels
         .filter(channel => channel.type !== "category")
         .filter(channel => {

@@ -19,24 +19,24 @@ export class ChatProviderManager {
   initializeProvider = async (): Promise<any> => {
     const isConnected = this.chatProvider.isConnected();
     const isAuthenticated = this.isAuthenticated();
-    let currentUser = this.store.currentUserInfo;
+    let currentUser = this.store.getCurrentUser(this.providerName);
 
     if (!(isConnected && isAuthenticated)) {
       if (!!this.chatProvider) {
         currentUser = await this.chatProvider.connect();
-        this.store.updateCurrentUser(currentUser);
+        this.store.updateCurrentUser(this.providerName, currentUser);
       }
     }
 
     if (this.providerName === "vsls") {
-      this.store.updateLastChannelId(VSLS_CHAT_CHANNEL.id);
+      this.store.updateLastChannelId(this.providerName, VSLS_CHAT_CHANNEL.id);
     }
 
     return currentUser;
   };
 
   isAuthenticated() {
-    const { currentUserInfo } = this.store;
+    const currentUserInfo = this.store.getCurrentUser(this.providerName);
     return !!currentUserInfo && !!currentUserInfo.id;
   }
 
@@ -45,7 +45,7 @@ export class ChatProviderManager {
   }
 
   async fetchThreadReplies(parentTimestamp: string) {
-    const currentChannelId = this.store.lastChannelId;
+    const currentChannelId = this.store.getLastChannelId(this.providerName);
 
     if (!!currentChannelId) {
       const message = await this.chatProvider.fetchThreadReplies(
@@ -65,7 +65,7 @@ export class ChatProviderManager {
     presence: UserPresence,
     durationInMinutes: number
   ) => {
-    const { currentUserInfo } = this.store;
+    const currentUserInfo = this.store.getCurrentUser(this.providerName);
 
     if (!!currentUserInfo) {
       const presenceResult = await this.chatProvider.updateSelfPresence(
@@ -80,7 +80,7 @@ export class ChatProviderManager {
   };
 
   updatePresenceForUser = (userId: string, presence: UserPresence) => {
-    const { users } = this.store;
+    const users = this.store.getUsers(this.providerName);
 
     if (userId in users) {
       const existingPresence = users[userId].presence;
@@ -94,18 +94,18 @@ export class ChatProviderManager {
         return;
       }
 
-      this.store.users[userId] = {
+      this.store.updateUser(this.providerName, userId, {
         ...users[userId],
         presence
-      };
+      });
 
       if (presence !== existingPresence && !!this.parentManager.viewsManager) {
-        this.parentManager.viewsManager.updateTreeViews();
+        this.parentManager.viewsManager.updateTreeViews(this.providerName);
       }
 
       if (!!this.parentManager.vslsContactProvider) {
         this.parentManager.vslsContactProvider.notifyPresenceChanged(
-          this.store.users[userId]
+          this.store.getUser(this.providerName, userId)
         );
       }
     }
@@ -116,7 +116,7 @@ export class ChatProviderManager {
     channelId: string,
     parentTimestamp: string | undefined
   ): Promise<void> => {
-    const { currentUserInfo } = this.store;
+    const currentUserInfo = this.store.getCurrentUser(this.providerName);
 
     if (!!currentUserInfo) {
       if (!!parentTimestamp) {
@@ -174,7 +174,7 @@ export class ChatProviderManager {
 
     // Check if we have all users. Since there is no `bots.list` Slack API
     // method, it is possible that a bot user is not in our store
-    const { users } = this.store;
+    const users = this.store.getUsers(this.providerName);
     const knownUserIds = new Set(Object.keys(users));
     const channelMessages = this.messages[channelId];
     const entries = Object.entries(channelMessages);
@@ -190,8 +190,8 @@ export class ChatProviderManager {
   private async fillUpUsers(missingIds: Set<any>): Promise<void> {
     // missingIds are user/bot ids that we don't have in the store. We will
     // fetch their details, and then update the UI.
-    const { users } = this.store;
-    const usersCopy = { ...users };
+    const users = this.store.getUsers(this.providerName);
+    const usersCopy: Users = { ...users };
     let ids = Array.from(missingIds);
 
     await Promise.all(
@@ -205,10 +205,10 @@ export class ChatProviderManager {
       })
     );
 
-    this.store.updateUsers(usersCopy);
+    this.store.updateUsers(this.providerName, usersCopy);
 
     if (!!this.parentManager.viewsManager) {
-      return this.parentManager.viewsManager.updateWebview();
+      return this.parentManager.viewsManager.updateWebview(this.providerName);
     }
   }
 
@@ -349,7 +349,7 @@ export class ChatProviderManager {
   }
 
   subscribeForPresence() {
-    const { users } = this.store;
+    const users = this.store.getUsers(this.providerName);
 
     if (!!this.chatProvider) {
       this.chatProvider.subscribePresence(users);
@@ -359,7 +359,7 @@ export class ChatProviderManager {
   updateChannel = (newChannel: Channel) => {
     // Adds/updates channel in this.channels
     let found = false;
-    const { channels } = this.store;
+    const channels = this.store.getChannels(this.providerName);
     let updatedChannels = channels.map(channel => {
       const { id } = channel;
 
@@ -378,10 +378,10 @@ export class ChatProviderManager {
       updatedChannels = [...updatedChannels, newChannel];
     }
 
-    this.store.updateChannels(updatedChannels);
+    this.store.updateChannels(this.providerName, updatedChannels);
 
     if (!!this.parentManager.viewsManager) {
-      this.parentManager.viewsManager.updateTreeViews();
+      this.parentManager.viewsManager.updateTreeViews(this.providerName);
     }
   };
 
@@ -419,7 +419,7 @@ export class ChatProviderManager {
   fetchUsers = async (): Promise<Users> => {
     const users = await this.chatProvider.fetchUsers();
     let usersWithPresence: Users = {};
-    const { users: existingUsers } = this.store;
+    const existingUsers = this.store.getUsers(this.providerName);
 
     Object.keys(users).forEach(userId => {
       // This handles two different chat providers:
@@ -445,19 +445,19 @@ export class ChatProviderManager {
       };
     });
 
-    this.store.updateUsers(usersWithPresence);
+    this.store.updateUsers(this.providerName, usersWithPresence);
     this.updateUsersFetchedAt();
     return usersWithPresence;
   };
 
   fetchChannels = async (): Promise<Channel[]> => {
-    const { users } = this.store;
+    const users = this.store.getUsers(this.providerName);
     const channels = await this.chatProvider.fetchChannels(users);
-    await this.store.updateChannels(channels);
+    await this.store.updateChannels(this.providerName, channels);
     this.updateChannelsFetchedAt();
 
     if (!!this.parentManager.viewsManager) {
-      this.parentManager.viewsManager.updateTreeViews();
+      this.parentManager.viewsManager.updateTreeViews(this.providerName);
     }
 
     this.fetchUnreadCounts(channels);
@@ -488,39 +488,40 @@ export class ChatProviderManager {
       return Object.keys(obj).length !== 0;
     }
 
-    const { users } = this.store;
+    const users = this.store.getUsers(this.providerName);
     return isNotEmpty(users)
       ? new Promise(resolve => {
-          if (this.shouldFetchNew(this.usersFetchedAt)) {
-            this.fetchUsers(); // async update
-          }
-          resolve(users);
-        })
+        if (this.shouldFetchNew(this.usersFetchedAt)) {
+          this.fetchUsers(); // async update
+        }
+        resolve(users);
+      })
       : this.fetchUsers();
   }
 
   initializeChannelsState(): Promise<Channel[]> {
     // This assumes that users are available
-    const { channels } = this.store;
+    const channels = this.store.getChannels(this.providerName);
     return !!channels
       ? new Promise(resolve => {
-          if (this.shouldFetchNew(this.channelsFetchedAt)) {
-            this.fetchChannels(); // async update
-          }
+        if (this.shouldFetchNew(this.channelsFetchedAt)) {
+          this.fetchChannels(); // async update
+        }
 
-          resolve(channels);
-        })
+        resolve(channels);
+      })
       : this.fetchChannels();
   }
 
   getChannel(channelId: string | undefined): Channel | undefined {
     if (!!channelId) {
-      return this.store.channels.find(channel => channel.id === channelId);
+      const channels = this.store.getChannels(this.providerName);
+      return channels.find(channel => channel.id === channelId);
     }
   }
 
   getLastTimestamp(): string | undefined {
-    const { lastChannelId: channelId } = this.store;
+    const channelId = this.store.getLastChannelId(this.providerName);
     const channelMessages =
       !!channelId && channelId in this.messages ? this.messages[channelId] : {};
     const timestamps = Object.keys(channelMessages).map(tsString => +tsString);
@@ -531,7 +532,7 @@ export class ChatProviderManager {
   }
 
   async updateReadMarker(): Promise<void> {
-    const channelId = this.store.lastChannelId;
+    const channelId = this.store.getLastChannelId(this.providerName);
     const channel = this.getChannel(channelId);
     const lastTs = this.getLastTimestamp();
 
@@ -567,7 +568,7 @@ export class ChatProviderManager {
       return 0;
     }
 
-    const { currentUserInfo } = this.store;
+    const currentUserInfo = this.store.getCurrentUser(this.providerName);
 
     if (!currentUserInfo) {
       // Can be undefined during async update on vsls chat
@@ -586,7 +587,9 @@ export class ChatProviderManager {
   }
 
   getChannelLabels(): ChannelLabel[] {
-    const { users, channels } = this.store;
+    const channels = this.store.getChannels(this.providerName);
+    const users = this.store.getUsers(this.providerName);
+
     return channels.map(channel => {
       const unread = this.getUnreadCount(channel);
       const { name, type, id } = channel;
@@ -625,4 +628,14 @@ export class ChatProviderManager {
       };
     });
   }
+
+  getUserPresence(userId: string) {
+    const user = this.store.getUser(this.providerName, userId);
+    return !!user ? user.presence : undefined;
+  }
+
+  getCurrentUserPresence = () => {
+    const currentUser = this.store.getCurrentUser(this.providerName);
+    return !!currentUser ? this.getUserPresence(currentUser.id) : undefined;
+  };
 }

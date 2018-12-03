@@ -167,10 +167,16 @@ export class VslsContactProvider implements ContactServiceProvider {
       userId => this.matchedContacts[userId].id === targetContactId
     );
     const userIdToInvite = targetMatchedUserId || targetContactId;
-    const userToInvite = this.manager.store.users[userIdToInvite];
+    const userToInvite = this.manager.store.getUser(
+      this.presenceProviderName,
+      userIdToInvite
+    );
 
     if (!!userToInvite) {
-      let imChannel = this.manager.getIMChannel(userToInvite);
+      let imChannel = this.manager.getIMChannel(
+        this.presenceProviderName,
+        userToInvite
+      );
 
       if (!imChannel) {
         imChannel = await this.manager.createIMChannel(
@@ -194,7 +200,7 @@ export class VslsContactProvider implements ContactServiceProvider {
     params: ContactPresenceRequest
   ): Promise<ContactPresenceResponse> {
     const { contacts } = params;
-    const knownUsers = this.manager.store.users;
+    const knownUsers = this.manager.store.getUsers(this.presenceProviderName);
     const knownUserIds = Object.keys(knownUsers);
     // The response can only have contacts matched in this
     // request. Hence, we maintain a list of matched ids.

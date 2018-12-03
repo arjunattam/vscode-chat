@@ -15,12 +15,12 @@ const stateKeys = {
 };
 
 export class Store implements IStore {
-  currentUserInfo: CurrentUser | undefined;
-  channels: Channel[] = [];
-  users: Users = {};
-  lastChannelId: string | undefined;
-  installationId: string | undefined;
-  existingVersion: string | undefined;
+  public installationId: string | undefined;
+  public existingVersion: string | undefined;
+  private currentUserInfo: CurrentUser | undefined;
+  private channels: Channel[] = [];
+  private users: Users = {};
+  private lastChannelId: string | undefined;
 
   constructor(private context: vscode.ExtensionContext) {
     const { globalState } = context;
@@ -42,10 +42,33 @@ export class Store implements IStore {
 
   updateExtensionVersion(version: string) {
     const { globalState } = this.context;
-    globalState.update(stateKeys.EXTENSION_VERSION, version);
+    return globalState.update(stateKeys.EXTENSION_VERSION, version);
   }
 
-  updateLastChannelId = (channelId: string | undefined): Thenable<void> => {
+  getCurrentUser = (provider: string): CurrentUser | undefined => {
+    return this.currentUserInfo;
+  };
+
+  getCurrentUserForAll = (): CurrentUser[] => {
+    return !!this.currentUserInfo ? [this.currentUserInfo] : [];
+  };
+
+  getUsers = (provider: string): Users => {
+    return this.users;
+  };
+
+  getChannels = (provider: string): Channel[] => {
+    return this.channels;
+  };
+
+  getLastChannelId = (provider: string): string | undefined => {
+    return this.lastChannelId;
+  };
+
+  updateLastChannelId = (
+    provider: string,
+    channelId: string | undefined
+  ): Thenable<void> => {
     this.lastChannelId = channelId;
     return this.context.globalState.update(
       stateKeys.LAST_CHANNEL_ID,
@@ -53,7 +76,7 @@ export class Store implements IStore {
     );
   };
 
-  updateUsers = (users: Users): Thenable<void> => {
+  updateUsers = (provider: string, users: Users): Thenable<void> => {
     this.users = users;
 
     if (Object.keys(this.users).length <= VALUE_LENGTH_LIMIT) {
@@ -63,7 +86,20 @@ export class Store implements IStore {
     return Promise.resolve();
   };
 
-  updateChannels = (channels: Channel[]): Thenable<void> => {
+  updateUser = (provider: string, userId: string, user: User) => {
+    // This does not store to the local storage
+    // TODO: support provider stuff
+    this.users[userId] = {
+      ...user
+    };
+  };
+
+  getUser = (provider: string, userId: string) => {
+    // TODO: support provider stuff
+    return this.users[userId];
+  };
+
+  updateChannels = (provider: string, channels: Channel[]): Thenable<void> => {
     this.channels = channels;
 
     if (this.channels.length <= VALUE_LENGTH_LIMIT) {
@@ -73,7 +109,10 @@ export class Store implements IStore {
     return Promise.resolve();
   };
 
-  updateCurrentUser = (userInfo: CurrentUser | undefined): Thenable<void> => {
+  updateCurrentUser = (
+    provider: string,
+    userInfo: CurrentUser | undefined
+  ): Thenable<void> => {
     // In the case of discord, we need to know the current team (guild)
     // If that is available in the store, we should use that
     if (!userInfo) {

@@ -33,7 +33,6 @@ export class VslsChatProvider implements IChatProvider {
     });
 
     this.liveshare.onDidChangeSession(async ({ session }) => {
-      // TODO: send ended message when session ends
       const { id: sessionId, role } = session;
       const isSessionActive = !!sessionId;
       let currentUser;
@@ -45,6 +44,10 @@ export class VslsChatProvider implements IChatProvider {
           this.hostService.sendStartedMessage();
         }
       } else {
+        if (!!this.hostService) {
+          this.hostService.sendEndedMessage();
+        }
+
         await this.clearSession();
       }
 

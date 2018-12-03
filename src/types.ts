@@ -205,34 +205,42 @@ interface UIMessageGroup {
 
 interface IStore {
   installationId: string | undefined; // TODO: remove undefined
-  lastChannelId: string | undefined;
-  channels: Channel[];
-  currentUserInfo: CurrentUser | undefined;
-  users: Users;
   existingVersion: string | undefined;
-
-  // New fields
-  updateUsers: any;
-  updateChannels: any;
-  updateCurrentUser: any;
-  updateLastChannelId: any;
+  generateInstallationId: () => string;
+  getCurrentUser: (provider: string) => CurrentUser | undefined;
+  getCurrentUserForAll: () => CurrentUser[];
+  getUsers: (provider: string) => Users;
+  getUser: (provider: string, userId: string) => User;
+  getChannels: (provider: string) => Channel[];
+  getLastChannelId: (provider: string) => string | undefined;
+  updateUsers: (provider: string, users: Users) => Thenable<void>;
+  updateUser: (provider: string, userId: string, user: User) => void;
+  updateChannels: (provider: string, channels: Channel[]) => Thenable<void>;
+  updateCurrentUser: (
+    provider: string,
+    userInfo: CurrentUser | undefined
+  ) => Thenable<void>;
+  updateLastChannelId: (provider: string, channelId: string) => Thenable<void>;
+  updateExtensionVersion: (version: string) => Thenable<void>;
 }
 
 interface IManager {
   isTokenInitialized: boolean;
   store: IStore;
-  // messages: Messages;
   isAuthenticated: (provider: string) => boolean;
   getChannel: (
     provider: string,
     channelId: string | undefined
   ) => Channel | undefined;
-  getIMChannel: (user: User) => Channel | undefined;
+  getIMChannel: (provider: string, user: User) => Channel | undefined;
   getChannelLabels: (provider: string) => any;
   getUnreadCount: (provider: string, channel: Channel) => number;
   getCurrentWorkspaceName: () => string | undefined;
-  getUserPresence: (userId: string) => UserPresence | undefined;
-  getCurrentPresence: () => UserPresence | undefined;
+  getUserPresence: (
+    provider: string,
+    userId: string
+  ) => UserPresence | undefined;
+  getCurrentUserPresence: (provider: string) => UserPresence | undefined;
   getCurrentProvider: () => string;
   // updateMessages: (channelId: string, newMessages: ChannelMessages) => void;
   // loadChannelHistory: (channelId: string) => Promise<void>;
@@ -250,12 +258,18 @@ interface IManager {
   //   userId: string,
   //   reactionName: string
   // ) => void;
-
-  // New fields
-  viewsManager: any;
+  viewsManager: IViewsManager | undefined;
   vslsContactProvider: any;
-  updateAllUI: any;
+  updateAllUI: () => void;
   getMessages: (provider: string) => Messages;
+}
+
+interface IViewsManager {
+  updateTreeViews: (provider: string) => void;
+  updateWebview: (provider: string) => void;
+
+  // TODO: fix this
+  updateStatusItem: () => void;
 }
 
 interface ChatArgs {

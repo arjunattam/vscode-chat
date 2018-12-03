@@ -49,10 +49,9 @@ export class ViewsManager implements vscode.Disposable {
   }
 
   updateStatusItem() {
-    const { channels } = this.parentManager.store;
     // TODO: this provider is incorrect
     const provider = this.parentManager.getCurrentProvider();
-
+    const channels = this.parentManager.store.getChannels(provider);
     const unreads = channels.map(channel => {
       return this.parentManager.getUnreadCount(provider, channel);
     });
@@ -84,7 +83,9 @@ export class ViewsManager implements vscode.Disposable {
   }
 
   updateWebview(provider: string) {
-    const { lastChannelId, users, currentUserInfo } = this.parentManager.store;
+    const lastChannelId = this.parentManager.store.getLastChannelId(provider);
+    const users = this.parentManager.store.getUsers(provider);
+    const currentUserInfo = this.parentManager.store.getCurrentUser(provider);
     const channel = this.parentManager.getChannel(provider, lastChannelId);
     const messages = this.parentManager.getMessages(provider);
     let channelMessages = {};

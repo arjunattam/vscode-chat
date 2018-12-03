@@ -27,7 +27,6 @@ export const SelfCommands = {
   CONFIGURE_TOKEN: "extension.chat.configureToken",
   LIVE_SHARE_FROM_MENU: "extension.chat.startLiveShare",
   LIVE_SHARE_SLASH: "extension.chat.slashLiveShare",
-  LIVE_SHARE_JOIN_PROMPT: "extension.chat.promptLiveShare",
   LIVE_SHARE_SESSION_CHANGED: "extension.chat.vslsSessionChanged",
   RESET_STORE: "extension.chat.reset",
   FETCH_REPLIES: "extension.chat.fetchReplies",

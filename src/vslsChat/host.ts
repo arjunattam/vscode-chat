@@ -64,6 +64,13 @@ export class VslsHostService extends VslsBaseService {
     );
   }
 
+  sendEndedMessage() {
+    return this.broadcastMessage(
+      this.peerNumber.toString(),
+      LIVE_SHARE_INFO_MESSAGES.ended
+    );
+  }
+
   sendJoinedMessages(peers: vsls.Peer[]) {
     peers.forEach(({ peerNumber }) => {
       this.broadcastMessage(
