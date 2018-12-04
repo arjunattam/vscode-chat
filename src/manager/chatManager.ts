@@ -15,8 +15,11 @@ export class ChatProviderManager {
   ) {}
 
   getTeams(): Team[] {
-    const currentUser = this.store.getCurrentUser(this.providerName);
-    return !!currentUser ? currentUser.teams : [];
+    // Due to design limitation we can only work with one team at a time,
+    // and so this only returns the current team. (or else, Discord shows
+    // multiple status items for unread messages.)
+    const currentTeam = this.getCurrentTeam();
+    return !!currentTeam ? [currentTeam] : [];
   }
 
   getCurrentTeam(): Team | undefined {
@@ -511,7 +514,7 @@ export class ChatProviderManager {
   initializeChannelsState(): Promise<Channel[]> {
     // This assumes that users are available
     const channels = this.store.getChannels(this.providerName);
-    return !!channels
+    return channels.length !== 0
       ? new Promise(resolve => {
           if (this.shouldFetchNew(this.channelsFetchedAt)) {
             this.fetchChannels(); // async update

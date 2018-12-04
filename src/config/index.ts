@@ -52,18 +52,13 @@ export class ConfigHelper {
     await KeychainHelper.set(CREDENTIAL_SERVICE_NAME, providerName, token);
 
     // When token is set, we need to call reset
-    vscode.commands.executeCommand(SelfCommands.RESET_STORE, {
+    vscode.commands.executeCommand(SelfCommands.SETUP_NEW_PROVIDER, {
       newProvider: providerName
     });
   }
 
   static async clearToken(provider: string): Promise<void> {
     await KeychainHelper.clear(CREDENTIAL_SERVICE_NAME, provider);
-
-    // When token state is cleared, we need to call reset
-    vscode.commands.executeCommand(SelfCommands.RESET_STORE, {
-      newProvider: undefined
-    });
   }
 
   static getProxyUrl() {

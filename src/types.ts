@@ -222,7 +222,11 @@ interface IStore {
     provider: string,
     userInfo: CurrentUser | undefined
   ) => Thenable<void>;
-  updateLastChannelId: (provider: string, channelId: string) => Thenable<void>;
+  updateLastChannelId: (
+    provider: string,
+    channelId: string | undefined
+  ) => Thenable<void>;
+  clearProviderState: (provider: string) => Promise<void>;
   updateExtensionVersion: (version: string) => Thenable<void>;
 }
 
@@ -301,5 +305,4 @@ interface ChatTreeNode {
   isCategory: boolean;
   presence: UserPresence;
   providerName: string;
-  team: Team;
 }

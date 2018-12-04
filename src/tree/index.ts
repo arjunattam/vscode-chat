@@ -93,11 +93,7 @@ class BaseTreeProvider
   protected _disposables: vscode.Disposable[] = [];
   protected channelLabels: ChannelLabel[] = [];
 
-  constructor(
-    protected providerName: string,
-    protected team: Team,
-    protected viewId: string
-  ) {
+  constructor(protected providerName: string, protected viewId: string) {
     this._disposables.push(
       vscode.window.registerTreeDataProvider(this.viewId, this)
     );
@@ -209,8 +205,7 @@ class BaseTreeProvider
       channel,
       isCategory: false,
       user: undefined,
-      providerName: this.providerName,
-      team: this.team
+      providerName: this.providerName
     };
   };
 
@@ -221,8 +216,7 @@ class BaseTreeProvider
       isCategory: true,
       channel: undefined,
       user: undefined,
-      providerName: this.providerName,
-      team: this.team
+      providerName: this.providerName
     };
   };
 
@@ -246,8 +240,8 @@ export class UnreadsTreeProvider extends BaseTreeProvider {
   protected filterFn: IFilterFunction = c => c.unread > 0;
   protected sortingFn: ISortingFunction = (a, b) => b.unread - a.unread;
 
-  constructor(provider: string, team: Team) {
-    super(provider, team, `chat.treeView.unreads.${provider}`);
+  constructor(provider: string) {
+    super(provider, `chat.treeView.unreads.${provider}`);
   }
 }
 
@@ -255,8 +249,8 @@ export class ChannelTreeProvider extends BaseTreeProvider {
   protected filterFn: IFilterFunction = c =>
     c.channel.type === ChannelType.channel;
 
-  constructor(provider: string, team: Team) {
-    super(provider, team, `chat.treeView.channels.${provider}`);
+  constructor(provider: string) {
+    super(provider, `chat.treeView.channels.${provider}`);
   }
 }
 
@@ -264,16 +258,16 @@ export class GroupTreeProvider extends BaseTreeProvider {
   protected filterFn: IFilterFunction = c =>
     c.channel.type === ChannelType.group;
 
-  constructor(provider: string, team: Team) {
-    super(provider, team, `chat.treeView.groups.${provider}`);
+  constructor(provider: string) {
+    super(provider, `chat.treeView.groups.${provider}`);
   }
 }
 
 export class IMsTreeProvider extends BaseTreeProvider {
   protected filterFn: IFilterFunction = c => c.channel.type === ChannelType.im;
 
-  constructor(provider: string, team: Team) {
-    super(provider, team, `chat.treeView.ims.${provider}`);
+  constructor(provider: string) {
+    super(provider, `chat.treeView.ims.${provider}`);
   }
 }
 
@@ -283,8 +277,8 @@ export class OnlineUsersTreeProvider extends BaseTreeProvider {
   private DM_ROLE_NAME = "Direct Messages";
   private OTHERS_ROLE_NAME = "Others";
 
-  constructor(providerName: string, team: Team) {
-    super(providerName, team, `chat.treeView.onlineUsers.${providerName}`);
+  constructor(providerName: string) {
+    super(providerName, `chat.treeView.onlineUsers.${providerName}`);
   }
 
   updateData(
@@ -319,8 +313,7 @@ export class OnlineUsersTreeProvider extends BaseTreeProvider {
       isCategory: false,
       user,
       channel: this.imChannels[user.id],
-      providerName: this.providerName,
-      team: this.team
+      providerName: this.providerName
     };
   }
 

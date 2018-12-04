@@ -18,6 +18,14 @@ export class VslsChatProvider implements IChatProvider {
     const liveshare = await vsls.getApi();
 
     if (!liveshare) {
+      // vsls not found
+      return undefined;
+    }
+
+    if (!!this.liveshare) {
+      // We have already initialized, and we don't want to
+      // attach the event listeners again.
+      // (This overrides the connect() logic inside ChatProviderManager)
       return undefined;
     }
 

@@ -73,7 +73,8 @@ export function activate(context: vscode.ExtensionContext) {
       setupFreshInstall();
     }
 
-    if (!manager.isTokenInitialized) {
+    if (!manager.isTokenInitialized || !!newProvider) {
+      // We force initialization if we are provided a newProvider
       await manager.initializeToken(newProvider);
 
       if (!manager.isTokenInitialized) {
@@ -81,17 +82,13 @@ export function activate(context: vscode.ExtensionContext) {
       }
     }
 
-    await manager.initializeProviders();
-
-    // TODO: checking for current user for only current provider is incorrect
-    const currentProvider = manager.getCurrentProvider();
-    const currentUserInfo = manager.store.getCurrentUser(currentProvider);
-
-    if (!!currentUserInfo && !currentUserInfo.currentTeamId) {
-      // If no current team is available, we need to ask
-      await askForWorkspace();
+    if (manager.isProviderEnabled("discord")) {
+      if (!manager.getCurrentTeamFor("discord")) {
+        await askForWorkspace("discord");
+    }
     }
 
+    await manager.initializeProviders();
     // TODO: In discord, user preferences are available after channels are fetched
     manager.updateUserPrefsForAll(); // async update
     await manager.initializeUsersStateForAll();
@@ -202,10 +199,10 @@ export function activate(context: vscode.ExtensionContext) {
 
     if (!chatChannelId) {
       // Since we don't know the channel, we will prompt the user
-      const channel = await askForChannel(providerName);
+      const selected = await askForChannel(providerName);
 
-      if (!!channel) {
-        chatChannelId = channel.id;
+      if (!!selected) {
+        chatChannelId = selected.channel.id;
       }
     }
 
@@ -232,8 +229,7 @@ export function activate(context: vscode.ExtensionContext) {
     }
   };
 
-  const askForWorkspace = async () => {
-    const provider = manager.getCurrentProvider();
+  const askForWorkspace = async (provider: string) => {
     const currentUserInfo = manager.store.getCurrentUser(provider);
 
     if (!!currentUserInfo) {
@@ -248,34 +244,44 @@ export function activate(context: vscode.ExtensionContext) {
         const selectedTeam = teams.find(team => team.name === selected);
 
         if (!!selectedTeam) {
-          return manager.updateCurrentWorkspace(selectedTeam, currentUserInfo);
+          return manager.updateCurrentWorkspace(
+            provider,
+            selectedTeam,
+            currentUserInfo
+          );
         }
       }
     }
   };
 
   const changeWorkspace = async () => {
-    // TODO: If we don't have current user, we should ask for auth
-    await askForWorkspace();
-    manager.clearOldWorkspace();
-    manager.updateAllUI();
-    await setup(false, undefined);
+    // Discord only for now
+    if (manager.isProviderEnabled("discord")) {
+      await askForWorkspace("discord");
+      await manager.clearOldWorkspace("discord");
+      await setup(false, "discord");
+    }
   };
 
-  const changeChannel = async (args?: any) => {
+  const changeChannel = async (args?: ChatArgs) => {
     // TODO: when triggered from the search icon in the tree view,
     // this should be filtered to the `type` of the tree view section
-    const hasArgs = !!args && !!args.source;
-    const provider = manager.getCurrentProvider();
+    const provider = args ? args.providerName : undefined;
     telemetry.record(
       EventType.channelChanged,
-      hasArgs ? args.source : EventSource.command,
+      !!args ? args.source : EventSource.command,
       undefined,
       provider
     );
 
-    const selectedChannel = await askForChannel(provider);
-    return !!selectedChannel ? openChatWebview(args) : null;
+    const selected = await askForChannel(provider);
+
+    if (!!selected) {
+      let chatArgs: any = { ...args };
+      chatArgs.channelId = selected.channel.id;
+      chatArgs.providerName = selected.providerName;
+      return openChatWebview(chatArgs);
+    }
   };
 
   const shareVslsLink = async (chatArgs: ChatArgs) => {
@@ -321,10 +327,12 @@ export function activate(context: vscode.ExtensionContext) {
     return utils.openUrl(urls[provider]);
   };
 
-  const reset = async (newProvider?: string) => {
+  const reset = async () => {
+    // Reset clears all state from local storage (except for vsls chat
+    // related state, since that does not get affected via call paths to reset)
     manager.clearAll();
     manager.updateAllUI();
-    await setup(false, newProvider);
+    await setup(false, undefined);
   };
 
   const signout = async () => {
@@ -507,9 +515,10 @@ export function activate(context: vscode.ExtensionContext) {
     vscode.commands.registerCommand(SelfCommands.CHANGE_CHANNEL, changeChannel),
     vscode.commands.registerCommand(SelfCommands.SIGN_IN, authenticate),
     vscode.commands.registerCommand(SelfCommands.SIGN_OUT, signout),
+    vscode.commands.registerCommand(SelfCommands.RESET_STORE, reset),
     vscode.commands.registerCommand(
-      SelfCommands.RESET_STORE,
-      ({ newProvider }) => reset(newProvider)
+      SelfCommands.SETUP_NEW_PROVIDER,
+      ({ newProvider }) => setup(false, newProvider)
     ),
     vscode.commands.registerCommand(
       SelfCommands.CONFIGURE_TOKEN,

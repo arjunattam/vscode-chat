@@ -9,14 +9,17 @@ import { ViewsManager } from "./views";
 import { ConfigHelper } from "../config";
 import { VslsContactProvider } from "./vslsContactProvider";
 import { ChatProviderManager } from "./chatManager";
+import { SelfCommands } from "../constants";
 
 export default class Manager implements IManager, vscode.Disposable {
   isTokenInitialized: boolean = false;
-  viewsManager: ViewsManager | undefined;
+  viewsManager: ViewsManager;
   vslsContactProvider: VslsContactProvider | undefined;
   chatProviders = new Map<Providers, ChatProviderManager>();
 
   constructor(public store: IStore) {
+    this.viewsManager = new ViewsManager(this);
+
     const existingVersion = this.store.existingVersion;
     const currentVersion = getExtensionVersion();
 
@@ -58,16 +61,18 @@ export default class Manager implements IManager, vscode.Disposable {
     return `vsls`;
   }
 
-  getChatProvider(providerName: Providers) {
-    return this.chatProviders.get(providerName);
+  isProviderEnabled(provider: string): boolean {
+    const cp = this.chatProviders.get(provider as Providers);
+    return !!cp;
   }
 
-  async signout() {
-    // TODO:
-    // const provider = manager.getCurrentProvider();
-    // if (!!provider) {
-    //   await ConfigHelper.clearToken(provider);
-    // }
+  getCurrentTeamFor(provider: string) {
+    const currentUser = this.store.getCurrentUser(provider);
+    return !!currentUser ? currentUser.currentTeamId : undefined;
+  }
+
+  getChatProvider(providerName: Providers) {
+    return this.chatProviders.get(providerName);
   }
 
   instantiateChatProvider(token: string, provider: string): IChatProvider {
@@ -107,11 +112,16 @@ export default class Manager implements IManager, vscode.Disposable {
       const token = await ConfigHelper.getToken(provider);
 
       if (!!token) {
-        const chatProvider = this.instantiateChatProvider(token, provider);
-        this.chatProviders.set(
-          provider as Providers,
-          new ChatProviderManager(this.store, provider, chatProvider, this)
-        );
+        const existingProvider = this.chatProviders.get(provider as Providers);
+
+        if (!existingProvider) {
+          const chatProvider = this.instantiateChatProvider(token, provider);
+          this.chatProviders.set(
+            provider as Providers,
+            new ChatProviderManager(this.store, provider, chatProvider, this)
+          );
+        }
+
         this.isTokenInitialized = true;
       }
     }
@@ -120,10 +130,6 @@ export default class Manager implements IManager, vscode.Disposable {
   };
 
   initializeViewsManager = () => {
-    if (!!this.viewsManager) {
-      this.viewsManager.dispose();
-    }
-
     const enabledProviders = Array.from(this.chatProviders.keys());
     let providerTeams: { [provider: string]: Team[] } = {};
 
@@ -135,7 +141,7 @@ export default class Manager implements IManager, vscode.Disposable {
       }
     });
 
-    this.viewsManager = new ViewsManager(enabledProviders, providerTeams, this);
+    this.viewsManager.initialize(enabledProviders, providerTeams);
   };
 
   initializeProviders = async (): Promise<any> => {
@@ -204,28 +210,54 @@ export default class Manager implements IManager, vscode.Disposable {
     }
   };
 
-  clearAll() {
-    // TODO: fix logging out/reset
-    // this.store.updateCurrentUser(undefined);
-    this.clearOldWorkspace();
-  }
+  async signout() {
+    // This will sign out of slack and discord. vsls depends only on whether
+    // the vsls extension has been installed.
+    let hasSignedOut = false;
 
-  clearOldWorkspace() {
-    // This clears workspace info, does not clear current user
-    // TODO: fix logging out/reset
-    // this.store.updateLastChannelId(undefined);
-    // this.store.updateChannels([]);
-    // this.store.updateUsers({});
-    this.isTokenInitialized = false;
+    for (let entry of Array.from(this.chatProviders.entries())) {
+      let providerName = entry[0];
 
-    for (let key of Array.from(this.chatProviders.keys())) {
-      const chatProvider = this.chatProviders.get(key);
-
-      if (!!chatProvider) {
-        chatProvider.destroy();
-        this.chatProviders.delete(key);
+      if (providerName !== "vsls") {
+        await ConfigHelper.clearToken(providerName);
+        hasSignedOut = true;
       }
     }
+
+    if (hasSignedOut) {
+      // When token state is cleared, we need to call reset
+      vscode.commands.executeCommand(SelfCommands.RESET_STORE, {
+        newProvider: undefined
+      });
+    }
+  }
+
+  clearAll() {
+    // This method clears local storage for slack/discord, but not vsls
+    const enabledProviders = Array.from(this.chatProviders.keys());
+
+    enabledProviders.forEach(provider => {
+      const isNotVsls = provider !== "vsls";
+
+      if (isNotVsls) {
+        this.store.clearProviderState(provider);
+        const chatProvider = this.chatProviders.get(provider);
+
+        if (!!chatProvider) {
+          chatProvider.destroy();
+          this.chatProviders.delete(provider);
+        }
+      }
+    });
+
+    this.isTokenInitialized = false;
+  }
+
+  clearOldWorkspace(provider: string) {
+    // Clears users and channels so that we are loading them again
+    this.store.updateUsers(provider, {});
+    this.store.updateChannels(provider, []);
+    this.store.updateLastChannelId(provider, undefined);
   }
 
   async updateWebviewForProvider(provider: string, channelId: string) {
@@ -234,7 +266,7 @@ export default class Manager implements IManager, vscode.Disposable {
       .getChannels(provider)
       .find(channel => channel.id === channelId);
 
-    if (!!currentUser && !!channel && !!this.viewsManager) {
+    if (!!currentUser && !!channel) {
       await this.store.updateLastChannelId(provider, channelId);
       const users = this.store.getUsers(provider);
       const allMessages = this.getMessages(provider);
@@ -253,46 +285,51 @@ export default class Manager implements IManager, vscode.Disposable {
   updateStatusItemsForProvider(provider: string) {
     const cp = this.chatProviders.get(provider as Providers);
 
-    if (!!cp && !!this.viewsManager) {
+    if (!!cp) {
       const teams = cp.getTeams();
       teams.forEach(team => {
-        (this.viewsManager as ViewsManager).updateStatusItem(provider, team);
+        this.viewsManager.updateStatusItem(provider, team);
       });
     }
   }
 
   updateTreeViewsForProvider(provider: string) {
-    if (!!this.viewsManager) {
-      this.viewsManager.updateTreeViews(provider);
-    }
+    this.viewsManager.updateTreeViews(provider);
   }
 
   updateAllUI() {
-    if (!!this.viewsManager) {
-      const providers = Array.from(this.chatProviders.keys());
+    const providers = Array.from(this.chatProviders.keys());
 
-      providers.forEach(provider => {
-        const lastChannelId = this.store.getLastChannelId(provider);
+    providers.forEach(provider => {
+      const lastChannelId = this.store.getLastChannelId(provider);
 
-        if (!!lastChannelId) {
-          this.updateWebviewForProvider(provider, lastChannelId);
-        }
+      if (!!lastChannelId) {
+        this.updateWebviewForProvider(provider, lastChannelId);
+      }
 
-        this.updateStatusItemsForProvider(provider);
-        this.updateTreeViewsForProvider(provider);
-      });
-    }
+      this.updateStatusItemsForProvider(provider);
+      this.updateTreeViewsForProvider(provider);
+    });
   }
 
   dispose() {
-    if (!!this.viewsManager) {
-      this.viewsManager.dispose();
-    }
+    this.viewsManager.dispose();
   }
 
-  getChannelLabels(provider: string): ChannelLabel[] {
-    const cp = this.chatProviders.get(provider as Providers);
-    return !!cp ? cp.getChannelLabels() : [];
+  getChannelLabels(provider: string | undefined): ChannelLabel[] {
+    // Return channel labels from all providers if input provider is undefined
+    let channelLabels: ChannelLabel[] = [];
+
+    for (let entry of Array.from(this.chatProviders.entries())) {
+      const cp = entry[1];
+      const providerName = entry[0];
+
+      if (!provider || provider === providerName) {
+        channelLabels = [...channelLabels, ...cp.getChannelLabels()];
+      }
+    }
+
+    return channelLabels;
   }
 
   getUserForId(provider: string, userId: string) {
@@ -325,6 +362,7 @@ export default class Manager implements IManager, vscode.Disposable {
   };
 
   updateCurrentWorkspace = async (
+    provider: string,
     team: Team,
     existingUserInfo: CurrentUser
   ): Promise<void> => {
@@ -332,11 +370,7 @@ export default class Manager implements IManager, vscode.Disposable {
       ...existingUserInfo,
       currentTeamId: team.id
     };
-    // TODO: fix this after the workspace stuff is working
-    //
-    //
-    // return this.store.updateCurrentUser(newCurrentUser);
-    return;
+    return this.store.updateCurrentUser(provider, newCurrentUser);
   };
 
   async loadChannelHistory(

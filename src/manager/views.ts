@@ -5,7 +5,7 @@ import { OnboardingTreeProvider } from "../onboarding";
 import { SelfCommands } from "../constants";
 import { VslsSessionTreeProvider } from "../tree/vsls";
 import { VSLS_CHAT_CHANNEL } from "../vslsChat/utils";
-import { setVsContext } from "../utils";
+import { setVsContext, difference } from "../utils";
 
 const PROVIDERS_WITH_TREE = ["slack", "discord"];
 
@@ -14,58 +14,110 @@ const getStatusItemKey = (provider: string, team: Team) => {
 };
 
 export class ViewsManager implements vscode.Disposable {
-  statusItems: Map<string, BaseStatusItem>;
-  treeViews: TreeViewManager | undefined;
+  statusItems: Map<string, BaseStatusItem> = new Map();
+  treeViews: Map<string, TreeViewManager> = new Map();
   onboardingTree: OnboardingTreeProvider | undefined;
   vslsSessionTreeProvider: VslsSessionTreeProvider | undefined; // for vsls chat tree item
 
-  constructor(
+  constructor(private parentManager: IManager) {}
+
+  initialize(
     enabledProviders: string[],
-    private providerTeams: { [providerName: string]: Team[] },
-    private parentManager: IManager
+    providerTeams: { [providerName: string]: Team[] }
   ) {
     const hasVslsEnabled = enabledProviders.indexOf("vsls") >= 0;
 
-    if (hasVslsEnabled) {
+    if (hasVslsEnabled && !this.vslsSessionTreeProvider) {
       this.vslsSessionTreeProvider = new VslsSessionTreeProvider();
       this.vslsSessionTreeProvider.register();
     }
 
-    this.statusItems = new Map();
+    const statusItemKeys = new Map<string, { provider: string; team: Team }>();
     enabledProviders.forEach(provider => {
       const teams = providerTeams[provider];
       teams.forEach(team => {
-        const isVslsChat = provider !== "vsls";
-        const statusItem = new UnreadsStatusItem(
+        statusItemKeys.set(getStatusItemKey(provider, team), {
           provider,
-          team.name,
-          isVslsChat
-        );
-        this.statusItems.set(getStatusItemKey(provider, team), statusItem);
+          team
+        });
       });
     });
+    this.initializeStatusItems(statusItemKeys);
+    this.initializeTreeViews(enabledProviders);
 
-    enabledProviders.forEach(provider => {
-      if (PROVIDERS_WITH_TREE.indexOf(provider) >= 0) {
-        // TODO: is this safe? is it possible that providerTeams is empty?
-        const team = providerTeams[provider][0];
-        this.treeViews = new TreeViewManager(provider as string, team);
+    const nonVslsProviders = enabledProviders.filter(p => p !== "vsls");
+    const showOnboarding = nonVslsProviders.length === 0;
+
+    if (showOnboarding && !this.onboardingTree) {
+      // We need to initialize the tree here
+      this.onboardingTree = new OnboardingTreeProvider();
+    } else if (!showOnboarding && !!this.onboardingTree) {
+      // Dispose the tree as we don't need it anymore
+      this.onboardingTree.dispose();
+      this.onboardingTree = undefined;
+    }
+  }
+
+  initializeStatusItems(
+    newKeyMap: Map<string, { provider: string; team: Team }>
+  ) {
+    // Ensure new keys have status items in the map and
+    // no longer used keys are removed.
+    const existingKeysSet = new Set(Array.from(this.statusItems.keys()));
+    const newKeysSet = new Set(Array.from(newKeyMap.keys()));
+    const keysToRemove = difference(existingKeysSet, newKeysSet);
+    const keysToAdd = difference(newKeysSet, existingKeysSet);
+
+    keysToRemove.forEach(key => {
+      const statusItem = this.statusItems.get(key);
+
+      if (!!statusItem) {
+        statusItem.dispose();
+        this.statusItems.delete(key);
       }
     });
 
-    PROVIDERS_WITH_TREE.forEach(treeProvider => {
-      const hasProviderEnabled = enabledProviders.indexOf(treeProvider) >= 0;
-      setVsContext(`chat:${treeProvider}`, hasProviderEnabled);
+    keysToAdd.forEach(key => {
+      const providerAndTeam = newKeyMap.get(key);
+
+      if (!!providerAndTeam) {
+        const { provider, team } = providerAndTeam;
+        const isVsls = provider === "vsls";
+        this.statusItems.set(
+          key,
+          new UnreadsStatusItem(provider, team, isVsls)
+        );
+      }
+    });
+  }
+
+  initializeTreeViews(enabledProviders: string[]) {
+    PROVIDERS_WITH_TREE.forEach(provider => {
+      const hasProviderEnabled = enabledProviders.indexOf(provider) >= 0;
+      setVsContext(`chat:${provider}`, hasProviderEnabled);
     });
 
-    const nonVslsProviders = enabledProviders.filter(
-      provider => provider !== "vsls"
+    const enabledTreeProviders = new Set(
+      enabledProviders.filter(p => PROVIDERS_WITH_TREE.indexOf(p) >= 0)
     );
-    const showOnboarding = nonVslsProviders.length === 0;
+    const existingTreeProviders = new Set(Array.from(this.treeViews.keys()));
+    const treesToAdd = difference(enabledTreeProviders, existingTreeProviders);
+    const treesToRemove = difference(
+      existingTreeProviders,
+      enabledTreeProviders
+    );
 
-    if (showOnboarding) {
-      this.onboardingTree = new OnboardingTreeProvider();
-    }
+    treesToRemove.forEach(treeProvider => {
+      const treeView = this.treeViews.get(treeProvider);
+      if (!!treeView) {
+        treeView.dispose();
+        this.treeViews.delete(treeProvider);
+      }
+    });
+
+    treesToAdd.forEach(treeProvider => {
+      this.treeViews.set(treeProvider, new TreeViewManager(treeProvider));
+    });
   }
 
   updateStatusItem(provider: string, team: Team) {
@@ -82,11 +134,11 @@ export class ViewsManager implements vscode.Disposable {
   }
 
   updateTreeViews(provider: string) {
-    if (!!this.treeViews && this.parentManager.isAuthenticated(provider)) {
-      if (this.treeViews.provider === provider) {
-        const channelLabels = this.parentManager.getChannelLabels(provider);
-        this.treeViews.updateData(channelLabels);
-      }
+    const treeViewForProvider = this.treeViews.get(provider);
+
+    if (!!treeViewForProvider && this.parentManager.isAuthenticated(provider)) {
+      const channelLabels = this.parentManager.getChannelLabels(provider);
+      treeViewForProvider.updateData(channelLabels);
     }
 
     if (!!this.vslsSessionTreeProvider) {
@@ -132,8 +184,9 @@ export class ViewsManager implements vscode.Disposable {
       statusItem.dispose();
     }
 
-    if (!!this.treeViews) {
-      this.treeViews.dispose();
+    for (let entry of Array.from(this.treeViews.entries())) {
+      let treeView = entry[1];
+      treeView.dispose();
     }
 
     if (!!this.onboardingTree) {

@@ -86,7 +86,7 @@
       },
       {
         "command": "extension.chat.changeWorkspace",
-        "title": "Chat: Change Workspace"
+        "title": "Chat: Change Discord Workspace"
       },
       {
         "command": "extension.chat.authenticate",

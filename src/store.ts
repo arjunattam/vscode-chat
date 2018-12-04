@@ -74,13 +74,7 @@ export class Store implements IStore {
       ...this.lastChannelId,
       [provider]: channelId
     };
-    this.lastChannelId = {};
-    Object.keys(lastChannels).forEach(key => {
-      const value = lastChannels[key];
-      if (!!value) {
-        this.lastChannelId[key] = value;
-      }
-    });
+    this.lastChannelId = this.getObjectWithoutUndefined(lastChannels);
     return this.context.globalState.update(
       stateKeys.LAST_CHANNEL_ID,
       this.lastChannelId
@@ -154,17 +148,53 @@ export class Store implements IStore {
       ...this.currentUserInfo,
       [provider]: !!newCurrentUser ? { ...newCurrentUser } : undefined
     };
-    this.currentUserInfo = {};
-    Object.keys(updatedCurrentUserInfo).forEach(key => {
-      // Don't copy undefined
-      const value = updatedCurrentUserInfo[key];
-      if (!!value) {
-        this.currentUserInfo[key] = value;
-      }
-    });
+    this.currentUserInfo = this.getObjectWithoutUndefined(
+      updatedCurrentUserInfo
+    );
     return this.context.globalState.update(
       stateKeys.USER_INFO,
       this.currentUserInfo
     );
+  };
+
+  clearProviderState = async (provider: string): Promise<void> => {
+    this.currentUserInfo = this.getObjectWithoutUndefined({
+      ...this.currentUserInfo,
+      [provider]: undefined
+    });
+    this.users = this.getObjectWithoutUndefined({
+      ...this.users,
+      [provider]: undefined
+    });
+    this.channels = this.getObjectWithoutUndefined({
+      ...this.channels,
+      [provider]: undefined
+    });
+    this.lastChannelId = this.getObjectWithoutUndefined({
+      ...this.lastChannelId,
+      [provider]: undefined
+    });
+    await this.context.globalState.update(
+      stateKeys.USER_INFO,
+      this.currentUserInfo
+    );
+    await this.context.globalState.update(stateKeys.USERS, this.users);
+    await this.context.globalState.update(stateKeys.CHANNELS, this.channels);
+    return this.context.globalState.update(
+      stateKeys.LAST_CHANNEL_ID,
+      this.lastChannelId
+    );
+  };
+
+  private getObjectWithoutUndefined = (input: any) => {
+    // Remove undefined values from the input object
+    let withoutUndefined: any = {};
+    Object.keys(input).forEach(key => {
+      const value = input[key];
+      if (!!value) {
+        withoutUndefined[key] = value;
+      }
+    });
+    return withoutUndefined;
   };
 }

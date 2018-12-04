@@ -10,14 +10,18 @@ export abstract class BaseStatusItem {
   protected unreadCount: number = 0;
   protected isVisible: boolean = false;
 
-  constructor(baseCommand: string, commandArgs: ChatArgs) {
+  constructor(
+    baseCommand: string,
+    commandArgs: ChatArgs,
+    commandModifier: string
+  ) {
     this.item = vscode.window.createStatusBarItem(
       vscode.StatusBarAlignment.Left
     );
 
     // We construct a new command to send args with base command
     // From: https://github.com/Microsoft/vscode/issues/22353#issuecomment-325293438
-    const compound = `${baseCommand}.status`;
+    const compound = `${baseCommand}.${commandModifier}.status`;
     this.disposableCommand = vscode.commands.registerCommand(compound, () => {
       return vscode.commands.executeCommand(baseCommand, commandArgs);
     });
@@ -51,7 +55,7 @@ export class UnreadsStatusItem extends BaseStatusItem {
   teamName: string;
   providerName: string;
 
-  constructor(providerName: string, teamName: string, isVslsChat: boolean) {
+  constructor(providerName: string, team: Team, isVslsChat: boolean) {
     // Status bar item for vsls chat does not have any channels,
     // hence we will not trigger the the change_channel command
     const baseCommand = isVslsChat
@@ -70,9 +74,10 @@ export class UnreadsStatusItem extends BaseStatusItem {
       };
     }
 
-    super(baseCommand, chatArgs);
+    const modifier = `${providerName}.${team.id}`; // This ensures discord teams have separate items
+    super(baseCommand, chatArgs, modifier);
     this.providerName = providerName;
-    this.teamName = teamName;
+    this.teamName = team.name;
   }
 
   updateCount(unreads: number) {
