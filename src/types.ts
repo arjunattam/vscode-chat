@@ -184,7 +184,7 @@ interface ExtensionMessage {
 }
 
 interface UIMessage {
-  currentProvider: string;
+  provider: string;
   messages: ChannelMessages;
   users: Users;
   channel: Channel;

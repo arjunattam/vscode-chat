@@ -159,6 +159,10 @@ export default class WebviewContainer {
     const { current, groups } = result;
     return current.ts ? [...groups, current] : groups;
   }
+
+  isVisible() {
+    return this.panel.visible;
+  }
 }
 
 function getWebviewContent(staticPath: string) {

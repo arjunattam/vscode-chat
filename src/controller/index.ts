@@ -28,7 +28,9 @@ class ViewController {
   ui: WebviewContainer | undefined;
   isUIReady: Boolean = false; // Vuejs loaded
   pendingMessage: UIMessage | undefined = undefined;
+
   currentProvider: string | undefined;
+  currentChannelId: string | undefined;
 
   constructor(
     private context: ExtensionContext,
@@ -202,8 +204,25 @@ class ViewController {
     };
   };
 
+  updateCurrentState = (provider: string, channelId: string) => {
+    this.currentProvider = provider;
+    this.currentChannelId = channelId;
+  };
+
   sendToUI = (uiMessage: UIMessage) => {
-    this.currentProvider = uiMessage.currentProvider;
+    const { provider: incomingProvider, channel: incomingChannel } = uiMessage;
+
+    if (!!this.ui && this.ui.isVisible()) {
+      // The webview is visible => we check if the incoming message is valid.
+      const isSameProvider =
+        !this.currentProvider || incomingProvider === this.currentProvider;
+      const isSameChannel =
+        !this.currentChannelId || incomingChannel.id === this.currentChannelId;
+
+      if (!isSameChannel || !isSameProvider) {
+        return; // Ignore this message.
+      }
+    }
 
     if (!this.isUIReady) {
       this.pendingMessage = uiMessage;

@@ -86,8 +86,11 @@ export class Store implements IStore {
       ...this.users,
       [provider]: users
     };
+    const totalUserCount = Object.values(this.users)
+      .map(usersObject => Object.keys(usersObject).length)
+      .reduce((acc, curr) => acc + curr);
 
-    if (Object.keys(users).length <= VALUE_LENGTH_LIMIT) {
+    if (totalUserCount <= VALUE_LENGTH_LIMIT) {
       return this.context.globalState.update(stateKeys.USERS, this.users);
     }
 
@@ -113,8 +116,11 @@ export class Store implements IStore {
 
   updateChannels = (provider: string, channels: Channel[]): Thenable<void> => {
     this.channels = { ...this.channels, [provider]: channels };
+    const totalChannelCount = Object.values(this.channels)
+      .map(channels => channels.length)
+      .reduce((acc, curr) => acc + curr);
 
-    if (channels.length <= VALUE_LENGTH_LIMIT) {
+    if (totalChannelCount <= VALUE_LENGTH_LIMIT) {
       return this.context.globalState.update(stateKeys.CHANNELS, this.channels);
     }
 

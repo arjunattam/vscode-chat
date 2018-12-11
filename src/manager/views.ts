@@ -165,7 +165,7 @@ export class ViewsManager implements vscode.Disposable {
     messages: ChannelMessages
   ) {
     let uiMessage: UIMessage = {
-      currentProvider: provider,
+      provider,
       messages,
       users,
       currentUser,

@@ -151,6 +151,7 @@ export function activate(context: vscode.ExtensionContext) {
     if (!!selected) {
       if (selected.label === str.RELOAD_CHANNELS) {
         // TODO: either ask for provider, or force the initialize users/channels for all
+        // Fix this.
         //
         // await manager.fetchUsers(providerName);
         // await manager.fetchChannels(providerName);
@@ -172,20 +173,28 @@ export function activate(context: vscode.ExtensionContext) {
   };
 
   const openChatWebview = async (chatArgs?: ChatArgs) => {
-    if (manager.isTokenInitialized) {
-      controller.loadUi();
+    // TODO: when the window is reloaded and webview is opened,
+    // we will load the ui (since the token is available) but
+    // we don't send the messages (since the second if condition fails)
+    let provider = !!chatArgs ? chatArgs.providerName : undefined;
+    let channelId = !!chatArgs ? chatArgs.channelId : undefined;
+    const source = !!chatArgs ? chatArgs.source : EventSource.command;
+
+    if (!chatArgs) {
+      const selected = await askForChannel(undefined);
+
+      if (!!selected) {
+        provider = selected.providerName;
+        channelId = selected.channel.id;
+      }
     }
 
-    let provider: string, channelId: string;
-
-    // TODO: fix case where chatArgs is not available
-    if (!!chatArgs && !!chatArgs.channelId) {
-      provider = chatArgs.providerName;
-      channelId = chatArgs.channelId;
+    if (!!provider && !!channelId) {
+      controller.updateCurrentState(provider, channelId);
+      controller.loadUi();
 
       await setup(true, undefined);
       await manager.updateWebviewForProvider(provider, channelId);
-      const source = !!chatArgs ? chatArgs.source : EventSource.command;
       telemetry.record(EventType.viewOpened, source, channelId, provider);
       manager.loadChannelHistory(provider, channelId);
     }
