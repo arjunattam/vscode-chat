@@ -85,7 +85,7 @@ export function activate(context: vscode.ExtensionContext) {
     if (manager.isProviderEnabled("discord")) {
       if (!manager.getCurrentTeamFor("discord")) {
         await askForWorkspace("discord");
-    }
+      }
     }
 
     await manager.initializeProviders();
@@ -124,89 +124,51 @@ export function activate(context: vscode.ExtensionContext) {
   };
 
   const askForChannel = async (
-    providerName: string
-  ): Promise<Channel | undefined> => {
-    await setup(true, undefined);
+    providerName: string | undefined
+  ): Promise<{ channel: Channel; providerName: string } | undefined> => {
+    // This can be called with an undefined providerName, in which
+    // case we show channels from all available providers.
     let channelList = manager
       .getChannelLabels(providerName)
       .sort((a, b) => b.unread - a.unread);
 
-    const qpickItems: vscode.QuickPickItem[] = channelList.map(
+    const quickpickItems: vscode.QuickPickItem[] = channelList.map(
       channelLabel => ({
         label: channelLabel.label,
-        description: channelLabel.channel.categoryName,
-        detail: `${channelLabel.providerName} · ${channelLabel.teamName}`
+        detail: channelLabel.channel.categoryName,
+        description: `${channelLabel.providerName} · ${channelLabel.teamName}`
       })
     );
     const selected = await vscode.window.showQuickPick(
-      [...qpickItems, { label: str.RELOAD_CHANNELS }],
+      [...quickpickItems, { label: str.RELOAD_CHANNELS }],
       {
         placeHolder: str.CHANGE_CHANNEL_TITLE,
-        matchOnDescription: true,
-        matchOnDetail: true
+        matchOnDetail: true,
+        matchOnDescription: true
       }
     );
 
     if (!!selected) {
       if (selected.label === str.RELOAD_CHANNELS) {
-        await manager.fetchUsers(providerName);
-        await manager.fetchChannels(providerName);
+        // TODO: either ask for provider, or force the initialize users/channels for all
+        //
+        // await manager.fetchUsers(providerName);
+        // await manager.fetchChannels(providerName);
         return askForChannel(providerName);
       }
 
       const selectedChannelLabel = channelList.find(
         x =>
           x.label === selected.label &&
-          x.channel.categoryName === selected.description
+          x.channel.categoryName === selected.detail
       );
 
       if (!!selectedChannelLabel) {
-        const { channel } = selectedChannelLabel;
-        manager.store.updateLastChannelId(providerName, channel.id);
-        return channel;
+        const { channel, providerName } = selectedChannelLabel;
+        // manager.store.updateLastChannelId(providerName, channel.id);
+        return { channel, providerName: providerName.toLowerCase() };
       }
     }
-  };
-
-  const getChatChannelId = async (
-    providerName: string,
-    args?: ChatArgs
-  ): Promise<string | undefined> => {
-    const lastChannelId = manager.store.getLastChannelId(providerName);
-    let chatChannelId: string | undefined;
-
-    if (!!lastChannelId) {
-      chatChannelId = lastChannelId;
-    }
-
-    if (!!args) {
-      if (!!args.channelId) {
-        // We have a channel in args
-        const { channelId } = args;
-        manager.store.updateLastChannelId(providerName, channelId);
-        chatChannelId = channelId;
-      } else if (!!args.user) {
-        // We have a user, but no corresponding channel
-        // So we create one -->
-        const channel = await manager.createIMChannel(providerName, args.user);
-
-        if (!!channel) {
-          manager.store.updateLastChannelId(providerName, channel.id);
-          chatChannelId = channel.id;
-        }
-      }
-    }
-
-    if (!chatChannelId) {
-      // Since we don't know the channel, we will prompt the user
-      const selected = await askForChannel(providerName);
-
-      if (!!selected) {
-        chatChannelId = selected.channel.id;
-      }
-    }
-
-    return chatChannelId;
   };
 
   const openChatWebview = async (chatArgs?: ChatArgs) => {
@@ -264,8 +226,6 @@ export function activate(context: vscode.ExtensionContext) {
   };
 
   const changeChannel = async (args?: ChatArgs) => {
-    // TODO: when triggered from the search icon in the tree view,
-    // this should be filtered to the `type` of the tree view section
     const provider = args ? args.providerName : undefined;
     telemetry.record(
       EventType.channelChanged,
@@ -285,14 +245,26 @@ export function activate(context: vscode.ExtensionContext) {
   };
 
   const shareVslsLink = async (chatArgs: ChatArgs) => {
+    // This method can assume chatArgs to have one of channel and user
     const { providerName } = chatArgs;
     const liveshare = await vsls.getApi();
 
     if (!!liveshare) {
-      // liveshare.share() creates a new session if required
       const vslsUri = await liveshare.share({ suppressNotification: true });
-      let channelId = await getChatChannelId(providerName, chatArgs);
-      // TODO: why is get chat channel id called here?
+      let channelId = chatArgs.channelId;
+      const user = chatArgs.user;
+
+      if (!channelId && user) {
+        const newChannel = await manager.createIMChannel(
+          chatArgs.providerName,
+          user
+        );
+
+        if (!!newChannel) {
+          channelId = newChannel.id;
+        }
+      }
+
       telemetry.record(
         EventType.vslsShared,
         EventSource.activity,

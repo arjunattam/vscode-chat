@@ -50,7 +50,7 @@ export default class Manager implements IManager, vscode.Disposable {
 
     // vsls can be added twice: once via currentUserInfo, and
     // then via the VSLS extension availability check
-    const uniqueProviders = providers.filter(function(item, pos) {
+    const uniqueProviders = providers.filter(function (item, pos) {
       return providers.indexOf(item) === pos;
     });
     return uniqueProviders;
