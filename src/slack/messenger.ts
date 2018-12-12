@@ -231,6 +231,7 @@ class SlackMessenger {
       if (text.startsWith("http")) {
         uri = vscode.Uri.parse(text);
         vscode.commands.executeCommand(SelfCommands.HANDLE_INCOMING_LINKS, {
+          provider: "slack",
           senderId: userId,
           uri
         });

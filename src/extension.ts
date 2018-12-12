@@ -620,9 +620,12 @@ export function activate(context: vscode.ExtensionContext) {
     ),
     vscode.commands.registerCommand(
       SelfCommands.HANDLE_INCOMING_LINKS,
-      ({ uri, senderId }) => {
+      ({ uri, senderId, provider }) => {
         if (uri.authority === LIVE_SHARE_BASE_URL) {
-          if (!!manager.vslsContactProvider) {
+          const currentUser = manager.getCurrentUserFor(provider);
+          const isSomeoneElse = !!currentUser ? currentUser.id !== senderId : false;
+
+          if (!!manager.vslsContactProvider && isSomeoneElse) {
             manager.vslsContactProvider.notifyInviteReceived(senderId, uri);
           }
         }

@@ -213,6 +213,7 @@ export class DiscordChatProvider implements IChatProvider {
         if (text.startsWith("http")) {
           uri = vscode.Uri.parse(parsed.text);
           vscode.commands.executeCommand(SelfCommands.HANDLE_INCOMING_LINKS, {
+            provider: "discord",
             senderId: parsed.userId,
             uri
           });
