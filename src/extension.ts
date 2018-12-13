@@ -69,6 +69,8 @@ export function activate(context: vscode.ExtensionContext) {
     canPromptForAuth: boolean,
     newProvider: string | undefined
   ): Promise<any> => {
+    await store.runStateMigrations();
+
     if (!manager.store.installationId) {
       setupFreshInstall();
     }

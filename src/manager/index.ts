@@ -1,7 +1,5 @@
 import * as vscode from "vscode";
-import * as semver from "semver";
-import Logger from "../logger";
-import { getExtensionVersion, hasVslsExtension } from "../utils";
+import { hasVslsExtension } from "../utils";
 import { DiscordChatProvider } from "../discord";
 import { SlackChatProvider } from "../slack";
 import { VslsChatProvider } from "../vslsChat";
@@ -19,22 +17,6 @@ export default class Manager implements IManager, vscode.Disposable {
 
   constructor(public store: IStore) {
     this.viewsManager = new ViewsManager(this);
-
-    const existingVersion = this.store.existingVersion;
-    const currentVersion = getExtensionVersion();
-
-    if (!!currentVersion && existingVersion !== currentVersion) {
-      Logger.log(`Extension updated to ${currentVersion}`);
-
-      if (!!existingVersion) {
-        if (semver.lt(existingVersion, "0.9.0")) {
-          Logger.log("Migration for 0.9.0");
-          // TODO:
-        }
-      }
-
-      this.store.updateExtensionVersion(currentVersion);
-    }
   }
 
   getEnabledProviders(): string[] {

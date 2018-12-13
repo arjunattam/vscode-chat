@@ -1,5 +1,6 @@
 import * as vscode from "vscode";
-import { uuidv4 } from "./utils";
+import * as semver from "semver";
+import { uuidv4, getExtensionVersion } from "./utils";
 
 // Large discord communities can have lots of users/channels
 // More than the quota of context.globalState
@@ -23,13 +24,53 @@ export class Store implements IStore {
   private lastChannelId: { [provider: string]: string };
 
   constructor(private context: vscode.ExtensionContext) {
-    const { globalState } = context;
+    this.loadInitialState();
+  }
+
+  loadInitialState() {
+    const { globalState } = this.context;
     this.installationId = globalState.get(stateKeys.INSTALLATION_ID);
     this.existingVersion = globalState.get(stateKeys.EXTENSION_VERSION);
     this.channels = globalState.get(stateKeys.CHANNELS) || {};
     this.currentUserInfo = globalState.get(stateKeys.USER_INFO) || {};
     this.users = globalState.get(stateKeys.USERS) || {};
     this.lastChannelId = globalState.get(stateKeys.LAST_CHANNEL_ID) || {};
+  }
+
+  async runStateMigrations() {
+    const currentVersion = getExtensionVersion();
+
+    if (!!currentVersion && this.existingVersion !== currentVersion) {
+      if (!!this.existingVersion) {
+        if (semver.lt(this.existingVersion, "0.9.0")) {
+          await this.migrateFor09x();
+        }
+      }
+
+      this.updateExtensionVersion(currentVersion);
+      this.loadInitialState();
+    }
+  }
+
+  async migrateFor09x() {
+    // Run migrations for 0.9.x
+    const { globalState } = this.context;
+    const currentUser: any = globalState.get(stateKeys.USER_INFO);
+
+    if (!!currentUser) {
+      const { provider } = currentUser;
+      const channels = globalState.get(stateKeys.CHANNELS);
+      const users = globalState.get(stateKeys.USERS);
+      const lastChannelId = globalState.get(stateKeys.LAST_CHANNEL_ID);
+      await globalState.update(stateKeys.USER_INFO, {
+        [provider]: currentUser
+      });
+      await globalState.update(stateKeys.CHANNELS, { [provider]: channels });
+      await globalState.update(stateKeys.USERS, { [provider]: users });
+      await globalState.update(stateKeys.LAST_CHANNEL_ID, {
+        [provider]: lastChannelId
+      });
+    }
   }
 
   generateInstallationId(): string {
