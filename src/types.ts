@@ -247,7 +247,6 @@ interface IManager {
     userId: string
   ) => UserPresence | undefined;
   getCurrentUserPresence: (provider: string) => UserPresence | undefined;
-  getCurrentProvider: () => string;
   updateAllUI: () => void;
   updateTreeViewsForProvider: (provider: string) => void;
   updateStatusItemsForProvider: (provider: string) => void;
@@ -273,7 +272,8 @@ const enum EventSource {
   command = "command_palette",
   activity = "activity_bar",
   info = "info_message",
-  slash = "slash_command"
+  slash = "slash_command",
+  vslsContacts = "vsls_contacts_panel"
 }
 
 const enum EventType {

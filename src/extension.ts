@@ -349,35 +349,38 @@ export function activate(context: vscode.ExtensionContext) {
   const askForSelfPresence = async () => {
     // Called when user triggers a change for self presence
     // using manual command.
-    const currentProvider = manager.getCurrentProvider();
-    // TODO: presence change is only possible for slack or discord (not vsls)
-    const isSlack = currentProvider === "slack";
-    const currentPresence = manager.getCurrentUserPresence(currentProvider);
-    const presenceChoices = [
-      UserPresence.available,
-      UserPresence.doNotDisturb,
-      UserPresence.invisible
-    ];
+    const enabledProviders = manager.getEnabledProviders();
+    const provider = enabledProviders.find(provider => provider !== "vsls");
 
-    if (!isSlack) {
-      // Slack does not have the idle option
-      presenceChoices.push(UserPresence.idle);
-    }
+    if (!!provider) {
+      const isSlack = provider === "slack";
+      const currentPresence = manager.getCurrentUserPresence(provider);
+      const presenceChoices = [
+        UserPresence.available,
+        UserPresence.doNotDisturb,
+        UserPresence.invisible
+      ];
 
-    const items: vscode.QuickPickItem[] = presenceChoices.map(choice => {
-      const isCurrent = currentPresence === choice;
-      return {
-        label: utils.camelCaseToTitle(choice),
-        description: isCurrent ? "current" : ""
-      };
-    });
-    const status = await vscode.window.showQuickPick(items, {
-      placeHolder: str.SELECT_SELF_PRESENCE
-    });
+      if (!isSlack) {
+        // Slack does not have the idle option
+        presenceChoices.push(UserPresence.idle);
+      }
 
-    if (!!status) {
-      const presence = utils.titleCaseToCamel(status.label) as UserPresence;
-      updateSelfPresence(currentProvider, presence);
+      const items: vscode.QuickPickItem[] = presenceChoices.map(choice => {
+        const isCurrent = currentPresence === choice;
+        return {
+          label: utils.camelCaseToTitle(choice),
+          description: isCurrent ? "current" : ""
+        };
+      });
+      const status = await vscode.window.showQuickPick(items, {
+        placeHolder: str.SELECT_SELF_PRESENCE
+      });
+
+      if (!!status) {
+        const presence = utils.titleCaseToCamel(status.label) as UserPresence;
+        updateSelfPresence(provider, presence);
+      }
     }
   };
 
@@ -472,7 +475,12 @@ export function activate(context: vscode.ExtensionContext) {
 
         if (!!imChannel) {
           manager.store.updateLastChannelId(presenceProvider, imChannel.id);
-          openChatWebview();
+          openChatWebview({
+            providerName: presenceProvider,
+            channelId: imChannel.id,
+            user,
+            source: EventSource.vslsContacts
+          });
         }
       } else {
         vscode.window.showInformationMessage(str.UNABLE_TO_MATCH_CONTACT);
@@ -623,7 +631,9 @@ export function activate(context: vscode.ExtensionContext) {
       ({ uri, senderId, provider }) => {
         if (uri.authority === LIVE_SHARE_BASE_URL) {
           const currentUser = manager.getCurrentUserFor(provider);
-          const isSomeoneElse = !!currentUser ? currentUser.id !== senderId : false;
+          const isSomeoneElse = !!currentUser
+            ? currentUser.id !== senderId
+            : false;
 
           if (!!manager.vslsContactProvider && isSomeoneElse) {
             manager.vslsContactProvider.notifyInviteReceived(senderId, uri);

@@ -56,11 +56,6 @@ export default class Manager implements IManager, vscode.Disposable {
     return uniqueProviders;
   }
 
-  getCurrentProvider(): string {
-    // TODO: this is incorrect --> where is this used? how should this work?
-    return `vsls`;
-  }
-
   isProviderEnabled(provider: string): boolean {
     const cp = this.chatProviders.get(provider as Providers);
     return !!cp;
@@ -72,7 +67,7 @@ export default class Manager implements IManager, vscode.Disposable {
   }
 
   getCurrentUserFor(provider: string) {
-    return this.store.getCurrentUser(provider)
+    return this.store.getCurrentUser(provider);
   }
 
   getChatProvider(providerName: Providers) {
