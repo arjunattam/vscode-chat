@@ -59,17 +59,22 @@ export class Store implements IStore {
 
     if (!!currentUser) {
       const { provider } = currentUser;
-      const channels = globalState.get(stateKeys.CHANNELS);
-      const users = globalState.get(stateKeys.USERS);
-      const lastChannelId = globalState.get(stateKeys.LAST_CHANNEL_ID);
-      await globalState.update(stateKeys.USER_INFO, {
-        [provider]: currentUser
-      });
-      await globalState.update(stateKeys.CHANNELS, { [provider]: channels });
-      await globalState.update(stateKeys.USERS, { [provider]: users });
-      await globalState.update(stateKeys.LAST_CHANNEL_ID, {
-        [provider]: lastChannelId
-      });
+
+      if (!!provider) {
+        const channels = globalState.get(stateKeys.CHANNELS);
+        const users = globalState.get(stateKeys.USERS);
+        const lastChannelId = globalState.get(stateKeys.LAST_CHANNEL_ID);
+        await globalState.update(stateKeys.USER_INFO, {
+          [provider]: currentUser
+        });
+        await globalState.update(stateKeys.CHANNELS, {
+          [provider]: channels
+        });
+        await globalState.update(stateKeys.USERS, { [provider]: users });
+        await globalState.update(stateKeys.LAST_CHANNEL_ID, {
+          [provider]: lastChannelId
+        });
+      }
     }
   }
 

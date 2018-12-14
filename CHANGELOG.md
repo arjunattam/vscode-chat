@@ -2,6 +2,13 @@
 
 All notable changes to the vscode-chat extension will be documented in this file. This follows the [Keep a Changelog](http://keepachangelog.com/) format.
 
+## [0.9.0] - TBD
+
+### Added
+
+- Chat over VS Live Share now works alongside Slack and Discord: You can now chat with your collaboration session peers through VS Live Share, even if you are logged in on other chat providers.
+- Start chat over VS Live Share from the explorer view.
+
 ## [0.8.2] - 2018-11-20
 
 ### Fixed

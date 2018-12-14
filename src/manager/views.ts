@@ -45,7 +45,9 @@ export class ViewsManager implements vscode.Disposable {
     this.initializeStatusItems(statusItemKeys);
     this.initializeTreeViews(enabledProviders);
 
-    const nonVslsProviders = enabledProviders.filter(p => p !== "vsls");
+    const nonVslsProviders = enabledProviders.filter(
+      provider => provider !== "vsls"
+    );
     const showOnboarding = nonVslsProviders.length === 0;
 
     if (showOnboarding && !this.onboardingTree) {

@@ -4,6 +4,7 @@ import { SelfCommands } from "../constants";
 import { VSLS_CHAT_CHANNEL } from "../vslsChat/utils";
 
 const LIVE_SHARE_VIEW_ID = "liveshare.session";
+const LIVE_SHARE_EXPLORER_VIEW_ID = "liveshare.session.explorer";
 const TREE_ITEM_LABEL = "Chat Channel";
 
 export class VslsSessionTreeProvider
@@ -49,11 +50,12 @@ export class VslsSessionTreeProvider
     const liveshare: any = await vsls.getApi();
 
     if (!!liveshare) {
-      const disposable = liveshare.registerTreeDataProvider(
-        LIVE_SHARE_VIEW_ID,
-        this
+      this._disposables.push(
+        liveshare.registerTreeDataProvider(LIVE_SHARE_VIEW_ID, this)
       );
-      this._disposables.push(disposable);
+      this._disposables.push(
+        liveshare.registerTreeDataProvider(LIVE_SHARE_EXPLORER_VIEW_ID, this)
+      );
     }
   }
 

@@ -84,13 +84,14 @@ export function activate(context: vscode.ExtensionContext) {
       }
     }
 
+    await manager.initializeProviders();
+
     if (manager.isProviderEnabled("discord")) {
       if (!manager.getCurrentTeamFor("discord")) {
         await askForWorkspace("discord");
       }
     }
 
-    await manager.initializeProviders();
     // TODO: In discord, user preferences are available after channels are fetched
     manager.updateUserPrefsForAll(); // async update
     await manager.initializeUsersStateForAll();
@@ -152,12 +153,17 @@ export function activate(context: vscode.ExtensionContext) {
 
     if (!!selected) {
       if (selected.label === str.RELOAD_CHANNELS) {
-        // TODO: either ask for provider, or force the initialize users/channels for all
-        // Fix this.
-        //
-        // await manager.fetchUsers(providerName);
-        // await manager.fetchChannels(providerName);
-        return askForChannel(providerName);
+        let currentProvider = providerName;
+
+        if (!currentProvider) {
+          currentProvider = await askForProvider();
+        }
+
+        if (!!currentProvider) {
+          await manager.fetchUsers(currentProvider);
+          await manager.fetchChannels(currentProvider);
+          return askForChannel(providerName);
+        }
       }
 
       const selectedChannelLabel = channelList.find(
@@ -168,16 +174,12 @@ export function activate(context: vscode.ExtensionContext) {
 
       if (!!selectedChannelLabel) {
         const { channel, providerName } = selectedChannelLabel;
-        // manager.store.updateLastChannelId(providerName, channel.id);
         return { channel, providerName: providerName.toLowerCase() };
       }
     }
   };
 
   const openChatWebview = async (chatArgs?: ChatArgs) => {
-    // TODO: when the window is reloaded and webview is opened,
-    // we will load the ui (since the token is available) but
-    // we don't send the messages (since the second if condition fails)
     let provider = !!chatArgs ? chatArgs.providerName : undefined;
     let channelId = !!chatArgs ? chatArgs.channelId : undefined;
     const source = !!chatArgs ? chatArgs.source : EventSource.command;
@@ -294,7 +296,7 @@ export function activate(context: vscode.ExtensionContext) {
     }
   };
 
-  const authenticate = (args?: any) => {
+  const startOAuth = (args?: any) => {
     const hasArgs = !!args && !!args.source;
     const provider = "slack"; // Only Slack OAuth is supported
     const urls = {
@@ -504,7 +506,7 @@ export function activate(context: vscode.ExtensionContext) {
       changeWorkspace
     ),
     vscode.commands.registerCommand(SelfCommands.CHANGE_CHANNEL, changeChannel),
-    vscode.commands.registerCommand(SelfCommands.SIGN_IN, authenticate),
+    vscode.commands.registerCommand(SelfCommands.SIGN_IN, startOAuth),
     vscode.commands.registerCommand(SelfCommands.SIGN_OUT, signout),
     vscode.commands.registerCommand(SelfCommands.RESET_STORE, reset),
     vscode.commands.registerCommand(
