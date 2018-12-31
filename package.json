@@ -33,15 +33,7 @@
     "live"
   ],
   "activationEvents": [
-    "*",
-    "onCommand:extension.chat.openChatPanel",
-    "onCommand:extension.chat.changeChannel",
-    "onView:chat.treeView.onlineUsers.slack",
-    "onView:chat.treeView.onlineUsers.discord",
-    "onView:chat.treeView.unreads",
-    "onView:chat.treeView.channels",
-    "onView:chat.treeView.groups",
-    "onView:chat.treeView.ims"
+    "*"
   ],
   "main": "./out/extension",
   "contributes": {
