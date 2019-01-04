@@ -80,13 +80,13 @@ export default class Manager implements IManager, vscode.Disposable {
     return !!cp ? cp.isAuthenticated() : false;
   }
 
-  initializeToken = async (newProvider?: string) => {
+  initializeToken = async (newInitialState?: InitialState) => {
     let enabledProviders = this.getEnabledProviders();
 
-    if (!!newProvider) {
+    if (!!newInitialState) {
       // In addition to the enabled providers, we will
       // add support for this newProvider
-      enabledProviders.push(newProvider);
+      enabledProviders.push(newInitialState.provider);
     }
 
     for (const provider of enabledProviders) {

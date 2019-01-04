@@ -140,7 +140,11 @@ export class ViewsManager implements vscode.Disposable {
 
     if (!!treeViewForProvider && this.parentManager.isAuthenticated(provider)) {
       const channelLabels = this.parentManager.getChannelLabels(provider);
-      treeViewForProvider.updateData(channelLabels);
+      const currentUserInfo = this.parentManager.getCurrentUserFor(provider);
+
+      if (!!currentUserInfo) {
+        treeViewForProvider.updateData(currentUserInfo, channelLabels);
+      }
     }
 
     if (!!this.vslsSessionTreeProvider) {

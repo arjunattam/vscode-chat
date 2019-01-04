@@ -12,6 +12,7 @@ import homeHtml from "./html/home.template.html";
 
 interface TokenAPIResponse {
   accessToken: string;
+  teamId?: string;
   expiresIn?: Date;
   refreshToken?: string;
   error: string;
@@ -30,12 +31,12 @@ const getSlackToken = async (code: string): Promise<TokenAPIResponse> => {
   };
 
   const result = await request.get(options);
-  const { ok, error, access_token } = result;
+  const { ok, error, access_token, team_id } = result;
 
   if (!ok) {
     return { accessToken: null, error };
   } else {
-    return { accessToken: access_token, error: null };
+    return { accessToken: access_token, teamId: team_id, error: null };
   }
 };
 
@@ -68,8 +69,13 @@ const getDiscordToken = async (code: string): Promise<TokenAPIResponse> => {
   }
 };
 
-const renderSuccess = (token: string, service: string, cb: Callback) => {
-  const redirect = getRedirect(token, service);
+const renderSuccess = (
+  token: string,
+  service: string,
+  teamId: string,
+  cb: Callback
+) => {
+  const redirect = getRedirect(token, service, teamId);
   const response = {
     statusCode: 200,
     headers: {
@@ -108,12 +114,12 @@ export const slackRedirect: Handler = (
   if (!!code) {
     const tokenPromise = getSlackToken(code);
     tokenPromise.then(result => {
-      const { accessToken, error } = result;
+      const { accessToken, error, teamId } = result;
 
       if (!accessToken) {
         renderError(error, "slack", cb);
       } else {
-        renderSuccess(accessToken, "slack", cb);
+        renderSuccess(accessToken, "slack", teamId, cb);
       }
     });
   }
@@ -138,7 +144,7 @@ export const discordRedirect: Handler = (
       if (!accessToken) {
         renderError(error, "discord", cb);
       } else {
-        renderSuccess(accessToken, "discord", cb);
+        renderSuccess(accessToken, "discord", "team-id", cb);
       }
     });
   }

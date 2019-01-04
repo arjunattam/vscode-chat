@@ -14,7 +14,7 @@ import {
   TRAVIS_SCHEME
 } from "./constants";
 import travis from "./bots/travis";
-import { ExtensionUriHandler } from "./uri";
+import { ExtensionUriHandler } from "./uriHandler";
 import * as utils from "./utils";
 import { askForAuth } from "./onboarding";
 import { ConfigHelper } from "./config";
@@ -67,7 +67,7 @@ export function activate(context: vscode.ExtensionContext) {
 
   const setup = async (
     canPromptForAuth: boolean,
-    newProvider: string | undefined
+    newInitialState: InitialState | undefined
   ): Promise<any> => {
     await store.runStateMigrations();
 
@@ -75,9 +75,9 @@ export function activate(context: vscode.ExtensionContext) {
       setupFreshInstall();
     }
 
-    if (!manager.isTokenInitialized || !!newProvider) {
-      // We force initialization if we are provided a newProvider
-      await manager.initializeToken(newProvider);
+    if (!manager.isTokenInitialized || !!newInitialState) {
+      // We force initialization if we are provided a newInitialState
+      await manager.initializeToken(newInitialState);
 
       if (!manager.isTokenInitialized) {
         handleNoToken(canPromptForAuth);
@@ -234,7 +234,7 @@ export function activate(context: vscode.ExtensionContext) {
     if (manager.isProviderEnabled("discord")) {
       await askForWorkspace("discord");
       await manager.clearOldWorkspace("discord");
-      await setup(false, "discord");
+      await setup(false, { provider: "discord", teamId: undefined });
     }
   };
 
@@ -511,7 +511,7 @@ export function activate(context: vscode.ExtensionContext) {
     vscode.commands.registerCommand(SelfCommands.RESET_STORE, reset),
     vscode.commands.registerCommand(
       SelfCommands.SETUP_NEW_PROVIDER,
-      ({ newProvider }) => setup(false, newProvider)
+      ({ newInitialState }) => setup(false, newInitialState)
     ),
     vscode.commands.registerCommand(
       SelfCommands.CONFIGURE_TOKEN,

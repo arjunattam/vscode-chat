@@ -116,8 +116,8 @@
     "views": {
       "chatActivityViewSlack": [
         {
-          "id": "chat.treeView.unreads.slack",
-          "name": "Unreads",
+          "id": "chat.treeView.workspaces.slack",
+          "name": "Workspaces",
           "when": "chat:slack"
         },
         {
@@ -143,8 +143,8 @@
       ],
       "chatActivityViewDiscord": [
         {
-          "id": "chat.treeView.unreads.discord",
-          "name": "Unreads",
+          "id": "chat.treeView.workspaces.discord",
+          "name": "Workspaces",
           "when": "chat:discord"
         },
         {

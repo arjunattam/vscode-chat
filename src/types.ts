@@ -242,6 +242,7 @@ interface IManager {
   getIMChannel: (provider: string, user: User) => Channel | undefined;
   getChannelLabels: (provider: string) => any;
   getUnreadCount: (provider: string, channel: Channel) => number;
+  getCurrentUserFor: (provider: string) => CurrentUser | undefined;
   getUserPresence: (
     provider: string,
     userId: string
@@ -306,3 +307,8 @@ interface ChatTreeNode {
   presence: UserPresence;
   providerName: string;
 }
+
+type InitialState = {
+  provider: string;
+  teamId: string | undefined;
+};

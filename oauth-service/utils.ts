@@ -22,8 +22,8 @@ export const getIssueUrl = (errorMessage: string, serviceName: string) => {
   return `${baseUrl}?title=${encode(title)}&body=${encode(body)}`;
 };
 
-export const getRedirect = (token: string, serviceName: string) => {
-  return `vscode://karigari.chat/redirect?token=${token}&service=${serviceName}`;
+export const getRedirect = (token: string, service: string, team: string) => {
+  return `vscode://karigari.chat/redirect?token=${token}&service=${service}&team=${team}`;
 };
 
 export const getRedirectError = (errorMessage: string, serviceName: string) => {

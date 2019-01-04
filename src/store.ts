@@ -179,12 +179,11 @@ export class Store implements IStore {
   ): Thenable<void> => {
     const cachedCurrentUser = this.currentUserInfo[provider];
     let newCurrentUser: CurrentUser | undefined;
-    // In the case of discord, we need to know the current team (guild)
-    // If that is available in the store, we should use that
+
     if (!userInfo) {
-      // Resetting userInfo
-      newCurrentUser = userInfo;
+      newCurrentUser = userInfo; // Resetting userInfo
     } else {
+      // Copy cover the currentTeamId from existing state, if available
       let currentTeamId = !!cachedCurrentUser
         ? cachedCurrentUser.currentTeamId
         : undefined;
@@ -194,6 +193,20 @@ export class Store implements IStore {
       }
 
       newCurrentUser = { ...userInfo, currentTeamId };
+
+      // If this is Slack, our local state might know of more workspaces
+      if (provider === "slack" && !!cachedCurrentUser) {
+        let mergedTeams: any = {};
+        const { teams: newTeams } = userInfo;
+        const { teams: existingTeams } = cachedCurrentUser;
+        existingTeams.forEach(team => (mergedTeams[team.id] = team));
+        newTeams.forEach(team => (mergedTeams[team.id] = team));
+        const teams = Object.keys(mergedTeams).map(key => mergedTeams[key]);
+        newCurrentUser = {
+          ...newCurrentUser,
+          teams
+        };
+      }
     }
 
     const updatedCurrentUserInfo = {

@@ -10,6 +10,10 @@ const TELEMETRY_CONFIG_KEY = "enableTelemetry";
 const CREDENTIAL_SERVICE_NAME = "vscode-chat";
 const VSLS_CHAT_TOKEN = "vsls-placeholder-token";
 
+const getAccountName = (provider: string, teamId?: string) => {
+  return !!teamId ? `${provider} (${teamId})` : provider;
+};
+
 export class ConfigHelper {
   static getRootConfig() {
     return vscode.workspace.getConfiguration(CONFIG_ROOT);
@@ -30,14 +34,18 @@ export class ConfigHelper {
     });
   }
 
-  static async getToken(service: string): Promise<string | null> {
+  static async getToken(
+    service: string,
+    teamId?: string
+  ): Promise<string | null> {
     if (service === "vsls") {
       return VSLS_CHAT_TOKEN;
     }
 
+    const accountName = getAccountName(service, teamId);
     const keychainToken: string | null = await KeychainHelper.get(
       CREDENTIAL_SERVICE_NAME,
-      service
+      accountName
     );
     return keychainToken;
   }
@@ -46,19 +54,27 @@ export class ConfigHelper {
     this.updateRootConfig(TOKEN_CONFIG_KEY, undefined);
   }
 
-  static async setToken(token: string, providerName: string): Promise<void> {
+  static async setToken(
+    token: string,
+    providerName: string,
+    teamId?: string
+  ): Promise<void> {
     // TODO: it is possible that the keychain will fail
     // See https://github.com/Microsoft/vscode-pull-request-github/commit/306dc5d27460599f3402f4b9e01d97bf638c639f
-    await KeychainHelper.set(CREDENTIAL_SERVICE_NAME, providerName, token);
+    const accountName = getAccountName(providerName, teamId);
+    await KeychainHelper.set(CREDENTIAL_SERVICE_NAME, accountName, token);
 
     // When token is set, we need to call reset
     vscode.commands.executeCommand(SelfCommands.SETUP_NEW_PROVIDER, {
-      newProvider: providerName
+      newInitialState: { provider: providerName, teamId }
     });
   }
 
-  static async clearToken(provider: string): Promise<void> {
-    await KeychainHelper.clear(CREDENTIAL_SERVICE_NAME, provider);
+  static async clearToken(provider: string, teamId?: string): Promise<void> {
+    await KeychainHelper.clear(
+      CREDENTIAL_SERVICE_NAME,
+      getAccountName(provider, teamId)
+    );
   }
 
   static getProxyUrl() {
