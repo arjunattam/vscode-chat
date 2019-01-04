@@ -2,6 +2,12 @@
 
 All notable changes to the vscode-chat extension will be documented in this file. This follows the [Keep a Changelog](http://keepachangelog.com/) format.
 
+## [0.9.2] - 2019-01-04
+
+### Fixed
+
+- "Account is required" errors while accessing the system keychain.
+
 ## [0.9.1] - 2018-12-31
 
 ### Fixed
