@@ -90,20 +90,24 @@ export default class Manager implements IManager, vscode.Disposable {
     }
 
     for (const provider of enabledProviders) {
-      const token = await ConfigHelper.getToken(provider);
+      if (!!provider) {
+        const token = await ConfigHelper.getToken(provider);
 
-      if (!!token) {
-        const existingProvider = this.chatProviders.get(provider as Providers);
-
-        if (!existingProvider) {
-          const chatProvider = this.instantiateChatProvider(token, provider);
-          this.chatProviders.set(
-            provider as Providers,
-            new ChatProviderManager(this.store, provider, chatProvider, this)
+        if (!!token) {
+          const existingProvider = this.chatProviders.get(
+            provider as Providers
           );
-        }
 
-        this.isTokenInitialized = true;
+          if (!existingProvider) {
+            const chatProvider = this.instantiateChatProvider(token, provider);
+            this.chatProviders.set(
+              provider as Providers,
+              new ChatProviderManager(this.store, provider, chatProvider, this)
+            );
+          }
+
+          this.isTokenInitialized = true;
+        }
       }
     }
 
