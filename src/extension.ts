@@ -223,17 +223,13 @@ export function activate(context: vscode.ExtensionContext) {
     }
   };
 
-  const changeWorkspace = async () => {
-    // Discord only for now
-    if (manager.isProviderEnabled("discord")) {
-      const newTeam = await askForWorkspace("discord");
-
-      if (!!newTeam) {
-        manager.updateCurrentWorkspace("discord", newTeam);
-      }
-
-      await manager.clearOldWorkspace("discord");
-      await setup(false, { provider: "discord", teamId: undefined });
+  const changeWorkspace = async (providerAndTeam?: any) => {
+    // TODO: when arg is undefined, ask for workspace
+    if (!!providerAndTeam) {
+      const { provider, team } = providerAndTeam;
+      manager.updateCurrentWorkspace(provider, team);
+      await manager.clearOldWorkspace(provider);
+      await setup(false, { provider, teamId: team.id });
     }
   };
 

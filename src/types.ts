@@ -303,6 +303,7 @@ interface ChatTreeNode {
   label: string;
   channel: Channel | undefined;
   user: User | undefined;
+  team: Team | undefined;
   isCategory: boolean;
   presence: UserPresence;
   providerName: string;

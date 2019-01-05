@@ -18,6 +18,20 @@ const PRESENCE_ICONS = {
   yellow: path.join(BASE_PATH, "yellow.svg")
 };
 
+export class WorkspaceTreeItem extends vscode.TreeItem {
+  constructor(label: string, provider: string, team: Team | undefined) {
+    super(label);
+
+    if (!!team) {
+      this.command = {
+        command: SelfCommands.CHANGE_WORKSPACE,
+        title: "",
+        arguments: [{ team, provider }]
+      };
+    }
+  }
+}
+
 export class ChannelTreeItem extends vscode.TreeItem {
   constructor(
     label: string,

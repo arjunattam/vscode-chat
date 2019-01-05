@@ -133,6 +133,7 @@ export class BaseChannelsListTreeProvider
       channel,
       isCategory: false,
       user: undefined,
+      team: undefined,
       providerName: this.providerName
     };
   };
@@ -144,6 +145,7 @@ export class BaseChannelsListTreeProvider
       isCategory: true,
       channel: undefined,
       user: undefined,
+      team: undefined,
       providerName: this.providerName
     };
   };

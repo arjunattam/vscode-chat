@@ -4,6 +4,7 @@ import {
   IFilterFunction,
   ISortingFunction
 } from "./base";
+import { WorkspaceTreeItem } from "./treeItem";
 import { equals, notUndefined } from "../utils";
 
 export class WorkspacesTreeProvider extends BaseChannelsListTreeProvider {
@@ -42,6 +43,7 @@ export class WorkspacesTreeProvider extends BaseChannelsListTreeProvider {
       }
     }
 
+    // TODO: add unreads down below
     // if (!!element && element.isCategory) {
     //   return this.getChildrenForCategory(element);
     // }
@@ -51,11 +53,18 @@ export class WorkspacesTreeProvider extends BaseChannelsListTreeProvider {
     return {
       label: team.name,
       presence: UserPresence.unknown,
-      channel: undefined,
       isCategory: false,
+      channel: undefined,
       user: undefined,
+      team: team,
       providerName: this.providerName
     };
+  };
+
+  getTreeItem = (element: ChatTreeNode): vscode.TreeItem => {
+    const { label, team, providerName } = element;
+    const treeItem = new WorkspaceTreeItem(label, providerName, team);
+    return treeItem;
   };
 }
 
@@ -127,6 +136,7 @@ export class OnlineUsersTreeProvider extends BaseChannelsListTreeProvider {
       isCategory: false,
       user,
       channel: this.imChannels[user.id],
+      team: undefined,
       providerName: this.providerName
     };
   }
