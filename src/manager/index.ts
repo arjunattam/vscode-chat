@@ -19,23 +19,33 @@ export default class Manager implements IManager, vscode.Disposable {
     this.viewsManager = new ViewsManager(this);
   }
 
-  getEnabledProviders(): string[] {
+  getEnabledProviders(newInitialState?: InitialState): InitialState[] {
+    // if newInitialState is specified, enabled list must include it
     let currentUserInfos = this.store.getCurrentUserForAll();
-    let providers: string[] = currentUserInfos.map(
-      currentUser => currentUser.provider
-    );
+    let providerTeamIds: { [provider: string]: string | undefined } = {};
+
+    currentUserInfos.forEach(currentUser => {
+      providerTeamIds[currentUser.provider] = currentUser.currentTeamId;
+    });
+
     const hasVsls = hasVslsExtension();
 
     if (hasVsls) {
-      providers.push(Providers.vsls);
+      providerTeamIds[Providers.vsls] = undefined;
     }
 
-    // vsls can be added twice: once via currentUserInfo, and
-    // then via the VSLS extension availability check
-    const uniqueProviders = providers.filter(function(item, pos) {
-      return providers.indexOf(item) === pos;
-    });
-    return uniqueProviders;
+    if (!!newInitialState) {
+      providerTeamIds[newInitialState.provider] = newInitialState.teamId;
+    }
+
+    if (!!providerTeamIds[Providers.discord]) {
+      providerTeamIds[Providers.discord] = undefined;
+    }
+
+    return Object.keys(providerTeamIds).map(provider => ({
+      provider,
+      teamId: providerTeamIds[provider]
+    }));
   }
 
   isProviderEnabled(provider: string): boolean {
@@ -81,29 +91,28 @@ export default class Manager implements IManager, vscode.Disposable {
   }
 
   initializeToken = async (newInitialState?: InitialState) => {
-    let enabledProviders = this.getEnabledProviders();
+    let enabledProviderStates = this.getEnabledProviders(newInitialState);
 
-    if (!!newInitialState) {
-      // In addition to the enabled providers, we will
-      // add support for this newProvider
-      enabledProviders.push(newInitialState.provider);
-    }
+    for (const initialState of enabledProviderStates) {
+      const { provider: stateProvider, teamId } = initialState;
+      const provider = stateProvider as Providers;
 
-    for (const provider of enabledProviders) {
       if (!!provider) {
-        const token = await ConfigHelper.getToken(provider);
+        const token = await ConfigHelper.getToken(provider, teamId);
 
         if (!!token) {
-          const existingProvider = this.chatProviders.get(
-            provider as Providers
-          );
+          const existingProvider = this.chatProviders.get(provider);
 
-          if (!existingProvider) {
+          if (!existingProvider || existingProvider.teamId !== teamId) {
             const chatProvider = this.instantiateChatProvider(token, provider);
-            this.chatProviders.set(
-              provider as Providers,
-              new ChatProviderManager(this.store, provider, chatProvider, this)
+            const chatManager = new ChatProviderManager(
+              this.store,
+              provider,
+              teamId,
+              chatProvider,
+              this
             );
+            this.chatProviders.set(provider, chatManager);
           }
 
           this.isTokenInitialized = true;
@@ -167,7 +176,7 @@ export default class Manager implements IManager, vscode.Disposable {
   initializeVslsContactProvider = async (): Promise<any> => {
     // This method is called after the users state has been initialized, since
     // the vsls contact provider uses list of users to match with vsls contacts.
-    const enabledProviders = this.getEnabledProviders();
+    const enabledProviders = this.getEnabledProviders().map(e => e.provider);
     const nonVslsProviders = enabledProviders.filter(
       provider => provider !== "vsls"
     );
@@ -348,14 +357,17 @@ export default class Manager implements IManager, vscode.Disposable {
 
   updateCurrentWorkspace = async (
     provider: string,
-    team: Team,
-    existingUserInfo: CurrentUser
+    team: Team
   ): Promise<void> => {
-    const newCurrentUser: CurrentUser = {
-      ...existingUserInfo,
-      currentTeamId: team.id
-    };
-    return this.store.updateCurrentUser(provider, newCurrentUser);
+    const existingUserInfo = this.getCurrentUserFor(provider);
+
+    if (!!existingUserInfo) {
+      const newCurrentUser: CurrentUser = {
+        ...existingUserInfo,
+        currentTeamId: team.id
+      };
+      return this.store.updateCurrentUser(provider, newCurrentUser);
+    }
   };
 
   async loadChannelHistory(

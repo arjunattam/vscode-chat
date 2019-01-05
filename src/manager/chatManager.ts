@@ -9,7 +9,8 @@ export class ChatProviderManager {
 
   constructor(
     private store: IStore,
-    private providerName: string,
+    public providerName: string,
+    public teamId: string | undefined,
     private chatProvider: IChatProvider,
     private parentManager: IManager
   ) {}

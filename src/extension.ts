@@ -204,7 +204,9 @@ export function activate(context: vscode.ExtensionContext) {
     }
   };
 
-  const askForWorkspace = async (provider: string) => {
+  const askForWorkspace = async (
+    provider: string
+  ): Promise<Team | undefined> => {
     const currentUserInfo = manager.store.getCurrentUser(provider);
 
     if (!!currentUserInfo) {
@@ -216,15 +218,7 @@ export function activate(context: vscode.ExtensionContext) {
       });
 
       if (!!selected) {
-        const selectedTeam = teams.find(team => team.name === selected);
-
-        if (!!selectedTeam) {
-          return manager.updateCurrentWorkspace(
-            provider,
-            selectedTeam,
-            currentUserInfo
-          );
-        }
+        return teams.find(team => team.name === selected);
       }
     }
   };
@@ -232,7 +226,12 @@ export function activate(context: vscode.ExtensionContext) {
   const changeWorkspace = async () => {
     // Discord only for now
     if (manager.isProviderEnabled("discord")) {
-      await askForWorkspace("discord");
+      const newTeam = await askForWorkspace("discord");
+
+      if (!!newTeam) {
+        manager.updateCurrentWorkspace("discord", newTeam);
+      }
+
       await manager.clearOldWorkspace("discord");
       await setup(false, { provider: "discord", teamId: undefined });
     }
@@ -353,7 +352,9 @@ export function activate(context: vscode.ExtensionContext) {
   const askForSelfPresence = async () => {
     // Called when user triggers a change for self presence
     // using manual command.
-    const enabledProviders = manager.getEnabledProviders();
+    const enabledProviders = manager
+      .getEnabledProviders()
+      .map(element => element.provider);
     const provider = enabledProviders.find(provider => provider !== "vsls");
 
     if (!!provider) {
@@ -433,7 +434,16 @@ export function activate(context: vscode.ExtensionContext) {
         const sanitisedToken = utils.sanitiseTokenString(inputToken);
 
         try {
-          await manager.validateToken(provider, sanitisedToken);
+          const tokenUser = await manager.validateToken(
+            provider,
+            sanitisedToken
+          );
+
+          if (!!tokenUser) {
+            const teamId =
+              provider === "slack" ? tokenUser.currentTeamId : undefined;
+            return ConfigHelper.setToken(sanitisedToken, provider, teamId);
+          }
         } catch (error) {
           const actionItems = [str.REPORT_ISSUE];
           const messageResult = await vscode.window.showErrorMessage(
@@ -448,8 +458,6 @@ export function activate(context: vscode.ExtensionContext) {
 
           return;
         }
-
-        return ConfigHelper.setToken(sanitisedToken, provider);
       }
     }
   };
@@ -552,7 +560,9 @@ export function activate(context: vscode.ExtensionContext) {
     vscode.commands.registerCommand(
       SelfCommands.LIVE_SHARE_SESSION_CHANGED,
       ({ isSessionActive, currentUser }) => {
-        const enabledProviders = manager.getEnabledProviders();
+        const enabledProviders = manager
+          .getEnabledProviders()
+          .map(e => e.provider);
 
         if (enabledProviders.indexOf("vsls") >= 0) {
           manager.store.updateCurrentUser("vsls", currentUser);

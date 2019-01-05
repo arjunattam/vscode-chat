@@ -16,15 +16,15 @@ export class WorkspacesTreeProvider extends BaseChannelsListTreeProvider {
   }
 
   updateCurrentUser(userInfo: CurrentUser) {
-    this.userInfo = userInfo;
-
     if (!this.userInfo) {
+      this.userInfo = userInfo;
       this.refresh();
     } else {
       const existingTeamIds = this.userInfo.teams.map(team => team.id);
       const newTeamIds = userInfo.teams.map(team => team.id);
 
       if (!equals(new Set(existingTeamIds), new Set(newTeamIds))) {
+        this.userInfo = userInfo;
         this.refresh();
       }
     }
