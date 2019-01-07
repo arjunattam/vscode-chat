@@ -43,6 +43,18 @@ const getMessageContent = (
 const getMessage = (raw: Discord.Message): Message => {
   const { author, createdTimestamp, content, reactions, editedTimestamp } = raw;
   const timestamp = (createdTimestamp / 1000).toString();
+  let attachment = undefined;
+  const attachments = raw.attachments.array();
+
+  if (attachments.length > 0) {
+    // This only shows the first attachment
+    const selected = attachments[0];
+    attachment = {
+      name: selected.filename,
+      permalink: selected.url
+    };
+  }
+
   return {
     timestamp,
     userId: author.id,
@@ -50,6 +62,7 @@ const getMessage = (raw: Discord.Message): Message => {
     isEdited: !!editedTimestamp,
     content: getMessageContent(raw),
     replies: {},
+    attachment,
     reactions: reactions.map(rxn => ({
       name: rxn.emoji.name,
       count: rxn.count,

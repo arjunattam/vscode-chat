@@ -247,11 +247,11 @@ export default class Manager implements IManager, vscode.Disposable {
     this.isTokenInitialized = false;
   }
 
-  clearOldWorkspace(provider: string) {
+  async clearOldWorkspace(provider: string) {
     // Clears users and channels so that we are loading them again
-    this.store.updateUsers(provider, {});
-    this.store.updateChannels(provider, []);
-    this.store.updateLastChannelId(provider, undefined);
+    await this.store.updateUsers(provider, {});
+    await this.store.updateChannels(provider, []);
+    await this.store.updateLastChannelId(provider, undefined);
   }
 
   async updateWebviewForProvider(provider: string, channelId: string) {
