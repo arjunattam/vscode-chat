@@ -94,9 +94,8 @@ export function activate(context: vscode.ExtensionContext) {
 
     // TODO: In discord, user preferences are available after channels are fetched
     manager.updateUserPrefsForAll(); // async update
-    await manager.initializeUsersStateForAll();
+    await manager.initializeStateForAll();
     manager.subscribePresenceForAll();
-    await manager.initializeChannelsStateForAll();
     return manager.initializeVslsContactProvider();
   };
 

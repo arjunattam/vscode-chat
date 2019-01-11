@@ -4,8 +4,7 @@ import { VSLS_CHAT_CHANNEL } from "../vslsChat/utils";
 export class ChatProviderManager {
   messages: Messages = {};
   currentUserPrefs: UserPreferences = {};
-  channelsFetchedAt: Date | undefined;
-  usersFetchedAt: Date | undefined;
+  stateFetchedAt: Date | undefined;
 
   constructor(
     private store: IStore,
@@ -463,7 +462,6 @@ export class ChatProviderManager {
     });
 
     this.store.updateUsers(this.providerName, usersWithPresence);
-    this.updateUsersFetchedAt();
     return usersWithPresence;
   };
 
@@ -471,18 +469,9 @@ export class ChatProviderManager {
     const users = this.store.getUsers(this.providerName);
     const channels = await this.chatProvider.fetchChannels(users);
     await this.store.updateChannels(this.providerName, channels);
-    this.updateChannelsFetchedAt();
     this.parentManager.updateTreeViewsForProvider(this.providerName);
     this.fetchUnreadCounts(channels);
     return channels;
-  };
-
-  private updateUsersFetchedAt = () => {
-    this.usersFetchedAt = new Date();
-  };
-
-  private updateChannelsFetchedAt = () => {
-    this.channelsFetchedAt = new Date();
   };
 
   private shouldFetchNew = (lastFetchedAt: Date | undefined): boolean => {
@@ -496,34 +485,30 @@ export class ChatProviderManager {
     return difference > FETCH_THRESHOLD;
   };
 
-  initializeUsersState(): Promise<Users> {
-    function isNotEmpty(obj: any) {
-      return Object.keys(obj).length !== 0;
+  async initializeState(): Promise<void> {
+    const users = this.store.getUsers(this.providerName);
+    const hasCachedUsers = Object.keys(users).length !== 0;
+
+    if (!hasCachedUsers) {
+      await this.fetchUsers();
+      const channels = this.store.getChannels(this.providerName);
+      const hasCachedChannels = channels.length !== 0;
+
+      if (!hasCachedChannels) {
+        await this.fetchChannels();
+        this.stateFetchedAt = new Date();
+      }
+
+      return;
     }
 
-    const users = this.store.getUsers(this.providerName);
-    return isNotEmpty(users)
-      ? new Promise(resolve => {
-          if (this.shouldFetchNew(this.usersFetchedAt)) {
-            this.fetchUsers(); // async update
-          }
-          resolve(users);
-        })
-      : this.fetchUsers();
-  }
-
-  initializeChannelsState(): Promise<Channel[]> {
-    // This assumes that users are available
-    const channels = this.store.getChannels(this.providerName);
-    return channels.length !== 0
-      ? new Promise(resolve => {
-          if (this.shouldFetchNew(this.channelsFetchedAt)) {
-            this.fetchChannels(); // async update
-          }
-
-          resolve(channels);
-        })
-      : this.fetchChannels();
+    // We already have a copy of the state, but if it's old, we run an async update
+    if (this.shouldFetchNew(this.stateFetchedAt)) {
+      this.fetchUsers().then(users => {
+        this.fetchChannels();
+        this.stateFetchedAt = new Date();
+      });
+    }
   }
 
   getChannel(channelId: string | undefined): Channel | undefined {

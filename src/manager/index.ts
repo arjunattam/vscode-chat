@@ -90,6 +90,20 @@ export default class Manager implements IManager, vscode.Disposable {
     return !!cp ? cp.isAuthenticated() : false;
   }
 
+  migrateTokenForSlack = async (teamId: string) => {
+    // Migration for 0.10.x
+    const teamToken = await ConfigHelper.getToken("slack", teamId);
+
+    if (!teamToken) {
+      const slackToken = await ConfigHelper.getToken("slack");
+
+      if (!!slackToken) {
+        await ConfigHelper.setToken(slackToken, "slack", teamId);
+        await ConfigHelper.clearToken("slack");
+      }
+    }
+  };
+
   initializeToken = async (newInitialState?: InitialState) => {
     let enabledProviderStates = this.getEnabledProviders(newInitialState);
 
@@ -98,6 +112,10 @@ export default class Manager implements IManager, vscode.Disposable {
       const provider = stateProvider as Providers;
 
       if (!!provider) {
+        if (provider === Providers.slack && !!teamId) {
+          this.migrateTokenForSlack(teamId);
+        }
+
         const token = await ConfigHelper.getToken(provider, teamId);
 
         if (!!token) {
@@ -145,17 +163,10 @@ export default class Manager implements IManager, vscode.Disposable {
     }
   };
 
-  async initializeUsersStateForAll() {
+  async initializeStateForAll() {
     for (let entry of Array.from(this.chatProviders.entries())) {
       let chatProvider = entry[1];
-      await chatProvider.initializeUsersState();
-    }
-  }
-
-  async initializeChannelsStateForAll() {
-    for (let entry of Array.from(this.chatProviders.entries())) {
-      let chatProvider = entry[1];
-      await chatProvider.initializeChannelsState();
+      await chatProvider.initializeState();
     }
   }
 
