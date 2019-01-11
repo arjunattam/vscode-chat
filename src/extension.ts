@@ -155,7 +155,10 @@ export function activate(context: vscode.ExtensionContext) {
         let currentProvider = providerName;
 
         if (!currentProvider) {
-          currentProvider = await askForProvider();
+          const providers = manager.store
+            .getCurrentUserForAll()
+            .map(userInfo => userInfo.provider);
+          currentProvider = await askForProvider(providers);
         }
 
         if (!!currentProvider) {
@@ -223,9 +226,41 @@ export function activate(context: vscode.ExtensionContext) {
   };
 
   const changeWorkspace = async (providerAndTeam?: any) => {
-    // TODO: when arg is undefined, ask for workspace
-    if (!!providerAndTeam) {
-      const { provider, team } = providerAndTeam;
+    let provider: string | undefined, team;
+
+    if (!providerAndTeam) {
+      const currentUsers = manager.store.getCurrentUserForAll();
+      const withMultipleTeams = currentUsers.filter(
+        userInfo => userInfo.teams.length > 1
+      );
+      provider = await askForProvider(
+        withMultipleTeams.map(userInfo => userInfo.provider)
+      );
+
+      if (!provider) {
+        return;
+      }
+
+      const userInfo = withMultipleTeams.find(
+        userInfo => userInfo.provider === provider
+      );
+
+      if (!!userInfo) {
+        const teamNames = userInfo.teams.map(team => team.name);
+        const selection = await vscode.window.showQuickPick(teamNames, {
+          placeHolder: str.CHANGE_PROVIDER_TITLE
+        });
+
+        if (selection) {
+          team = userInfo.teams.find(team => team.name === selection);
+        }
+      }
+    } else {
+      provider = providerAndTeam.provider;
+      team = providerAndTeam.team;
+    }
+
+    if (provider && team) {
       manager.updateCurrentWorkspace(provider, team);
       await manager.clearOldWorkspace(provider);
       await setup(false, { provider, teamId: team.id });
@@ -401,9 +436,8 @@ export function activate(context: vscode.ExtensionContext) {
     utils.setVsContext("chat:vslsEnabled", isEnabled);
   };
 
-  const askForProvider = async () => {
-    const SUPPORTED_PROVIDERS = ["slack", "discord"];
-    const values = SUPPORTED_PROVIDERS.map(name => utils.toTitleCase(name));
+  const askForProvider = async (enabledProviders: string[]) => {
+    const values = enabledProviders.map(name => utils.toTitleCase(name));
     const selection = await vscode.window.showQuickPick(values, {
       placeHolder: str.CHANGE_PROVIDER_TITLE
     });
@@ -411,7 +445,7 @@ export function activate(context: vscode.ExtensionContext) {
   };
 
   const configureToken = async () => {
-    const provider = await askForProvider();
+    const provider = await askForProvider(["slack", "discord"]);
     telemetry.record(
       EventType.tokenConfigured,
       EventSource.command,
