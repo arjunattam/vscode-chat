@@ -7,7 +7,7 @@
 <p align="center">
     <a href="https://travis-ci.org/karigari/vscode-chat"><img src="https://travis-ci.org/karigari/vscode-chat.svg?branch=master" alt="Build status" /></a>
     <a href="https://marketplace.visualstudio.com/items?itemName=karigari.chat"><img src="https://vsmarketplacebadge.apphb.com/installs-short/karigari.chat.svg" alt="Installs" /></a>
-    <a href="https://marketplace.visualstudio.com/items?itemName=karigari.chat"><img src="https://img.shields.io/vscode-marketplace/r/karigari.chat.svg" alt="Rating" /></a>
+    <a href="https://marketplace.visualstudio.com/items?itemName=karigari.chat"><img src="https://vsmarketplacebadge.apphb.com/rating-short/karigari.chat.svg" alt="Rating" /></a>
     <a href="https://join.slack.com/t/karigarihq/shared_invite/enQtMzM5NzQxNjQxNTA1LTM0ZDFhNWQ3YmEyYmExZTY1ODJmM2U3NzExM2E0YmQxODcxYTgwYzczOTVkOGY5ODk2MWE0MzE2ODliNGU1ZDc"><img src="https://img.shields.io/badge/join-slack-orange.svg" alt="Join Slack" /></a>
 </p>
 
