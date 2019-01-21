@@ -87,7 +87,7 @@ export function activate(context: vscode.ExtensionContext) {
     await manager.initializeProviders();
 
     if (manager.isProviderEnabled("discord")) {
-      if (!manager.getCurrentTeamFor("discord")) {
+      if (!manager.getCurrentTeamIdFor("discord")) {
         await askForWorkspace("discord");
       }
     }
@@ -261,9 +261,13 @@ export function activate(context: vscode.ExtensionContext) {
     }
 
     if (provider && team) {
-      manager.updateCurrentWorkspace(provider, team);
-      await manager.clearOldWorkspace(provider);
-      await setup(false, { provider, teamId: team.id });
+      const isDifferentTeam = team.id !== manager.getCurrentTeamIdFor(provider);
+
+      if (isDifferentTeam) {
+        manager.updateCurrentWorkspace(provider, team);
+        await manager.clearOldWorkspace(provider);
+        await setup(false, { provider, teamId: team.id });
+      }
     }
   };
 

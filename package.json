@@ -121,6 +121,11 @@
           "when": "chat:slack"
         },
         {
+          "id": "chat.treeView.unreads.slack",
+          "name": "Unreads",
+          "when": "chat:slack"
+        },
+        {
           "id": "chat.treeView.channels.slack",
           "name": "Channels",
           "when": "chat:slack"
@@ -145,6 +150,11 @@
         {
           "id": "chat.treeView.workspaces.discord",
           "name": "Workspaces",
+          "when": "chat:discord"
+        },
+        {
+          "id": "chat.treeView.unreads.discord",
+          "name": "Unreads",
           "when": "chat:discord"
         },
         {

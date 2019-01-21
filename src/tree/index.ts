@@ -4,7 +4,7 @@ import {
   IFilterFunction,
   ISortingFunction
 } from "./base";
-import { WorkspaceTreeItem } from "./treeItem";
+import { WorkspaceTreeItem, ChannelTreeItem } from "./treeItem";
 import { equals, notUndefined } from "../utils";
 
 export class WorkspacesTreeProvider extends BaseChannelsListTreeProvider {
@@ -35,18 +35,11 @@ export class WorkspacesTreeProvider extends BaseChannelsListTreeProvider {
     element?: ChatTreeNode
   ): vscode.ProviderResult<ChatTreeNode[]> => {
     if (!element) {
-      // return this.getRootChildren();
-
       if (!!this.userInfo) {
         const { teams } = this.userInfo;
         return teams.map(this.getItemForTeam);
       }
     }
-
-    // TODO: add unreads down below
-    // if (!!element && element.isCategory) {
-    //   return this.getChildrenForCategory(element);
-    // }
   };
 
   getItemForTeam = (team: Team): ChatTreeNode => {
@@ -66,6 +59,15 @@ export class WorkspacesTreeProvider extends BaseChannelsListTreeProvider {
     const treeItem = new WorkspaceTreeItem(label, providerName, team);
     return treeItem;
   };
+}
+
+export class UnreadsTreeProvider extends BaseChannelsListTreeProvider {
+  protected filterFn: IFilterFunction = c => c.unread > 0;
+  protected sortingFn: ISortingFunction = (a, b) => b.unread - a.unread;
+
+  constructor(provider: string) {
+    super(provider, `chat.treeView.unreads.${provider}`);
+  }
 }
 
 export class ChannelTreeProvider extends BaseChannelsListTreeProvider {

@@ -53,7 +53,7 @@ export default class Manager implements IManager, vscode.Disposable {
     return !!cp;
   }
 
-  getCurrentTeamFor(provider: string) {
+  getCurrentTeamIdFor(provider: string) {
     const currentUser = this.store.getCurrentUser(provider);
     return !!currentUser ? currentUser.currentTeamId : undefined;
   }
