@@ -4,7 +4,7 @@ import {
   IFilterFunction,
   ISortingFunction
 } from "./base";
-import { WorkspaceTreeItem, ChannelTreeItem } from "./treeItem";
+import { WorkspaceTreeItem } from "./treeItem";
 import { equals, notUndefined } from "../utils";
 
 export class WorkspacesTreeProvider extends BaseChannelsListTreeProvider {
@@ -23,8 +23,14 @@ export class WorkspacesTreeProvider extends BaseChannelsListTreeProvider {
     } else {
       const existingTeamIds = this.userInfo.teams.map(team => team.id);
       const newTeamIds = userInfo.teams.map(team => team.id);
+      const hasTeamsChanged = !equals(
+        new Set(existingTeamIds),
+        new Set(newTeamIds)
+      );
+      const hasCurrentChanged =
+        this.userInfo.currentTeamId !== userInfo.currentTeamId;
 
-      if (!equals(new Set(existingTeamIds), new Set(newTeamIds))) {
+      if (hasCurrentChanged || hasTeamsChanged) {
         this.userInfo = userInfo;
         this.refresh();
       }
@@ -43,8 +49,16 @@ export class WorkspacesTreeProvider extends BaseChannelsListTreeProvider {
   };
 
   getItemForTeam = (team: Team): ChatTreeNode => {
+    let label = team.name;
+
+    if (!!this.userInfo) {
+      if (this.userInfo.currentTeamId === team.id) {
+        label = `${label} (active)`;
+      }
+    }
+
     return {
-      label: team.name,
+      label,
       presence: UserPresence.unknown,
       isCategory: false,
       channel: undefined,

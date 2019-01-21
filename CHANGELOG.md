@@ -2,6 +2,17 @@
 
 All notable changes to the vscode-chat extension will be documented in this file. This follows the [Keep a Changelog](http://keepachangelog.com/) format.
 
+## [0.10.0] - 2019-01-21
+
+### Added
+
+- Added support for multiple workspaces in Slack. Run the `Sign in with Slack` command to add new workspaces; Use the tree view to change between Slack workspaces.
+
+### Fixed
+
+- Render attachments in Discord messages.
+- Usability improvements in selecting which Slack channels should be shown.
+
 ## [0.9.2] - 2019-01-04
 
 ### Fixed
