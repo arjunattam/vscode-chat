@@ -274,7 +274,8 @@ const enum EventSource {
   activity = "activity_bar",
   info = "info_message",
   slash = "slash_command",
-  vslsContacts = "vsls_contacts_panel"
+  vslsContacts = "vsls_contacts_panel",
+  vslsStarted = "vsls_started"
 }
 
 const enum EventType {
@@ -282,6 +283,8 @@ const enum EventType {
   viewOpened = "webview_opened",
   messageSent = "message_sent",
   vslsShared = "vsls_shared",
+  vslsStarted = "vsls_started",
+  vslsEnded = "vsls_ended",
   tokenConfigured = "token_configured",
   channelChanged = "channel_changed",
   authStarted = "auth_started"

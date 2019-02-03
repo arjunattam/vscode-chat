@@ -29,11 +29,16 @@ class ViewController {
   isUIReady: Boolean = false; // Vuejs loaded
   pendingMessage: UIMessage | undefined = undefined;
 
+  currentSource: EventSource | undefined;
   currentProvider: string | undefined;
   currentChannelId: string | undefined;
 
   constructor(
     private context: ExtensionContext,
+    private onUIDispose: (
+      provider: string | undefined,
+      source: EventSource | undefined
+    ) => void,
     private onUIVisible: (provider: string | undefined) => void,
     private onUIFocus: (provider: string | undefined) => void
   ) {}
@@ -50,6 +55,7 @@ class ViewController {
         () => {
           this.ui = undefined;
           this.isUIReady = false;
+          this.onUIDispose(this.currentProvider, this.currentSource);
         },
         isVisible => (isVisible ? this.onUIVisible(this.currentProvider) : null)
       );
@@ -204,9 +210,14 @@ class ViewController {
     };
   };
 
-  updateCurrentState = (provider: string, channelId: string) => {
+  updateCurrentState = (
+    provider: string,
+    channelId: string,
+    source: EventSource
+  ) => {
     this.currentProvider = provider;
     this.currentChannelId = channelId;
+    this.currentSource = source;
   };
 
   sendToUI = (uiMessage: UIMessage) => {

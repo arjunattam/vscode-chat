@@ -20,11 +20,15 @@ import { askForAuth } from "./onboarding";
 import { ConfigHelper } from "./config";
 import TelemetryReporter from "./telemetry";
 import IssueReporter from "./issues";
+import { VSLS_CHAT_CHANNEL } from "./vslsChat/utils";
 
 let store: Store;
 let manager: Manager;
 let controller: ViewController;
 let telemetry: TelemetryReporter;
+
+// Auto-start chat window config -> persists per activation
+let autoLaunchVslsChat = true;
 
 export function activate(context: vscode.ExtensionContext) {
   Logger.log("Activating vscode-chat");
@@ -34,6 +38,7 @@ export function activate(context: vscode.ExtensionContext) {
 
   controller = new ViewController(
     context,
+    (provider, source) => onUIDispose(provider, source),
     provider => {
       if (provider) {
         const lastChannelId = manager.store.getLastChannelId(provider);
@@ -196,13 +201,22 @@ export function activate(context: vscode.ExtensionContext) {
     }
 
     if (!!provider && !!channelId) {
-      controller.updateCurrentState(provider, channelId);
+      controller.updateCurrentState(provider, channelId, source);
       controller.loadUi();
 
       await setup(true, undefined);
       await manager.updateWebviewForProvider(provider, channelId);
       telemetry.record(EventType.viewOpened, source, channelId, provider);
       manager.loadChannelHistory(provider, channelId);
+    }
+  };
+
+  const onUIDispose = (
+    provider: string | undefined,
+    openSource: EventSource | undefined
+  ) => {
+    if (provider === "vsls" && openSource === EventSource.vslsStarted) {
+      autoLaunchVslsChat = false;
     }
   };
 
@@ -597,11 +611,25 @@ export function activate(context: vscode.ExtensionContext) {
           .getEnabledProviders()
           .map(e => e.provider);
 
+        const eventType = isSessionActive
+          ? EventType.vslsStarted
+          : EventType.vslsEnded;
+        telemetry.record(eventType, undefined, undefined, undefined);
+
         if (enabledProviders.indexOf("vsls") >= 0) {
           manager.store.updateCurrentUser("vsls", currentUser);
           // Now that we have teams for vsls chat -> we initialize status item
           manager.initializeViewsManager();
           manager.updateAllUI();
+
+          // Auto-start the chat window for discoverability
+          if (isSessionActive && autoLaunchVslsChat) {
+            openChatWebview({
+              providerName: "vsls",
+              channelId: VSLS_CHAT_CHANNEL.id,
+              source: EventSource.vslsStarted
+            });
+          }
         }
       }
     ),
