@@ -2,6 +2,12 @@
 
 All notable changes to the vscode-chat extension will be documented in this file. This follows the [Keep a Changelog](http://keepachangelog.com/) format.
 
+## [0.11.0] - 2019-02-03
+
+### Added
+
+- The VS Live Share chat window now shows up automatically for new VS Live Share sessions.
+
 ## [0.10.0] - 2019-01-21
 
 ### Added
