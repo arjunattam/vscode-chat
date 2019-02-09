@@ -8,9 +8,9 @@ export const RELOAD_CHANNELS = "Reload Channels...";
 
 export const TOKEN_NOT_FOUND = "Setup Team Chat to work for your account.";
 
-export const SETUP_SLACK = "Setup Slack";
+export const SETUP_SLACK = "Set up Slack";
 
-export const SETUP_DISCORD = "Setup Discord";
+export const SETUP_DISCORD = "Set up Discord";
 
 export const REPORT_ISSUE = "Report issue";
 

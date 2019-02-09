@@ -44,7 +44,7 @@ The [VS Live Share Extension Pack](https://marketplace.visualstudio.com/items?it
 
 ## with Slack and Discord
 
-Optionally, you can also setup your Slack or Discord account to continuing using the same chat provider during a Live Share session.
+Optionally, you can also set up your Slack or Discord account to continuing using the same chat provider during a Live Share session.
 
 With Slack/Discord, you can also start a new session with online team members easily. You can also use the slash commands `/live share` and `/live end` to start or end sessions in a chat window.
 
