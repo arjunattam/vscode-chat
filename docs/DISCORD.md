@@ -1,8 +1,12 @@
-## Setup Discord
+## Discord Setup
+
 
 ### Obtain token  
 #### \* \*  Edit : Both methods don't work anymore. Read this issue [here](https://github.com/discordapp/discord-api-docs/issues/847). Let's wait for RPC.
 To setup Discord inside VS Code, you need to have your **Discord token**. To obtain your token, follow the steps [given here](https://discordhelp.net/discord-token).
+
+To set up Discord inside VS Code, you need to have your **Discord token**. To obtain your token, follow the steps [given here](https://discordhelp.net/discord-token).
+
 
 This is an unofficial token setup, one that is used by other Discord clients ([Discline](https://github.com/MitchWeaver/Discline), [terminal-discord](https://github.com/xynxynxyn/terminal-discord)), and the recommended approach by a Discord team member, as [given here](https://github.com/discordapp/discord-api-docs/issues/69#issuecomment-223886862):
 
