@@ -91,6 +91,7 @@ ul.message-reactions li div:first-child {
   width: 100%;
   padding: 7px;
   font-size: inherit;
+  font-family: inherit;
   border-radius: 0;
   box-sizing: border-box;
   resize: none;
