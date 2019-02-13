@@ -1,31 +1,71 @@
-# Node.js
-# Build a general Node.js project with npm.
-# Add steps that analyze code, save build artifacts, deploy, and more:
-# https://docs.microsoft.com/azure/devops/pipelines/languages/javascript
-
-trigger:
-- master
-
-pool:
-  vmImage: 'Ubuntu-16.04'
-
-steps:
-- task: NodeTool@0
-  inputs:
-    versionSpec: '8.x'
-  displayName: 'Install Node.js'
-
-- script: |
-    export CXX="g++-4.9" CC="gcc-4.9" DISPLAY=:99.0;
-    sh -e /etc/init.d/xvfb start;
-    sleep 3;
-  displayName: 'Setup xvfb'
-
-- script: |
-    yarn install
-    yarn run vscode:prepublish
-  displayName: 'yarn install and build'
-
-- script: |
-    yarn test
-  displayName: 'yarn test'
+jobs:
+  - job: Windows
+    pool:
+      name: Hosted VS2017
+      demands: npm
+    steps:
+      - task: NodeTool@0
+        displayName: 'Use Node 8.x'
+        inputs:
+          versionSpec: 8.x
+      - task: Npm@1
+        displayName: 'Install dependencies'
+        inputs:
+          verbose: false
+      - task: Npm@1
+        displayName: 'Compile sources'
+        inputs:
+          command: custom
+          verbose: false
+          customCommand: 'run compile'
+      - script: 'node node_modules/vscode/bin/test'
+        displayName: 'Run tests'
+  - job: macOS
+    pool:
+      name: Hosted macOS
+      demands: npm
+    steps:
+      - task: NodeTool@0
+        displayName: 'Use Node 8.x'
+        inputs:
+          versionSpec: 8.x
+      - task: Npm@1
+        displayName: 'Install dependencies'
+        inputs:
+          verbose: false
+      - task: Npm@1
+        displayName: 'Compile sources'
+        inputs:
+          command: custom
+          verbose: false
+          customCommand: 'run compile'
+      - script: 'node node_modules/vscode/bin/test'
+        displayName: 'Run tests'
+  - job: Linux
+    pool:
+      name: Hosted Ubuntu 1604
+      demands: npm
+    steps:
+      - task: NodeTool@0
+        displayName: 'Use Node 8.x'
+        inputs:
+          versionSpec: 8.x
+      - task: Npm@1
+        displayName: 'Install dependencies'
+        inputs:
+          verbose: false
+      - task: Npm@1
+        displayName: 'Compile sources'
+        inputs:
+          command: custom
+          verbose: false
+          customCommand: 'run compile'
+      - script: |
+          set -e
+          /usr/bin/Xvfb :10 -ac >> /tmp/Xvfb.out 2>&1 &
+          disown -ar
+        displayName: 'Start xvfb'
+      - script: 'node node_modules/vscode/bin/test'
+        displayName: 'Run tests'
+        env:
+          DISPLAY: :10
