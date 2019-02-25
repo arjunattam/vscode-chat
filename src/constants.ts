@@ -1,6 +1,7 @@
 export const CONFIG_ROOT = "chat";
 export const EXTENSION_ID = "karigari.chat";
 export const OUTPUT_CHANNEL_NAME = "Team Chat";
+export const CONFIG_AUTO_LAUNCH = "chat.autoLaunchLiveShareChat";
 
 // Is there a way to get this url from the vsls extension?
 export const LIVE_SHARE_BASE_URL = `insiders.liveshare.vsengsaas.visualstudio.com`;

@@ -11,6 +11,7 @@ import {
   DISCORD_OAUTH,
   LIVE_SHARE_BASE_URL,
   CONFIG_ROOT,
+  CONFIG_AUTO_LAUNCH,
   TRAVIS_SCHEME
 } from "./constants";
 import travis from "./bots/travis";
@@ -28,7 +29,7 @@ let controller: ViewController;
 let telemetry: TelemetryReporter;
 
 // Auto-start chat window config -> persists per activation
-let autoLaunchVslsChat = true;
+let autoLaunchVslsChatInSession = true;
 
 export function activate(context: vscode.ExtensionContext) {
   Logger.log("Activating vscode-chat");
@@ -216,7 +217,7 @@ export function activate(context: vscode.ExtensionContext) {
     openSource: EventSource | undefined
   ) => {
     if (provider === "vsls" && openSource === EventSource.vslsStarted) {
-      autoLaunchVslsChat = false;
+      autoLaunchVslsChatInSession = false;
     }
   };
 
@@ -445,7 +446,13 @@ export function activate(context: vscode.ExtensionContext) {
     const affectsExtension = event.affectsConfiguration(CONFIG_ROOT);
 
     if (affectsExtension) {
-      reset();
+      // We can have a tighter check here to prevent losing slack/discord setup
+      // whenever the config changes.
+      const needsReset = !event.affectsConfiguration(CONFIG_AUTO_LAUNCH);
+
+      if (needsReset) {
+        reset();
+      }
     }
   };
 
@@ -623,6 +630,10 @@ export function activate(context: vscode.ExtensionContext) {
           manager.updateAllUI();
 
           // Auto-start the chat window for discoverability
+          const autoLaunchVslsChatConfig = ConfigHelper.getAutoLaunchLiveShareChat();
+          const autoLaunchVslsChat =
+            autoLaunchVslsChatInSession && autoLaunchVslsChatConfig;
+
           if (isSessionActive && autoLaunchVslsChat) {
             openChatWebview({
               providerName: "vsls",

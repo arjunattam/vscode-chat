@@ -60,6 +60,11 @@
           "type": "array",
           "default": null,
           "description": "[Experimental] Open bot links inside VS Code. For travis-ci.org, set configuration [\"travis\"]."
+        },
+        "chat.autoLaunchLiveShareChat": {
+          "type": "boolean",
+          "default": true,
+          "description": "If enabled, the Live Share Chat window will auto-launch when a collaboration session is started."
         }
       }
     },
