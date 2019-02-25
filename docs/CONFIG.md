@@ -29,3 +29,13 @@ This extension collects anonymized telemetry data to improve the product. This r
   "telemetry.enableTelemetry": false
 }
 ```
+
+## Auto-launch Live Share Chat
+
+By default, the extension auto-launches the Live Share Chat window every time a new Live Share session is started. This behaviour can be disabled:
+
+```json
+{
+  "chat.autoLaunchLiveShareChat": false
+}
+```

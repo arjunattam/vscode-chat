@@ -88,6 +88,11 @@ export class ConfigHelper {
     return rejectTlsUnauthorized;
   }
 
+  static getAutoLaunchLiveShareChat() {
+    const { autoLaunchLiveShareChat } = this.getRootConfig();
+    return autoLaunchLiveShareChat;
+  }
+
   static hasTelemetry(): boolean {
     const config = vscode.workspace.getConfiguration(TELEMETRY_CONFIG_ROOT);
     return !!config.get<boolean>(TELEMETRY_CONFIG_KEY);

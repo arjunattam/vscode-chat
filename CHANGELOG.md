@@ -2,6 +2,12 @@
 
 All notable changes to the vscode-chat extension will be documented in this file. This follows the [Keep a Changelog](http://keepachangelog.com/) format.
 
+## [0.12.0] - 2019-02-24
+
+### Added
+
+- New configuration option to disable auto-launching the Live Share Chat window on a new Live Share session: `"chat.autoLaunchLiveShareChat": false`.
+
 ## [0.11.0] - 2019-02-03
 
 ### Added
