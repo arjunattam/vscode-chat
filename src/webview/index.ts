@@ -1,15 +1,12 @@
 import * as vscode from "vscode";
 import * as path from "path";
-import {
-  ExtensionMessage,
-  UIMessage,
-  UIMessageGroup,
-  UIMessageDateGroup,
-  SlackChannelMessages,
-  SlackUsers
-} from "../interfaces";
+import { toDateString } from "../utils";
 
 const SAME_GROUP_TIME = 5 * 60; // seconds
+
+interface MessageWithUnread extends Message {
+  isUnread: boolean;
+}
 
 export default class WebviewContainer {
   panel: vscode.WebviewPanel;
@@ -25,8 +22,8 @@ export default class WebviewContainer {
     });
 
     this.panel = vscode.window.createWebviewPanel(
-      "slackPanel",
-      "Slack",
+      "chatPanel",
+      "Chat",
       vscode.ViewColumn.Beside,
       {
         enableScripts: true,
@@ -35,7 +32,7 @@ export default class WebviewContainer {
       }
     );
 
-    this.panel.webview.html = getWebviewContent(staticPath);
+    this.panel.webview.html = getWebviewContent(staticPath.toString());
 
     // Handle on did dispose for webview panel
     this.panel.onDidDispose(() => this.onDidDispose());
@@ -54,45 +51,53 @@ export default class WebviewContainer {
   }
 
   update(uiMessage: UIMessage) {
-    const { messages, users } = uiMessage;
-    const groups = this.getMessageGroups(messages, users);
+    const { messages, users, channel, currentUser } = uiMessage;
+    const annotated = this.getAnnotatedMessages(messages, channel, currentUser);
+    const groups = this.getMessageGroups(annotated, users);
     this.panel.webview.postMessage({ ...uiMessage, messages: groups });
-    this.panel.title = uiMessage.channelName;
+    this.panel.title = !!channel ? channel.name : "";
   }
 
   reveal() {
     this.panel.reveal();
   }
 
-  getLocaleDateString(date: Date) {
-    // Returns ISO-format date string for a given date
-    let month = date.getMonth().toString();
-    let day = date.getDate().toString();
+  getAnnotatedMessages(
+    messages: ChannelMessages,
+    channel: Channel,
+    currentUser: CurrentUser
+  ): ChannelMessages {
+    if (!!channel) {
+      // Annotates every message with isUnread (boolean)
+      const { readTimestamp } = channel;
+      let result: { [ts: string]: MessageWithUnread } = {};
 
-    if (month.length === 1) {
-      month = `0${month}`;
+      Object.keys(messages).forEach(ts => {
+        const message = messages[ts];
+        const isDifferentUser = message.userId !== currentUser.id;
+        const isUnread =
+          !!readTimestamp && isDifferentUser && +ts > +readTimestamp;
+
+        result[ts] = { ...message, isUnread };
+      });
+      return result;
+    } else {
+      return messages;
     }
-
-    if (day.length === 1) {
-      day = `0${day}`;
-    }
-
-    return `${date.getFullYear()}-${month}-${day}`;
   }
 
-  getMessageGroups(
-    input: SlackChannelMessages,
-    users: SlackUsers
-  ): UIMessageDateGroup[] {
-    let result = {};
+  getMessageGroups(input: ChannelMessages, users: Users): UIMessageDateGroup[] {
+    let result: { [date: string]: ChannelMessages } = {};
+
     Object.keys(input).forEach(ts => {
       const date = new Date(+ts * 1000);
-      const dateStr = this.getLocaleDateString(date);
+      const dateStr = toDateString(date);
       if (!(dateStr in result)) {
         result[dateStr] = {};
       }
       result[dateStr][ts] = input[ts];
     });
+
     return Object.keys(result)
       .sort((a, b) => a.localeCompare(b))
       .map(date => {
@@ -106,8 +111,8 @@ export default class WebviewContainer {
   }
 
   getMessageGroupsForDate(
-    input: SlackChannelMessages,
-    users: SlackUsers
+    input: ChannelMessages,
+    users: Users
   ): UIMessageGroup[] {
     const timestamps = Object.keys(input).sort((a, b) => +a - +b); // ascending
 
@@ -154,13 +159,18 @@ export default class WebviewContainer {
     const { current, groups } = result;
     return current.ts ? [...groups, current] : groups;
   }
+
+  isVisible() {
+    return this.panel.visible;
+  }
 }
 
-function getWebviewContent(staticPath) {
+function getWebviewContent(staticPath: string) {
   const vueImports = `
     <script src="${staticPath}/static.js"></script>
     <link rel="stylesheet" type="text/css" href="${staticPath}/static.css"></link>
   `;
+  const vuePath = `${staticPath}/vue.js`;
   const { fontFamily, fontSize } = vscode.workspace.getConfiguration("editor");
 
   return `<!DOCTYPE html>
@@ -168,8 +178,8 @@ function getWebviewContent(staticPath) {
   <head>
       <meta charset="UTF-8">
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>Slack</title>
-      <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+      <title>Chat</title>
+      <script src="${vuePath}"></script>
       <style>code { font-family: ${fontFamily} }</style>
       <style>body { font-size: ${fontSize}px; }</style>
       ${vueImports}
@@ -179,7 +189,7 @@ function getWebviewContent(staticPath) {
           <app-container
             v-bind:messages="messages"
             v-bind:users="users"
-            v-bind:channel="channelName"
+            v-bind:channel="channel"
             v-bind:status="statusText">
           </app-container>
       </div>
@@ -190,7 +200,7 @@ function getWebviewContent(staticPath) {
             data: {
               messages: [],
               users: {},
-              channelName: "",
+              channel: {},
               statusText: ""
             }
           });
@@ -198,7 +208,7 @@ function getWebviewContent(staticPath) {
           window.addEventListener('message', event => {
             app.messages = event.data.messages;
             app.users = event.data.users;
-            app.channelName = event.data.channelName
+            app.channel = event.data.channel
             app.statusText = event.data.statusText
           });
       </script>

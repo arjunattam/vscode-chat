@@ -12,13 +12,15 @@ function openLink(href) {
   return sendMessage(href, "link");
 }
 
+function formattedTime(ts) {
+  const d = new Date(+ts * 1000);
+  return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+}
+
 Vue.component("app-container", {
   props: ["messages", "users", "channel", "status"],
   template: /* html */ `
-    <div
-      class="vue-container"
-      v-on:click="clickHandler">
-
+    <div class="vue-container">
       <messages-section
         v-bind:messages="messages"
         v-bind:users="users">
@@ -29,22 +31,17 @@ Vue.component("app-container", {
         v-bind:channel="channel"
         v-bind:status="status">
       </form-section>
-
     </div>
-  `,
-  methods: {
-    clickHandler: function(event) {
-      // When the panel is clicked, we want to focus the input
-      // UPDATE, this is disabled: this does not let you select text
-      //
-      // const { formSection } = this.$refs;
-      // return formSection ? formSection.focusInput() : null;
-    }
-  }
+  `
 });
 
 Vue.component("messages-section", {
   props: ["messages", "users"],
+  data: function() {
+    return {
+      messagesLength: 0
+    };
+  },
   template: /* html */ `
     <div class="messages-section">
       <messages-date-group
@@ -57,7 +54,16 @@ Vue.component("messages-section", {
     </div>
   `,
   updated() {
-    this.$el.scrollTop = this.$el.scrollHeight;
+    const groups = this.messages.map(dateGroup => dateGroup.groups);
+    const flattened = [].concat.apply([], groups);
+    const newLength = flattened.reduce((acc, currentGroup) => {
+      return acc + currentGroup.messages.length;
+    }, 0);
+
+    if (newLength !== this.messagesLength) {
+      this.messagesLength = newLength;
+      this.$el.scrollTop = this.$el.scrollHeight;
+    }
   }
 });
 
@@ -96,8 +102,7 @@ Vue.component("message-group", {
   props: ["messages", "allUsers", "userId", "user", "timestamp"],
   computed: {
     readableTimestamp: function() {
-      const d = new Date(+this.timestamp * 1000);
-      return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+      return formattedTime(this.timestamp);
     },
     userName: function() {
       return this.user ? this.user.name : this.userId;
@@ -108,10 +113,10 @@ Vue.component("message-group", {
       <div class="message-group-image">
         <img v-bind:src="user ? user.imageUrl : null"></img>
       </div>
-      <div>
+      <div class="message-group-content">
         <div>
           <strong>{{ userName }}</strong>
-          <span class="message-timestamp">{{ readableTimestamp }}</span>
+          <span class="timestamp">{{ readableTimestamp }}</span>
         </div>
 
         <ul class="message-list">
@@ -131,15 +136,17 @@ Vue.component("message-item", {
   props: ["message", "allUsers"],
   computed: {
     hasReplies: function() {
-      return this.message.replies.length > 0;
+      return Object.keys(this.message.replies).length > 0;
     }
   },
   template: /* html */ `
-    <li>
+    <li v-bind:class="{ unread: message.isUnread }">
       <div v-if="message.textHTML" v-html="message.textHTML"></div>
       <span v-if="message.isEdited" class="edited">(edited)</span>
       <message-reactions v-bind:reactions="message.reactions"></message-reactions>
-      <message-content v-bind:content="message.content"></message-content>
+      <message-content
+        v-if="message.content" v-bind:content="message.content">
+      </message-content>
       <message-replies
         v-if="hasReplies" v-bind:message="message" v-bind:allUsers="allUsers">
       </message-replies>
@@ -149,9 +156,40 @@ Vue.component("message-item", {
 
 Vue.component("message-replies", {
   props: ["message", "allUsers"],
+  data: function() {
+    return {
+      isExpanded: false
+    };
+  },
+  methods: {
+    expandHandler: function(event) {
+      this.isExpanded = !this.isExpanded;
+
+      if (this.isExpanded) {
+        const hasPendingText =
+          Object.keys(this.message.replies).filter(
+            replyTs => !this.message.replies[replyTs].textHTML
+          ).length > 0;
+
+        if (hasPendingText) {
+          vscode.postMessage({
+            type: "internal",
+            text: "fetch_replies",
+            parentTimestamp: this.message.timestamp
+          });
+        }
+      }
+    },
+    onSubmit: function(text) {
+      const payload = { text, parentTimestamp: this.message.timestamp };
+      sendMessage(payload, "thread_reply");
+    }
+  },
   computed: {
     imageUrls: function() {
-      const userIds = this.message.replies.map(reply => reply.userId);
+      const userIds = Object.keys(this.message.replies).map(
+        replyTs => this.message.replies[replyTs].userId
+      );
       const uniques = userIds.filter(
         (item, pos) => userIds.indexOf(item) == pos
       );
@@ -160,15 +198,62 @@ Vue.component("message-replies", {
         .filter(userId => !!this.allUsers[userId].smallImageUrl)
         .map(userId => this.allUsers[userId].smallImageUrl);
     },
+    placeholder: function() {
+      return "Reply to thread";
+    },
     count: function() {
-      return this.message.replies.length;
+      return Object.keys(this.message.replies).length;
+    },
+    expandText: function() {
+      return this.isExpanded ? "Show less" : "Show all";
     }
   },
   template: /* html */ `
     <div class="replies-container">
-      <message-replies-images v-bind:images="imageUrls"></message-replies-images>
-      <span class="replies-count">{{count}} replies</span>
+      <div class="replies-summary">
+        <message-replies-images v-bind:images="imageUrls"></message-replies-images>
+        <div>{{count}} replies</div>
+        <div><a class="pointer" v-on:click="expandHandler">{{expandText}}</a></div>
+      </div>
+      <ul v-if="isExpanded" class="replies">
+        <message-reply-item
+          v-for="reply in message.replies"
+          v-bind:key="reply.timestamp"
+          v-bind:allUsers="allUsers"
+          v-bind:userId="reply.userId"
+          v-bind:timestamp="reply.timestamp"
+          v-bind:textHTML="reply.textHTML">
+        </message-reply-item>
+      </ul>
+      <message-input
+        v-if="isExpanded"
+        v-bind:placeholder="placeholder"
+        v-bind:onSubmit="onSubmit"
+        ref="threadFormSection">
+      </message-input>
     </div>
+  `
+});
+
+Vue.component("message-reply-item", {
+  props: ["userId", "timestamp", "textHTML", "allUsers"],
+  computed: {
+    username: function() {
+      const user = this.allUsers[this.userId];
+      return !!user ? user.name : this.userId;
+    },
+    readableTimestamp: function() {
+      return formattedTime(this.timestamp);
+    }
+  },
+  template: /* html */ `
+    <li>
+      <span>
+        <strong>{{username}}</strong>
+        <span class="timestamp">{{ readableTimestamp }}:</span>
+      </span>
+      <span v-if="textHTML" v-html="textHTML"></span>
+    </li>
   `
 });
 
@@ -196,7 +281,6 @@ Vue.component("message-reactions", {
 });
 
 Vue.component("message-reaction", {
-  // TODO: add hover behaviour to show users
   props: ["emoji", "count", "users"],
   template: /* html */ `
     <li>
@@ -207,7 +291,7 @@ Vue.component("message-reaction", {
 });
 
 Vue.component("message-content", {
-  // This renders the attachment portion of the Slack message
+  // This renders the attachment portion of the message
   props: ["content"],
   computed: {
     borderColor: function() {
@@ -259,13 +343,8 @@ Vue.component("message-title", {
   `
 });
 
-Vue.component("form-section", {
-  props: ["channel", "status"],
-  computed: {
-    placeholder: function() {
-      return `Message ${this.channel}`;
-    }
-  },
+Vue.component("message-input", {
+  props: ["placeholder", "onSubmit"],
   watch: {
     text: function(newText, oldText) {
       if (newText && !newText.trim()) {
@@ -279,32 +358,36 @@ Vue.component("form-section", {
   },
   data: function() {
     return {
-      text: ""
+      text: "",
+      inComposition: false
     };
   },
   template: /* html */ `
-    <div class="form-section">
-      <form
-        v-on:submit="onSubmit">
-        <textarea
-          ref="messageInput"
-          v-model="text"
-          v-bind:placeholder="placeholder"
-          v-on:keydown="onKeydown"
-          v-on:keydown.meta.65="onSelectAll"
-          v-on:focus="onFocus"
-          v-focus
-          rows="1">
-        </textarea>
-        <input type="submit"></input>
-      </form>
-      <status-text v-bind:status="status"></status-text>
-    </div>
+    <form class="message-input-form" v-on:submit="onSubmitFunc">
+      <textarea
+        ref="messageInput"
+        v-model="text"
+        v-bind:placeholder="placeholder"
+        v-on:keydown="onKeydown"
+        v-on:keydown.meta.65="onSelectAll"
+        v-on:focus="onFocus"
+        v-focus
+        rows="1">
+      </textarea>
+      <input type="submit"></input>
+    </form>
   `,
+  mounted() {
+    this.$refs.messageInput.addEventListener("compositionstart", event => {
+      this.inComposition = true;
+    });
+    this.$refs.messageInput.addEventListener("compositionend", event => {
+      this.inComposition = false;
+    });
+  },
   methods: {
-    onSubmit: function(event) {
-      type = this.text.startsWith("/") ? "command" : "text";
-      sendMessage(this.text, type);
+    onSubmitFunc: function(event) {
+      this.onSubmit(this.text);
       this.text = "";
     },
     onFocus: function(event) {
@@ -318,7 +401,7 @@ Vue.component("form-section", {
       // Usability fixes
       // 1. Multiline support: only when shift + enter are pressed
       // 2. Submit on enter (without shift)
-      if (event.code === "Enter" && !event.shiftKey) {
+      if (event.code === "Enter" && !event.shiftKey && !this.inComposition) {
         event.preventDefault();
 
         if (this.text) {
@@ -335,7 +418,31 @@ Vue.component("form-section", {
         input.rows = expectedRows;
       }
     }
+  }
+});
+
+Vue.component("form-section", {
+  props: ["channel", "status"],
+  computed: {
+    placeholder: function() {
+      return `Message ${!!this.channel ? this.channel.name : ""}`;
+    }
   },
+  methods: {
+    onSubmit: function(text) {
+      const type = text.startsWith("/") ? "command" : "text";
+      sendMessage(text, type);
+    }
+  },
+  template: /* html */ `
+    <div class="form-section">
+      <message-input
+        v-bind:onSubmit="onSubmit"
+        v-bind:placeholder="placeholder">
+      </message-input>
+      <status-text v-bind:status="status"></status-text>
+    </div>
+  `,
   mounted() {
     return sendMessage("is_ready", "internal");
   }

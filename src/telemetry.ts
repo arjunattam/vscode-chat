@@ -1,22 +1,25 @@
 import * as vscode from "vscode";
 import * as Mixpanel from "mixpanel";
-import { MIXPANEL_TOKEN, VSLS_EXTENSION_PACK_ID } from "./constants";
-import ConfigHelper from "./config";
-import { TelemetryEvent, IStore, EventType, EventSource } from "./interfaces";
-import { getVersions, Versions, getExtension } from "./utils";
+import { MIXPANEL_TOKEN } from "./constants";
+import { ConfigHelper } from "./config";
+import Manager from "./manager";
+import { getVersions, Versions, hasVslsExtensionPack } from "./utils";
 
 const BATCH_SIZE = 10;
+const INTERVAL_TIMEOUT = 30 * 60 * 1000; // 30 mins in ms
 
-export default class Reporter implements vscode.Disposable {
+export default class TelemetryReporter implements vscode.Disposable {
   private hasUserOptIn: boolean = false;
-  private uniqueId: string;
-  private mixpanel: Mixpanel.Mixpanel;
+  private uniqueId: string | undefined; // TODO: remove undefined
+  private mixpanel: Mixpanel.Mixpanel | undefined;
   private versions: Versions;
   private hasExtensionPack: boolean;
   private pendingEvents: TelemetryEvent[] = [];
+  private interval: NodeJS.Timer | undefined;
 
-  constructor(private store: IStore) {
-    this.uniqueId = this.store.installationId;
+  constructor(private manager: Manager) {
+    const { installationId } = this.manager.store;
+    this.uniqueId = installationId;
     this.versions = getVersions();
 
     if (process.env.IS_DEBUG !== "true") {
@@ -25,9 +28,15 @@ export default class Reporter implements vscode.Disposable {
 
     if (this.hasUserOptIn) {
       this.mixpanel = Mixpanel.init(MIXPANEL_TOKEN);
+
+      this.interval = setInterval(() => {
+        if (this.pendingEvents.length > 0) {
+          return this.flushBatch();
+        }
+      }, INTERVAL_TIMEOUT);
     }
 
-    this.hasExtensionPack = !!getExtension(VSLS_EXTENSION_PACK_ID);
+    this.hasExtensionPack = hasVslsExtensionPack();
   }
 
   setUniqueId(uniqueId: string) {
@@ -35,20 +44,27 @@ export default class Reporter implements vscode.Disposable {
   }
 
   dispose(): Promise<any> {
+    if (!!this.interval) {
+      clearInterval(this.interval);
+    }
+
     if (this.pendingEvents.length > 0) {
       return this.flushBatch();
     }
+
+    return Promise.resolve();
   }
 
   record(
     name: EventType,
     source: EventSource | undefined,
-    channelId: string | undefined
+    channelId: string | undefined, // TODO: change this to channelType
+    provider: string | undefined
   ) {
     let channelType = undefined;
 
-    if (!!channelId) {
-      const channel = this.store.getChannel(channelId);
+    if (!!channelId && !!provider) {
+      const channel = this.manager.getChannel(provider, channelId);
       channelType = !!channel ? channel.type : undefined;
     }
 
@@ -56,6 +72,7 @@ export default class Reporter implements vscode.Disposable {
       type: name,
       time: new Date(),
       properties: {
+        provider,
         source: source,
         channel_type: channelType
       }
@@ -73,15 +90,16 @@ export default class Reporter implements vscode.Disposable {
   getMxEvent(event: TelemetryEvent): Mixpanel.Event {
     const { os, extension, editor } = this.versions;
     const { type: name, properties, time } = event;
+    const { provider } = properties;
     return {
       event: name,
       properties: {
         distinct_id: this.uniqueId,
-        // TODO: move versions to user properties?
         extension_version: extension,
         os_version: os,
         editor_version: editor,
         has_extension_pack: this.hasExtensionPack,
+        is_authenticated: this.manager.isAuthenticated(provider),
         ...properties,
         time
       }
@@ -94,14 +112,18 @@ export default class Reporter implements vscode.Disposable {
     this.pendingEvents = [];
 
     return new Promise((resolve, reject) => {
-      this.mixpanel.track_batch(events, error => {
-        if (!error) {
-          resolve();
-        } else {
-          // We are not going to retry with `copy`
-          reject();
-        }
-      });
+      if (!this.mixpanel) {
+        resolve();
+      } else {
+        this.mixpanel.track_batch(events, error => {
+          if (!error) {
+            resolve();
+          } else {
+            // We are not going to retry with `copy`
+            reject();
+          }
+        });
+      }
     });
   }
 }

@@ -1,265 +1,741 @@
 import * as vscode from "vscode";
 import * as vsls from "vsls/vscode";
-import SlackMessenger from "./messenger";
 import ViewController from "./controller";
-import Store from "./store";
+import Manager from "./manager";
 import Logger from "./logger";
+import { Store } from "./store";
 import * as str from "./strings";
 import {
-  SlackChannel,
-  ChatArgs,
-  SlackCurrentUser,
-  EventType,
-  EventSource
-} from "./interfaces";
-import { SelfCommands, SLACK_OAUTH } from "./constants";
-import { VSLS_EXTENSION_ID, CONFIG_ROOT, TRAVIS_SCHEME } from "./constants";
-import ChatTreeProviders from "./tree";
-import travis from "./providers/travis";
-import { ExtensionUriHandler } from "./uri";
-import { openUrl, getExtension } from "./utils";
-import ConfigHelper from "./config";
-import Reporter from "./telemetry";
+  SelfCommands,
+  SLACK_OAUTH,
+  DISCORD_OAUTH,
+  LIVE_SHARE_BASE_URL,
+  CONFIG_ROOT,
+  CONFIG_AUTO_LAUNCH,
+  TRAVIS_SCHEME
+} from "./constants";
+import travis from "./bots/travis";
+import { ExtensionUriHandler } from "./uriHandler";
+import * as utils from "./utils";
+import { askForAuth } from "./onboarding";
+import { ConfigHelper } from "./config";
+import TelemetryReporter from "./telemetry";
+import IssueReporter from "./issues";
+import { VSLS_CHAT_CHANNEL } from "./vslsChat/utils";
 
-let store: Store | undefined = undefined;
-let controller: ViewController | undefined = undefined;
-let chatTreeProvider: ChatTreeProviders | undefined = undefined;
-let messenger: SlackMessenger | undefined = undefined;
-let reporter: Reporter | undefined = undefined;
+let store: Store;
+let manager: Manager;
+let controller: ViewController;
+let telemetry: TelemetryReporter;
+
+// Auto-start chat window config -> persists per activation
+let autoLaunchVslsChatInSession = true;
 
 export function activate(context: vscode.ExtensionContext) {
-  Logger.log("Activating Slack Chat");
+  Logger.log("Activating vscode-chat");
   store = new Store(context);
-  reporter = new Reporter(store);
+  manager = new Manager(store);
+  telemetry = new TelemetryReporter(manager);
 
   controller = new ViewController(
     context,
-    () => store.loadChannelHistory(store.lastChannelId),
-    () => store.updateReadMarker(),
-    text => sendMessage(text)
+    (provider, source) => onUIDispose(provider, source),
+    provider => {
+      if (provider) {
+        const lastChannelId = manager.store.getLastChannelId(provider);
+
+        if (lastChannelId) {
+          return manager.loadChannelHistory(provider, lastChannelId);
+        }
+      }
+    },
+    provider => (!!provider ? manager.updateReadMarker(provider) : undefined)
   );
-  store.setUiCallback(uiMessage => controller.sendToUI(uiMessage));
 
-  const setup = (): Promise<any> => {
-    let messengerPromise: Promise<SlackCurrentUser>;
-    const isConnected = !!messenger && messenger.isConnected();
-    const hasUser = !!store.currentUserInfo;
+  const setupFreshInstall = () => {
+    const installationId = manager.store.generateInstallationId();
+    telemetry.setUniqueId(installationId);
+    telemetry.record(
+      EventType.extensionInstalled,
+      undefined,
+      undefined,
+      undefined
+    );
+  };
 
-    if (!store.installationId) {
-      store.generateInstallationId();
-      const { installationId } = store;
-      reporter.setUniqueId(installationId);
+  const handleNoToken = (canPromptForAuth: boolean) => {
+    if (canPromptForAuth && !utils.hasVslsExtension()) {
+      askForAuth();
+    }
 
-      if (!hasUser) {
-        reporter.record(EventType.extensionInstalled, undefined, undefined);
+    throw new Error(str.TOKEN_NOT_FOUND);
+  };
+
+  const setup = async (
+    canPromptForAuth: boolean,
+    newInitialState: InitialState | undefined
+  ): Promise<any> => {
+    await store.runStateMigrations();
+
+    if (!manager.store.installationId) {
+      setupFreshInstall();
+    }
+
+    if (!manager.isTokenInitialized || !!newInitialState) {
+      // We force initialization if we are provided a newInitialState
+      await manager.initializeToken(newInitialState);
+
+      if (!manager.isTokenInitialized) {
+        handleNoToken(canPromptForAuth);
       }
     }
 
-    if (isConnected && hasUser) {
-      messengerPromise = Promise.resolve(store.currentUserInfo);
+    await manager.initializeProviders();
+
+    if (manager.isProviderEnabled("discord")) {
+      if (!manager.getCurrentTeamIdFor("discord")) {
+        await askForWorkspace("discord");
+      }
+    }
+
+    // TODO: In discord, user preferences are available after channels are fetched
+    manager.updateUserPrefsForAll(); // async update
+    await manager.initializeStateForAll();
+    manager.subscribePresenceForAll();
+    return manager.initializeVslsContactProvider();
+  };
+
+  const sendMessage = (
+    providerName: string,
+    text: string,
+    parentTimestamp: string | undefined
+  ) => {
+    const lastChannelId = manager.store.getLastChannelId(providerName);
+    telemetry.record(
+      EventType.messageSent,
+      undefined,
+      lastChannelId,
+      providerName
+    );
+    manager.updateReadMarker(providerName);
+
+    if (!!lastChannelId) {
+      // lastChannelId should always exist since this will only be
+      // called after loading the webview (which requires lastChannelId)
+      return manager.sendMessage(
+        providerName,
+        text,
+        lastChannelId,
+        parentTimestamp
+      );
+    }
+  };
+
+  const askForChannel = async (
+    providerName: string | undefined
+  ): Promise<{ channel: Channel; providerName: string } | undefined> => {
+    // This can be called with an undefined providerName, in which
+    // case we show channels from all available providers.
+    let channelList = manager
+      .getChannelLabels(providerName)
+      .sort((a, b) => b.unread - a.unread);
+
+    const quickpickItems: vscode.QuickPickItem[] = channelList.map(
+      channelLabel => ({
+        label: channelLabel.label,
+        detail: channelLabel.channel.categoryName,
+        description: `${channelLabel.providerName} · ${channelLabel.teamName}`
+      })
+    );
+    const selected = await vscode.window.showQuickPick(
+      [...quickpickItems, { label: str.RELOAD_CHANNELS }],
+      {
+        placeHolder: str.CHANGE_CHANNEL_TITLE,
+        matchOnDetail: true,
+        matchOnDescription: true
+      }
+    );
+
+    if (!!selected) {
+      if (selected.label === str.RELOAD_CHANNELS) {
+        let currentProvider = providerName;
+
+        if (!currentProvider) {
+          const providers = manager.store
+            .getCurrentUserForAll()
+            .map(userInfo => userInfo.provider);
+          currentProvider = await askForProvider(providers);
+        }
+
+        if (!!currentProvider) {
+          await manager.fetchUsers(currentProvider);
+          await manager.fetchChannels(currentProvider);
+          return askForChannel(providerName);
+        }
+      }
+
+      const selectedChannelLabel = channelList.find(
+        x =>
+          x.label === selected.label &&
+          x.channel.categoryName === selected.detail
+      );
+
+      if (!!selectedChannelLabel) {
+        const { channel, providerName } = selectedChannelLabel;
+        return { channel, providerName: providerName.toLowerCase() };
+      }
+    }
+  };
+
+  const openChatWebview = async (chatArgs?: ChatArgs) => {
+    let provider = !!chatArgs ? chatArgs.providerName : undefined;
+    let channelId = !!chatArgs ? chatArgs.channelId : undefined;
+    const source = !!chatArgs ? chatArgs.source : EventSource.command;
+
+    if (!chatArgs) {
+      const selected = await askForChannel(undefined);
+
+      if (!!selected) {
+        provider = selected.providerName;
+        channelId = selected.channel.id;
+      }
+    }
+
+    if (!!provider && !!channelId) {
+      controller.updateCurrentState(provider, channelId, source);
+      controller.loadUi();
+
+      await setup(true, undefined);
+      await manager.updateWebviewForProvider(provider, channelId);
+      telemetry.record(EventType.viewOpened, source, channelId, provider);
+      manager.loadChannelHistory(provider, channelId);
+    }
+  };
+
+  const onUIDispose = (
+    provider: string | undefined,
+    openSource: EventSource | undefined
+  ) => {
+    if (provider === "vsls" && openSource === EventSource.vslsStarted) {
+      autoLaunchVslsChatInSession = false;
+    }
+  };
+
+  const askForWorkspace = async (
+    provider: string
+  ): Promise<Team | undefined> => {
+    const currentUserInfo = manager.store.getCurrentUser(provider);
+
+    if (!!currentUserInfo) {
+      const { teams } = currentUserInfo;
+      const labels = teams.map(team => team.name);
+
+      const selected = await vscode.window.showQuickPick([...labels], {
+        placeHolder: str.CHANGE_WORKSPACE_TITLE
+      });
+
+      if (!!selected) {
+        return teams.find(team => team.name === selected);
+      }
+    }
+  };
+
+  const changeWorkspace = async (providerAndTeam?: any) => {
+    let provider: string | undefined, team;
+
+    if (!providerAndTeam) {
+      const currentUsers = manager.store.getCurrentUserForAll();
+      const withMultipleTeams = currentUsers.filter(
+        userInfo => userInfo.teams.length > 1
+      );
+      provider = await askForProvider(
+        withMultipleTeams.map(userInfo => userInfo.provider)
+      );
+
+      if (!provider) {
+        return;
+      }
+
+      const userInfo = withMultipleTeams.find(
+        userInfo => userInfo.provider === provider
+      );
+
+      if (!!userInfo) {
+        const teamNames = userInfo.teams.map(team => team.name);
+        const selection = await vscode.window.showQuickPick(teamNames, {
+          placeHolder: str.CHANGE_PROVIDER_TITLE
+        });
+
+        if (selection) {
+          team = userInfo.teams.find(team => team.name === selection);
+        }
+      }
     } else {
-      messenger = new SlackMessenger(store);
-      messengerPromise = messenger.start();
+      provider = providerAndTeam.provider;
+      team = providerAndTeam.team;
     }
 
-    return messengerPromise
-      .then(currentUser => {
-        store.updateCurrentUser(currentUser);
-        return store.getUsersPromise();
-      })
-      .then(() => {
-        // Presence subscription assumes we have store.users
-        messenger.subscribePresence();
-        return store.getChannelsPromise();
-      })
-      .catch(error => Logger.log(error));
-  };
+    if (provider && team) {
+      const isDifferentTeam = team.id !== manager.getCurrentTeamIdFor(provider);
 
-  const sendMessage = (text: string): Promise<void> => {
-    if (!!messenger) {
-      const { lastChannelId } = store;
-      reporter.record(EventType.messageSent, undefined, lastChannelId);
-      return messenger.sendMessage(text, lastChannelId);
-    }
-  };
-
-  const askForChannel = (): Promise<SlackChannel> => {
-    return setup().then(() => {
-      let channelList = store
-        .getChannelLabels()
-        .sort((a, b) => b.unread - a.unread);
-      const placeHolder = str.CHANGE_CHANNEL_TITLE;
-      const labels = channelList.map(c => `${c.label}`);
-
-      return vscode.window
-        .showQuickPick([...labels, str.RELOAD_CHANNELS], { placeHolder })
-        .then(selected => {
-          if (selected) {
-            if (selected === str.RELOAD_CHANNELS) {
-              return store
-                .fetchUsers()
-                .then(() => store.fetchChannels())
-                .then(() => askForChannel());
-            }
-            const selectedChannel = channelList.find(x => x.label === selected);
-            store.updateLastChannelId(selectedChannel.id);
-            return selectedChannel;
-          }
-        });
-    });
-  };
-
-  const getChatChannelId = (args?: ChatArgs): Promise<string> => {
-    const { lastChannelId } = store;
-    let channelIdPromise: Promise<string> = null;
-
-    if (!channelIdPromise && !!lastChannelId) {
-      channelIdPromise = Promise.resolve(lastChannelId);
-    }
-
-    if (!!args) {
-      if (!!args.channel) {
-        // We have a channel in args
-        const { channel } = args;
-        store.updateLastChannelId(channel.id);
-        channelIdPromise = Promise.resolve(channel.id);
-      } else if (!!args.user) {
-        // We have a user, but no corresponding channel
-        // So we create one
-        channelIdPromise = store.createIMChannel(args.user).then(channel => {
-          return store.updateLastChannelId(channel.id).then(() => {
-            return channel.id;
-          });
-        });
+      if (isDifferentTeam) {
+        manager.updateCurrentWorkspace(provider, team);
+        await manager.clearOldWorkspace(provider);
+        await setup(false, { provider, teamId: team.id });
       }
     }
-
-    return !!channelIdPromise
-      ? channelIdPromise
-      : askForChannel().then(channel => channel.id);
   };
 
-  const openSlackPanel = (args?: ChatArgs) => {
-    controller.loadUi();
-
-    setup()
-      .then(() => getChatChannelId(args))
-      .then(() => {
-        store.updateWebviewUI();
-        const { lastChannelId } = store;
-        const hasArgs = !!args && !!args.source;
-        reporter.record(
-          EventType.viewOpened,
-          hasArgs ? args.source : EventSource.palette,
-          lastChannelId
-        );
-        store.loadChannelHistory(lastChannelId);
-      })
-      .catch(error => console.error(error));
-  };
-
-  const changeChannel = (args?: any) => {
-    const hasArgs = !!args && !!args.source;
-    reporter.record(
+  const changeChannel = async (args?: ChatArgs) => {
+    const provider = args ? args.providerName : undefined;
+    telemetry.record(
       EventType.channelChanged,
-      hasArgs ? args.source : EventSource.palette,
-      undefined
+      !!args ? args.source : EventSource.command,
+      undefined,
+      provider
     );
-    return askForChannel().then(() => openSlackPanel());
+
+    const selected = await askForChannel(provider);
+
+    if (!!selected) {
+      let chatArgs: any = { ...args };
+      chatArgs.channelId = selected.channel.id;
+      chatArgs.providerName = selected.providerName;
+      return openChatWebview(chatArgs);
+    }
   };
 
-  const shareVslsLink = async (args?: ChatArgs) => {
-    const liveshare = await vsls.getApiAsync();
-    // liveshare.share() creates a new session if required
-    const vslsUri = await liveshare.share({ suppressNotification: true });
+  const shareVslsLink = async (chatArgs: ChatArgs) => {
+    // This method can assume chatArgs to have one of channel and user
+    const { providerName } = chatArgs;
+    const liveshare = await vsls.getApi();
 
-    if (!messenger) {
-      await setup();
+    if (!!liveshare) {
+      const vslsUri = await liveshare.share({ suppressNotification: true });
+      let channelId = chatArgs.channelId;
+      const user = chatArgs.user;
+
+      if (!channelId && user) {
+        const newChannel = await manager.createIMChannel(
+          chatArgs.providerName,
+          user
+        );
+
+        if (!!newChannel) {
+          channelId = newChannel.id;
+        }
+      }
+
+      telemetry.record(
+        EventType.vslsShared,
+        EventSource.activity,
+        channelId,
+        providerName
+      );
+
+      if (vslsUri && channelId) {
+        manager.sendMessage(
+          providerName,
+          vslsUri.toString(),
+          channelId,
+          undefined
+        );
+      }
+    }
+  };
+
+  const startOAuth = (args?: any) => {
+    const hasArgs = !!args && !!args.source;
+    const provider = "slack"; // Only Slack OAuth is supported
+    const urls = {
+      slack: SLACK_OAUTH,
+      discord: DISCORD_OAUTH
+    };
+    telemetry.record(
+      EventType.authStarted,
+      hasArgs ? args.source : EventSource.command,
+      undefined,
+      provider
+    );
+    return utils.openUrl(urls[provider]);
+  };
+
+  const reset = async () => {
+    // Reset clears all state from local storage (except for vsls chat
+    // related state, since that does not get affected via call paths to reset)
+    manager.clearAll();
+    manager.updateAllUI();
+    await setup(false, undefined);
+  };
+
+  const signout = async () => {
+    await manager.signout();
+  };
+
+  const updateSelfPresence = async (
+    provider: string,
+    presence: UserPresence
+  ) => {
+    const isSlack = provider === "slack";
+    let durationInMinutes = 0;
+
+    if (presence === UserPresence.doNotDisturb && isSlack) {
+      // Ask for duration for dnd.snooze for slack implementation
+      const options: { [label: string]: number } = {
+        "20 minutes": 20,
+        "1 hour": 60,
+        "2 hours": 120,
+        "4 hours": 240,
+        "8 hours": 480,
+        "24 hours": 1440
+      };
+      const selected = await vscode.window.showQuickPick(Object.keys(options), {
+        placeHolder: str.SELECT_DND_DURATION
+      });
+      durationInMinutes = !!selected ? options[selected] : 0;
     }
 
-    let channelId: string = await getChatChannelId(args);
-    // TODO: we are not tracking `/live share` events
-    reporter.record(EventType.vslsShared, EventSource.activity, channelId);
-    messenger.sendMessage(vslsUri.toString(), channelId);
+    manager.updateSelfPresence(provider, presence, durationInMinutes);
   };
 
-  const authenticate = (args?: any) => {
-    const hasArgs = !!args && !!args.source;
-    reporter.record(
-      EventType.authStarted,
-      hasArgs ? args.source : EventSource.palette,
-      undefined
-    );
-    return openUrl(SLACK_OAUTH);
+  const askForSelfPresence = async () => {
+    // Called when user triggers a change for self presence
+    // using manual command.
+    const enabledProviders = manager
+      .getEnabledProviders()
+      .map(element => element.provider);
+    const provider = enabledProviders.find(provider => provider !== "vsls");
+
+    if (!!provider) {
+      const isSlack = provider === "slack";
+      const currentPresence = manager.getCurrentUserPresence(provider);
+      const presenceChoices = [
+        UserPresence.available,
+        UserPresence.doNotDisturb,
+        UserPresence.invisible
+      ];
+
+      if (!isSlack) {
+        // Slack does not have the idle option
+        presenceChoices.push(UserPresence.idle);
+      }
+
+      const items: vscode.QuickPickItem[] = presenceChoices.map(choice => {
+        const isCurrent = currentPresence === choice;
+        return {
+          label: utils.camelCaseToTitle(choice),
+          description: isCurrent ? "current" : ""
+        };
+      });
+      const status = await vscode.window.showQuickPick(items, {
+        placeHolder: str.SELECT_SELF_PRESENCE
+      });
+
+      if (!!status) {
+        const presence = utils.titleCaseToCamel(status.label) as UserPresence;
+        updateSelfPresence(provider, presence);
+      }
+    }
+  };
+
+  const fetchReplies = (provider: string, parentTimestamp: string) => {
+    manager.fetchThreadReplies(provider, parentTimestamp);
   };
 
   const resetConfiguration = (event: vscode.ConfigurationChangeEvent) => {
     const affectsExtension = event.affectsConfiguration(CONFIG_ROOT);
 
     if (affectsExtension) {
-      store.reset();
-      setup();
-      store.updateAllUI();
+      // We can have a tighter check here to prevent losing slack/discord setup
+      // whenever the config changes.
+      const needsReset = !event.affectsConfiguration(CONFIG_AUTO_LAUNCH);
+
+      if (needsReset) {
+        reset();
+      }
     }
   };
 
   const setVslsContext = () => {
-    const vsls = getExtension(VSLS_EXTENSION_ID);
-    const isEnabled = !!vsls;
+    const isEnabled = utils.hasVslsExtension();
+    utils.setVsContext("chat:vslsEnabled", isEnabled);
+  };
 
-    if (isEnabled) {
-      vscode.commands.executeCommand("setContext", "chat:vslsEnabled", true);
-    } else {
-      vscode.commands.executeCommand("setContext", "chat:vslsEnabled", false);
+  const askForProvider = async (enabledProviders: string[]) => {
+    const values = enabledProviders.map(name => utils.toTitleCase(name));
+    const selection = await vscode.window.showQuickPick(values, {
+      placeHolder: str.CHANGE_PROVIDER_TITLE
+    });
+    return !!selection ? selection.toLowerCase() : undefined;
+  };
+
+  const configureToken = async () => {
+    const provider = await askForProvider(["slack", "discord"]);
+    telemetry.record(
+      EventType.tokenConfigured,
+      EventSource.command,
+      undefined,
+      provider
+    );
+
+    if (!!provider) {
+      const inputToken = await vscode.window.showInputBox({
+        placeHolder: str.TOKEN_PLACEHOLDER,
+        password: true
+      });
+
+      if (!!inputToken) {
+        const sanitisedToken = utils.sanitiseTokenString(inputToken);
+
+        try {
+          const tokenUser = await manager.validateToken(
+            provider,
+            sanitisedToken
+          );
+
+          if (!!tokenUser) {
+            const teamId =
+              provider === "slack" ? tokenUser.currentTeamId : undefined;
+            return ConfigHelper.setToken(sanitisedToken, provider, teamId);
+          }
+        } catch (error) {
+          const actionItems = [str.REPORT_ISSUE];
+          const messageResult = await vscode.window.showErrorMessage(
+            str.INVALID_TOKEN(utils.toTitleCase(provider)),
+            ...actionItems
+          );
+
+          if (!!messageResult && messageResult === str.REPORT_ISSUE) {
+            const issue = `[${provider}] Invalid token`;
+            IssueReporter.openNewIssue(issue, "");
+          }
+
+          return;
+        }
+      }
     }
   };
 
-  const configureToken = () => {
-    reporter.record(EventType.tokenConfigured, EventSource.palette, undefined);
-    vscode.window
-      .showInputBox({
-        placeHolder: str.TOKEN_PLACEHOLDER,
-        password: true
-      })
-      .then(input => {
-        if (!!input) {
-          return ConfigHelper.setToken(input);
+  const chatWithVslsContact = async (item: any) => {
+    const contactProvider = manager.vslsContactProvider;
+    const contact = item.contactModel.contact;
+    let user: User | undefined;
+
+    if (!!contactProvider) {
+      const presenceProvider = contactProvider.presenceProviderName;
+      const matchedId = contactProvider.getMatchedUserId(contact.id);
+
+      if (!!matchedId) {
+        user = manager.getUserForId(presenceProvider, matchedId);
+      } else {
+        // contact.id can also be a user id
+        user = manager.getUserForId(presenceProvider, contact.id);
+      }
+
+      if (!!user) {
+        let imChannel = manager.getIMChannel(presenceProvider, user);
+
+        if (!imChannel) {
+          imChannel = await manager.createIMChannel(presenceProvider, user);
         }
-      });
+
+        if (!!imChannel) {
+          manager.store.updateLastChannelId(presenceProvider, imChannel.id);
+          openChatWebview({
+            providerName: presenceProvider,
+            channelId: imChannel.id,
+            user,
+            source: EventSource.vslsContacts
+          });
+        }
+      } else {
+        vscode.window.showInformationMessage(str.UNABLE_TO_MATCH_CONTACT);
+      }
+    }
   };
 
-  // Setup tree providers
-  chatTreeProvider = new ChatTreeProviders(store, context);
-  const treeDisposables: vscode.Disposable[] = chatTreeProvider.register();
-
   // Setup real-time messenger and updated local state
-  setup();
+  setup(true, undefined);
 
   // Setup context for conditional views
   setVslsContext();
 
   const uriHandler = new ExtensionUriHandler();
   context.subscriptions.push(
-    vscode.commands.registerCommand(SelfCommands.OPEN, openSlackPanel),
+    vscode.commands.registerCommand(SelfCommands.OPEN_WEBVIEW, openChatWebview),
+    vscode.commands.registerCommand(
+      SelfCommands.CHANGE_WORKSPACE,
+      changeWorkspace
+    ),
     vscode.commands.registerCommand(SelfCommands.CHANGE_CHANNEL, changeChannel),
-    vscode.commands.registerCommand(SelfCommands.SIGN_IN, authenticate),
+    vscode.commands.registerCommand(SelfCommands.SIGN_IN, startOAuth),
+    vscode.commands.registerCommand(SelfCommands.SIGN_OUT, signout),
+    vscode.commands.registerCommand(SelfCommands.RESET_STORE, reset),
+    vscode.commands.registerCommand(
+      SelfCommands.SETUP_NEW_PROVIDER,
+      ({ newInitialState }) => setup(false, newInitialState)
+    ),
     vscode.commands.registerCommand(
       SelfCommands.CONFIGURE_TOKEN,
       configureToken
     ),
-    vscode.commands.registerCommand(SelfCommands.LIVE_SHARE, item =>
-      shareVslsLink({
-        channel: item.channel,
-        user: item.user,
-        source: EventSource.activity
-      })
+    vscode.commands.registerCommand(
+      SelfCommands.SEND_MESSAGE,
+      ({ text, provider }) => sendMessage(provider, text, undefined)
+    ),
+    vscode.commands.registerCommand(
+      SelfCommands.SEND_THREAD_REPLY,
+      ({ text, parentTimestamp, provider }) =>
+        sendMessage(provider, text, parentTimestamp)
+    ),
+    vscode.commands.registerCommand(
+      SelfCommands.LIVE_SHARE_FROM_MENU,
+      (item: ChatTreeNode) => {
+        return shareVslsLink({
+          channelId: item.channel ? item.channel.id : undefined,
+          user: item.user,
+          providerName: item.providerName,
+          source: EventSource.activity
+        });
+      }
+    ),
+    vscode.commands.registerCommand(
+      SelfCommands.LIVE_SHARE_SLASH,
+      ({ provider }) => {
+        const channelId = manager.store.getLastChannelId(provider);
+        shareVslsLink({
+          channelId,
+          user: undefined,
+          providerName: provider,
+          source: EventSource.slash
+        });
+      }
+    ),
+    vscode.commands.registerCommand(
+      SelfCommands.LIVE_SHARE_SESSION_CHANGED,
+      ({ isSessionActive, currentUser }) => {
+        const enabledProviders = manager
+          .getEnabledProviders()
+          .map(e => e.provider);
+
+        const eventType = isSessionActive
+          ? EventType.vslsStarted
+          : EventType.vslsEnded;
+        telemetry.record(eventType, undefined, undefined, undefined);
+
+        if (enabledProviders.indexOf("vsls") >= 0) {
+          manager.store.updateCurrentUser("vsls", currentUser);
+          // Now that we have teams for vsls chat -> we initialize status item
+          manager.initializeViewsManager();
+          manager.updateAllUI();
+
+          // Auto-start the chat window for discoverability
+          const autoLaunchVslsChatConfig = ConfigHelper.getAutoLaunchLiveShareChat();
+          const autoLaunchVslsChat =
+            autoLaunchVslsChatInSession && autoLaunchVslsChatConfig;
+
+          if (isSessionActive && autoLaunchVslsChat) {
+            openChatWebview({
+              providerName: "vsls",
+              channelId: VSLS_CHAT_CHANNEL.id,
+              source: EventSource.vslsStarted
+            });
+          }
+        }
+      }
+    ),
+    vscode.commands.registerCommand(
+      SelfCommands.FETCH_REPLIES,
+      ({ parentTimestamp, provider }) => fetchReplies(provider, parentTimestamp)
+    ),
+    vscode.commands.registerCommand(
+      SelfCommands.UPDATE_MESSAGES,
+      ({ channelId, messages, provider }) => {
+        manager.updateMessages(provider, channelId, messages);
+      }
+    ),
+    vscode.commands.registerCommand(
+      SelfCommands.ADD_MESSAGE_REACTION,
+      ({ userId, msgTimestamp, channelId, reactionName, provider }) => {
+        manager.addReaction(
+          provider,
+          channelId,
+          msgTimestamp,
+          userId,
+          reactionName
+        );
+      }
+    ),
+    vscode.commands.registerCommand(
+      SelfCommands.REMOVE_MESSAGE_REACTION,
+      ({ userId, msgTimestamp, channelId, reactionName, provider }) => {
+        manager.removeReaction(
+          provider,
+          channelId,
+          msgTimestamp,
+          userId,
+          reactionName
+        );
+      }
+    ),
+    vscode.commands.registerCommand(
+      SelfCommands.UPDATE_PRESENCE_STATUSES,
+      ({ userId, presence, provider }) => {
+        manager.updatePresenceForUser(provider, userId, presence);
+      }
+    ),
+    vscode.commands.registerCommand(
+      SelfCommands.UPDATE_SELF_PRESENCE,
+      askForSelfPresence
+    ),
+    vscode.commands.registerCommand(
+      SelfCommands.UPDATE_SELF_PRESENCE_VIA_VSLS,
+      ({ presence, provider }) => updateSelfPresence(provider, presence)
+    ),
+    vscode.commands.registerCommand(SelfCommands.CHAT_WITH_VSLS_CONTACT, item =>
+      chatWithVslsContact(item)
+    ),
+    vscode.commands.registerCommand(
+      SelfCommands.CHANNEL_MARKED,
+      ({ channelId, readTimestamp, unreadCount, provider }) => {
+        return manager.updateChannelMarked(
+          provider,
+          channelId,
+          readTimestamp,
+          unreadCount
+        );
+      }
+    ),
+    vscode.commands.registerCommand(
+      SelfCommands.UPDATE_MESSAGE_REPLIES,
+      ({ provider, channelId, parentTimestamp, reply }) => {
+        manager.updateMessageReply(provider, parentTimestamp, channelId, reply);
+      }
+    ),
+    vscode.commands.registerCommand(
+      SelfCommands.HANDLE_INCOMING_LINKS,
+      ({ uri, senderId, provider }) => {
+        if (uri.authority === LIVE_SHARE_BASE_URL) {
+          const currentUser = manager.getCurrentUserFor(provider);
+          const isSomeoneElse = !!currentUser
+            ? currentUser.id !== senderId
+            : false;
+
+          if (!!manager.vslsContactProvider && isSomeoneElse) {
+            manager.vslsContactProvider.notifyInviteReceived(senderId, uri);
+          }
+        }
+      }
+    ),
+    vscode.commands.registerCommand(
+      SelfCommands.SEND_TO_WEBVIEW,
+      ({ uiMessage }) => controller.sendToUI(uiMessage)
     ),
     vscode.workspace.onDidChangeConfiguration(resetConfiguration),
     vscode.workspace.registerTextDocumentContentProvider(TRAVIS_SCHEME, travis),
     vscode.window.registerUriHandler(uriHandler),
-    ...treeDisposables,
-    store,
-    reporter
+    manager,
+    telemetry
   );
 }
 

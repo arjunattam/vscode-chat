@@ -2,13 +2,199 @@
 
 All notable changes to the vscode-chat extension will be documented in this file. This follows the [Keep a Changelog](http://keepachangelog.com/) format.
 
+## [0.12.0] - 2019-02-24
+
+### Added
+
+- New configuration option to disable auto-launching the Live Share Chat window on a new Live Share session: `"chat.autoLaunchLiveShareChat": false`.
+
+## [0.11.0] - 2019-02-03
+
+### Added
+
+- The VS Live Share chat window now shows up automatically for new VS Live Share sessions.
+
+## [0.10.0] - 2019-01-21
+
+### Added
+
+- Added support for multiple workspaces in Slack. Run the `Sign in with Slack` command to add new workspaces; Use the tree view to change between Slack workspaces.
+
+### Fixed
+
+- Render attachments in Discord messages.
+- Usability improvements in selecting which Slack channels should be shown.
+
+## [0.9.2] - 2019-01-04
+
+### Fixed
+
+- "Account is required" errors while accessing the system keychain.
+
+## [0.9.1] - 2018-12-31
+
+### Fixed
+
+- CPU load: Removed redundant extension activation events that were causing high CPU load.
+
+## [0.9.0] - 2018-12-16
+
+### Added
+
+- Chat over VS Live Share now works alongside Slack and Discord: You can now chat with your collaboration session peers through VS Live Share, even if you are logged in on other chat providers.
+- Start chat over VS Live Share from the explorer view.
+
+## [0.8.2] - 2018-11-20
+
+### Fixed
+
+- VS Live Share integration: Updated label for chat tree item.
+
+## [0.8.1] - 2018-11-20
+
+### Fixed
+
+- Inviting online users to a Live Share session creates an IM channel with the user, if not already available.
+
+## [0.8.0] - 2018-11-18
+
+### Added
+
+- Now you can update your presence status: go invisible on chat, or turn on do-not-disturb mode. Run the `Chat: Update your presence status` command (supports Slack and Discord).
+- VS Live Share integrations:
+  - Show presence statuses for VS Live Share suggested contacts (for Slack and Discord)
+  - Update your presence status from inside VS Live Share (for Slack and Discord)
+  - Open VS Live Share chat from the VS Live Share explorer views
+
+## [0.7.4] - 2018-11-05
+
+### Fixed
+
+- Fixed bad instantiation for users and channels state causing VS Live Share chat to not work.
+
+## [0.7.3] - 2018-10-16
+
+### Fixed
+
+- Fixed channel loading for Slack workspaces that cross the user limit.
+
+## [0.7.2] - 2018-10-15
+
+### Fixed
+
+- Fixed onboarding notification for Live Share users.
+
+## [0.7.1] - 2018-10-15
+
+### Added
+
+- Chat over VS Live Share RPC is the default backend for users that have the Live Share extension. Users can optionally upgrade to Slack or Discord.
+- New status bar item to open the chat window during a VS Live Share session.
+- Unread message notification and user joined/left info messages for Live Share chat.
+
+### Fixed
+
+- Slack messages are sent over websocket, to not count towards http rate limits.
+- Limit Slack channels to relevant channels only, by using the Slack conversations API.
+
+## [0.7.0] - 2018-10-11
+
+### Added
+
+- Chat with VS Live Share session participants, without relying on a chat backend like Slack/Discord. To use this, start a Live Share session and run the `Chat with VS Live Share participants` command.
+
+## [0.6.3] - 2018-10-09
+
+### Added
+
+- Added token validation for manual entry for Slack and Discord tokens.
+- Keychain access operations can now be retried in case access is denied.
+- Added workspace name to the status item notification.
+
+## [0.6.2] - 2018-09-28
+
+### Fixed
+
+- Handle deactivated Slack users, and not show their direct messages and groups (thanks [Tristan Partin](https://github.com/tristan957)).
+- Private channels are now shown under the Channels view, and not Groups.
+
+## [0.6.1] - 2018-09-22
+
+### Fixed
+
+- Fixed migration condition for pre-0.6.x installations (thanks [ACharLuk](https://github.com/acharluk)).
+
+## [0.6.0] - 2018-09-21
+
+### Added
+
+- Added support for Discord as a chat provider, in addition to Slack.
+- [Breaking] Commands are now namespaced as "Chat: ...", instead of "Slack: ...".
+- Updates to extension metadata and readme: the extension is now called Team Chat.
+
+## [0.5.11] - 2018-09-18
+
+### Added
+
+- Added support for replying to thread messages.
+
+### Fixed
+
+- Fixed rendering of duplicate thread replies.
+
+## [0.5.10] - 2018-09-17
+
+### Added
+
+- Added new configuration `chat.rejectTlsUnauthorized` for self-signed certificate users (thanks [Seth Bromberger](https://github.com/sbromberger)).
+- Load vue.js assets locally, removing dependency on the jsdelivr CDN.
+- Upgraded Slack dependency to keep up with the network library improvements upstream.
+
+## [0.5.9] - 2018-09-04
+
+### Added
+
+- Support for muted channels: new messages in muted channels do not update the unread count.
+- Added support to expand thread messages to render replies, with text and file attachments.
+- Consistency between Slack clients for unread counts: marking messages as read from other Slack clients will update the unread count.
+- Unread messages are now highlighted in the webview.
+- Added documentation for [product roadmap](VISION.md) and [adding chat providers](docs/PROVIDERS.md).
+
+### Fixed
+
+- The unread count does not include alerts for users joining/leaving channels anymore.
+
+## [0.5.8] - 2018-08-31
+
+### Added
+
+- Added support for the system keychain to store authentication tokens.
+- Added a new command to sign out from Slack.
+
+### Fixed
+
+- Fix handling of composition start/end events while composing messages (thanks [Yukai Huang](https://github.com/Yukaii)).
+- Opening Slack or changing channel without authentication now prompts users to authenticate.
+
+## [0.5.7] - 2018-08-29
+
+### Added
+
+- Added support for "Sign in with Slack" from the activity bar.
+
+### Fixed
+
+- New line characters in messages are rendered correctly.
+- Date separators show the correct month string.
+- Fixed event source property for webview telemetry.
+
 ## [0.5.6] - 2018-08-23
 
 ### Added
 
 - Slack webview font size now matches the font size of your editor.
 - Introductory support for message threads: historical messages show the number of thread replies. Future releases will build on this to add full thread replies support.
-- Added anonymized telemetry data collection; this respects the telemetry setting in your editor and you can opt-out by setting `enableTelemetry` to false.
+- Added anonymized telemetry data collection; this respects the telemetry setting in your editor and you can opt-out by setting `telemetry.enableTelemetry` to false.
 
 ### Fixed
 

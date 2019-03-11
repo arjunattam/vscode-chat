@@ -1,14 +1,24 @@
 import { APIGatewayEvent, Callback, Context, Handler } from "aws-lambda";
 import * as request from "request-promise-native";
-import errorHtml from "./error.template.html";
-import successHtml from "./success.template.html";
+import {
+  parseQueryParams,
+  getIssueUrl,
+  getRedirect,
+  getRedirectError
+} from "./utils";
+import errorHtml from "./html/error.template.html";
+import successHtml from "./html/success.template.html";
+import homeHtml from "./html/home.template.html";
 
-interface APIResponse {
-  token: string;
+interface TokenAPIResponse {
+  accessToken: string;
+  teamId?: string;
+  expiresIn?: Date;
+  refreshToken?: string;
   error: string;
 }
 
-const getSlackToken = async (code: string): Promise<APIResponse> => {
+const getSlackToken = async (code: string): Promise<TokenAPIResponse> => {
   const uri = "https://slack.com/api/oauth.access";
   var options = {
     uri,
@@ -19,49 +29,68 @@ const getSlackToken = async (code: string): Promise<APIResponse> => {
       code
     }
   };
+
   const result = await request.get(options);
-  const { ok, error, access_token } = result;
+  const { ok, error, access_token, team_id } = result;
 
   if (!ok) {
-    return { token: null, error };
+    return { accessToken: null, error };
   } else {
-    return { token: access_token, error: null };
+    return { accessToken: access_token, teamId: team_id, error: null };
   }
 };
 
-const handleSuccess = (code: string, cb: Callback) => {
-  const tokenPromise = getSlackToken(code);
-  tokenPromise.then((result: APIResponse) => {
-    // Redirect to native vscode uri
-    const { token, error } = result;
-
-    if (!token) {
-      handleError(error, cb);
-    } else {
-      const redirect = `vscode://karigari.chat/redirect?token=${token}`;
-      const response = {
-        statusCode: 200,
-        headers: {
-          "Content-Type": "text/html"
-        },
-        body: successHtml
-          .replace(/{{redirect}}/g, redirect)
-          .replace(/{{token}}/g, token)
-      };
-
-      cb(null, response);
+const getDiscordToken = async (code: string): Promise<TokenAPIResponse> => {
+  const uri = "https://discordapp.com/api/v6/oauth2/token";
+  var options = {
+    uri,
+    method: "POST",
+    formData: {
+      client_id: process.env.DISCORD_CLIENT_ID,
+      client_secret: process.env.DISCORD_CLIENT_SECRET,
+      grant_type: "authorization_code",
+      code
     }
-  });
+  };
+
+  try {
+    const result = await request.post(options);
+    const parsed = JSON.parse(result);
+    var t = new Date();
+    t.setSeconds(t.getSeconds() + parsed.expires_in);
+    return {
+      accessToken: parsed.access_token,
+      expiresIn: t,
+      refreshToken: parsed.refresh_token,
+      error: null
+    };
+  } catch (error) {
+    return { accessToken: null, error: error.message };
+  }
 };
 
-const handleError = (error: string, cb: Callback) => {
-  console.log("Running handleError:", error);
-  const encode = encodeURIComponent;
-  const title = `[oauth-service] Sign in with Slack failed: ${error}`;
-  const body = `- Extension version:\n- VS Code version:`;
-  const baseUrl = "https://github.com/karigari/vscode-chat/issues/new/";
-  const issueUrl = `${baseUrl}?title=${encode(title)}&body=${encode(body)}`;
-  const redirect = `vscode://karigari.chat/error?msg=${error}`;
+const renderSuccess = (
+  token: string,
+  service: string,
+  teamId: string,
+  cb: Callback
+) => {
+  const redirect = getRedirect(token, service, teamId);
+  const response = {
+    statusCode: 200,
+    headers: {
+      "Content-Type": "text/html"
+    },
+    body: successHtml
+      .replace(/{{redirect}}/g, redirect)
+      .replace(/{{token}}/g, token)
+  };
+  cb(null, response);
+};
+
+const renderError = (error: string, service: string, cb: Callback) => {
+  const issueUrl = getIssueUrl(error, service);
+  const redirect = getRedirectError(error, service);
   const response = {
     statusCode: 200,
     headers: {
@@ -75,19 +104,67 @@ const handleError = (error: string, cb: Callback) => {
   cb(null, response);
 };
 
-export const redirect: Handler = (
+export const slackRedirect: Handler = (
   event: APIGatewayEvent,
   context: Context,
   cb: Callback
 ) => {
-  const { queryStringParameters } = event;
-  const { code, error } = queryStringParameters;
+  const { error, code } = parseQueryParams(event);
 
   if (!!code) {
-    handleSuccess(code, cb);
+    const tokenPromise = getSlackToken(code);
+    tokenPromise.then(result => {
+      const { accessToken, error, teamId } = result;
+
+      if (!accessToken) {
+        renderError(error, "slack", cb);
+      } else {
+        renderSuccess(accessToken, "slack", teamId, cb);
+      }
+    });
   }
 
   if (!!error) {
-    handleError(error, cb);
+    renderError(error, "slack", cb);
   }
+};
+
+export const discordRedirect: Handler = (
+  event: APIGatewayEvent,
+  context: Context,
+  cb: Callback
+) => {
+  const { error, code } = parseQueryParams(event);
+
+  if (!!code) {
+    const tokenPromise = getDiscordToken(code);
+    tokenPromise.then(result => {
+      const { accessToken, error } = result;
+
+      if (!accessToken) {
+        renderError(error, "discord", cb);
+      } else {
+        renderSuccess(accessToken, "discord", "team-id", cb);
+      }
+    });
+  }
+
+  if (!!error) {
+    renderError(error, "discord", cb);
+  }
+};
+
+export const home: Handler = (
+  event: APIGatewayEvent,
+  context: Context,
+  cb: Callback
+) => {
+  const response = {
+    statusCode: 200,
+    headers: {
+      "Content-Type": "text/html"
+    },
+    body: homeHtml
+  };
+  cb(null, response);
 };

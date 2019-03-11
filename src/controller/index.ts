@@ -1,13 +1,17 @@
+import * as vscode from "vscode";
 import { ExtensionContext } from "vscode";
 import WebviewContainer from "../webview";
-import { ExtensionMessage, UIMessage } from "../interfaces";
-import { SLASH_COMMANDS, REVERSE_SLASH_COMMANDS } from "../constants";
+import {
+  SLASH_COMMANDS,
+  REVERSE_SLASH_COMMANDS,
+  SelfCommands
+} from "../constants";
 import * as str from "../strings";
 import Logger from "../logger";
 import CommandDispatch, { MessageCommand } from "./commands";
 import markdownTransform from "./markdowner";
 
-export const getCommand = (text: string): MessageCommand => {
+export const getCommand = (text: string): MessageCommand | undefined => {
   const pattern = /^\/(\w+) (\w+)$/;
   const trimmed = text.trim();
   const matched = trimmed.match(pattern);
@@ -23,13 +27,20 @@ export const getCommand = (text: string): MessageCommand => {
 class ViewController {
   ui: WebviewContainer | undefined;
   isUIReady: Boolean = false; // Vuejs loaded
-  pendingMessage: UIMessage = undefined;
+  pendingMessage: UIMessage | undefined = undefined;
+
+  currentSource: EventSource | undefined;
+  currentProvider: string | undefined;
+  currentChannelId: string | undefined;
 
   constructor(
     private context: ExtensionContext,
-    private onUIVisible: () => void,
-    private onUIFocus: () => void,
-    private messageSender: (string) => Promise<void>
+    private onUIDispose: (
+      provider: string | undefined,
+      source: EventSource | undefined
+    ) => void,
+    private onUIVisible: (provider: string | undefined) => void,
+    private onUIFocus: (provider: string | undefined) => void
   ) {}
 
   isUILoaded = () => !!this.ui;
@@ -44,8 +55,9 @@ class ViewController {
         () => {
           this.ui = undefined;
           this.isUIReady = false;
+          this.onUIDispose(this.currentProvider, this.currentSource);
         },
-        isVisible => (isVisible ? this.onUIVisible() : null)
+        isVisible => (isVisible ? this.onUIVisible(this.currentProvider) : null)
       );
       this.ui.setMessageHandler(this.sendToExtension);
     }
@@ -53,21 +65,18 @@ class ViewController {
 
   dispatchCommand(command: MessageCommand) {
     const handler = new CommandDispatch();
+
     handler.handle(command).then(result => {
       if (!!result) {
         const { sendToSlack, response } = result;
         if (sendToSlack && response) {
-          this.sendToSlack(response);
+          this.sendTextMessage(response);
         }
       }
     });
   }
 
-  isValidCommand = (text: string, commandList?: Object) => {
-    if (!commandList) {
-      commandList = SLASH_COMMANDS;
-    }
-
+  isValidCommand = (text: string, commandList: { [name: string]: any }) => {
     const parsed = getCommand(text);
 
     if (parsed) {
@@ -87,34 +96,69 @@ class ViewController {
   };
 
   handleCommand = (text: string) => {
-    if (this.isValidCommand(text)) {
+    if (this.isValidCommand(text, SLASH_COMMANDS)) {
       const parsed = getCommand(text);
-      return this.dispatchCommand(parsed);
+
+      if (!!parsed) {
+        const { namespace, subcommand } = parsed;
+
+        if (namespace === "live" && subcommand === "share") {
+          // Temporary bypass for "/live share" till we move
+          // all of this to the common command handlers
+          return vscode.commands.executeCommand(SelfCommands.LIVE_SHARE_SLASH, {
+            provider: this.currentProvider
+          });
+        } else {
+          return this.dispatchCommand(parsed);
+        }
+      }
     }
 
     if (this.isValidReverseCommand(text)) {
-      return this.sendToSlack(text);
+      return this.sendTextMessage(text);
     }
 
     // TODO(arjun): if not valid, then we need to parse and make a chat.command
     // API call, instead of sending it as a simple text message.
     // Docs: https://github.com/ErikKalkoken/slackApiDoc/blob/master/chat.command.md
-    return this.sendToSlack(text);
+    return this.sendTextMessage(text);
   };
 
-  handleInternal = (text: string) => {
+  handleInternal = (message: any) => {
+    const { text } = message;
+
     if (text === "is_ready") {
       this.isUIReady = true;
       return this.pendingMessage ? this.sendToUI(this.pendingMessage) : null;
     }
 
     if (text === "is_focused") {
-      this.onUIFocus();
+      this.onUIFocus(this.currentProvider);
+    }
+
+    if (text === "fetch_replies") {
+      const { parentTimestamp } = message;
+      vscode.commands.executeCommand(SelfCommands.FETCH_REPLIES, {
+        parentTimestamp,
+        provider: this.currentProvider
+      });
     }
   };
 
-  sendToSlack = (text: string) => {
-    return this.messageSender(text);
+  sendTextMessage = (text: string) => {
+    return vscode.commands.executeCommand(SelfCommands.SEND_MESSAGE, {
+      text,
+      provider: this.currentProvider
+    });
+  };
+
+  sendThreadReply = (payload: any) => {
+    const { text, parentTimestamp } = payload;
+    return vscode.commands.executeCommand(SelfCommands.SEND_THREAD_REPLY, {
+      text,
+      parentTimestamp,
+      provider: this.currentProvider
+    });
   };
 
   sendToExtension = (message: ExtensionMessage) => {
@@ -123,13 +167,15 @@ class ViewController {
 
     switch (type) {
       case "internal":
-        return this.handleInternal(text);
+        return this.handleInternal(message);
       case "link":
         return this.dispatchCommand({ namespace: "open", subcommand: text });
       case "command":
         return this.handleCommand(text);
       case "text":
-        return text ? this.sendToSlack(text) : null;
+        return text ? this.sendTextMessage(text) : null;
+      case "thread_reply":
+        return this.sendThreadReply(text);
     }
   };
 
@@ -137,7 +183,7 @@ class ViewController {
     // Reverse commands are slash commands fired by other Slack users
     // For example, `/live request` requests someone to host a session
     const { currentUser, messages } = uiMessage;
-    let handledMessages = {};
+    let handledMessages: ChannelMessages = {};
 
     Object.keys(messages).forEach(ts => {
       // Any of these messages might be reverse commands
@@ -164,7 +210,31 @@ class ViewController {
     };
   };
 
+  updateCurrentState = (
+    provider: string,
+    channelId: string,
+    source: EventSource
+  ) => {
+    this.currentProvider = provider;
+    this.currentChannelId = channelId;
+    this.currentSource = source;
+  };
+
   sendToUI = (uiMessage: UIMessage) => {
+    const { provider: incomingProvider, channel: incomingChannel } = uiMessage;
+
+    if (!!this.ui && this.ui.isVisible()) {
+      // The webview is visible => we check if the incoming message is valid.
+      const isSameProvider =
+        !this.currentProvider || incomingProvider === this.currentProvider;
+      const isSameChannel =
+        !this.currentChannelId || incomingChannel.id === this.currentChannelId;
+
+      if (!isSameChannel || !isSameProvider) {
+        return; // Ignore this message.
+      }
+    }
+
     if (!this.isUIReady) {
       this.pendingMessage = uiMessage;
     } else {
@@ -181,8 +251,10 @@ class ViewController {
       const message = this.handleReverseCommands(mdMessages);
 
       // Send to UI after markdown
-      this.ui.update(message);
-      this.pendingMessage = null;
+      if (this.ui) {
+        this.ui.update(message);
+        this.pendingMessage = undefined;
+      }
     }
   };
 }

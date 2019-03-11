@@ -1,8 +1,8 @@
 {
   "name": "chat",
-  "displayName": "Slack Chat",
-  "description": "Send and receive Slack chat inside VSCode",
-  "version": "0.5.6",
+  "displayName": "Team Chat: for Slack, Discord, Live Share",
+  "description": "Send and receive chat messages inside VSCode",
+  "version": "0.12.0",
   "homepage": "https://github.com/karigari/vscode-chat",
   "license": "SEE LICENSE IN LICENSE",
   "repository": {
@@ -27,58 +27,79 @@
   ],
   "keywords": [
     "slack",
+    "discord",
+    "collaboration",
     "chat",
     "live"
   ],
   "activationEvents": [
-    "*",
-    "onCommand:extension.chat.openSlackPanel",
-    "onCommand:extension.chat.changeChannel",
-    "onView:online-users-tree-view",
-    "onView:unreads-tree-view",
-    "onView:channels-tree-view",
-    "onView:groups-tree-view",
-    "onView:ims-tree-view"
+    "*"
   ],
   "main": "./out/extension",
   "contributes": {
     "configuration": {
       "type": "object",
-      "title": "Slack Chat",
+      "title": "Team Chat",
       "properties": {
         "chat.slack.legacyToken": {
           "type": "string",
           "default": null,
-          "description": "Slack token for authentication. Get yours here: https://api.slack.com/custom-integrations/legacy-tokens"
+          "description": "[Deprecated] Run the \"Sign In with Slack\" command instead."
         },
         "chat.proxyUrl": {
           "type": "string",
           "default": null,
-          "description": "Proxy URL for network connections to the Slack API."
+          "description": "Proxy URL for network connections to the Slack http/websocket requests."
+        },
+        "chat.rejectTlsUnauthorized": {
+          "type": "boolean",
+          "default": true,
+          "description": "Set this to false to accept unauthorized SSL connections. Defaults to true."
         },
         "chat.providers": {
           "type": "array",
           "default": null,
           "description": "[Experimental] Open bot links inside VS Code. For travis-ci.org, set configuration [\"travis\"]."
+        },
+        "chat.autoLaunchLiveShareChat": {
+          "type": "boolean",
+          "default": true,
+          "description": "If enabled, the Live Share Chat window will auto-launch when a collaboration session is started."
         }
       }
     },
     "commands": [
       {
-        "command": "extension.chat.openSlackPanel",
-        "title": "Slack: Open"
+        "command": "extension.chat.openChatPanel",
+        "title": "Chat: Open"
       },
       {
         "command": "extension.chat.changeChannel",
-        "title": "Slack: Change Channel"
+        "title": "Chat: Change Channel",
+        "icon": {
+          "light": "public/icons/light/search.svg",
+          "dark": "public/icons/dark/search.svg"
+        }
+      },
+      {
+        "command": "extension.chat.changeWorkspace",
+        "title": "Chat: Change Workspace"
       },
       {
         "command": "extension.chat.authenticate",
-        "title": "Slack: Sign In with Slack"
+        "title": "Chat: Sign In with Slack"
+      },
+      {
+        "command": "extension.chat.signout",
+        "title": "Chat: Sign Out"
       },
       {
         "command": "extension.chat.configureToken",
-        "title": "Slack: Configure Slack Access Token"
+        "title": "Chat: Configure Access Token"
+      },
+      {
+        "command": "extension.chat.updateSelfPresence",
+        "title": "Chat: Update your presence status"
       },
       {
         "command": "extension.chat.startLiveShare",
@@ -87,41 +108,90 @@
           "light": "public/icons/light/share.svg",
           "dark": "public/icons/dark/share.svg"
         }
+      },
+      {
+        "command": "extension.chat.startChatWithVslsContact",
+        "title": "Chat with this user",
+        "icon": {
+          "light": "public/icons/light/chat.svg",
+          "dark": "public/icons/dark/chat.svg"
+        }
       }
     ],
     "views": {
-      "chat-activity": [
+      "chatActivityViewSlack": [
         {
-          "id": "unreads-tree-view",
-          "name": "Unreads"
+          "id": "chat.treeView.workspaces.slack",
+          "name": "Workspaces",
+          "when": "chat:slack"
         },
         {
-          "id": "channels-tree-view",
-          "name": "Channels"
+          "id": "chat.treeView.unreads.slack",
+          "name": "Unreads",
+          "when": "chat:slack"
         },
         {
-          "id": "groups-tree-view",
-          "name": "Groups"
+          "id": "chat.treeView.channels.slack",
+          "name": "Channels",
+          "when": "chat:slack"
         },
         {
-          "id": "ims-tree-view",
-          "name": "Direct Messages"
+          "id": "chat.treeView.groups.slack",
+          "name": "Groups",
+          "when": "chat:slack"
+        },
+        {
+          "id": "chat.treeView.ims.slack",
+          "name": "Direct Messages",
+          "when": "chat:slack"
+        },
+        {
+          "id": "chat.treeView.onboarding.main",
+          "name": "Setup",
+          "when": "!chat:slack && !chat:discord"
         }
       ],
-      "vsliveshareTreeExplorerActivityBar": [
+      "chatActivityViewDiscord": [
         {
-          "id": "online-users-tree-view",
-          "name": "Slack Users",
-          "when": "chat:vslsEnabled"
+          "id": "chat.treeView.workspaces.discord",
+          "name": "Workspaces",
+          "when": "chat:discord"
+        },
+        {
+          "id": "chat.treeView.unreads.discord",
+          "name": "Unreads",
+          "when": "chat:discord"
+        },
+        {
+          "id": "chat.treeView.channels.discord",
+          "name": "Channels",
+          "when": "chat:discord"
+        },
+        {
+          "id": "chat.treeView.groups.discord",
+          "name": "Groups",
+          "when": "chat:discord"
+        },
+        {
+          "id": "chat.treeView.ims.discord",
+          "name": "Direct Messages",
+          "when": "chat:discord"
         }
       ]
     },
     "viewsContainers": {
       "activitybar": [
         {
-          "id": "chat-activity",
-          "title": "Slack Chat",
-          "icon": "public/icons/activity-bar-icon.svg"
+          "id": "chatActivityViewSlack",
+          "title": "Slack",
+          "icon": "public/icons/activity-bar-slack-icon.svg",
+          "when": "chat:slack"
+        },
+        {
+          "id": "chatActivityViewDiscord",
+          "title": "Discord",
+          "icon": "public/icons/activity-bar-discord-icon.svg",
+          "when": "chat:discord"
         }
       ]
     },
@@ -131,26 +201,45 @@
           "command": "extension.chat.startLiveShare",
           "when": "chat:vslsEnabled && viewItem == channel",
           "group": "inline"
+        },
+        {
+          "command": "extension.chat.startChatWithVslsContact",
+          "when": "chat:vslsEnabled && view == liveshare.contacts && viewItem == contacts.contact",
+          "group": "inline"
+        }
+      ],
+      "view/title": [
+        {
+          "command": "extension.chat.changeChannel",
+          "when": "view =~ /^chat.treeView(?!.onboarding)/",
+          "group": "navigation@1"
         }
       ]
     }
   },
   "scripts": {
     "compile": "./node_modules/.bin/webpack",
-    "postcompile": "npm run webview:setup",
-    "watch": "tsc-watch -p ./ --onSuccess \"npm run webview:setup\"",
+    "postcompile": "npm run webview:all",
+    "watch": "tsc-watch -p ./ --onSuccess \"npm run webview:copy\"",
     "postinstall": "node ./node_modules/vscode/bin/install",
     "test": "npm run compile && node ./node_modules/vscode/bin/test",
-    "webview:setup": "rm -rf static && mkdir -p static && cp src/webview/static* static/.",
+    "webview:all": "npm run webview:setup && npm run webview:copy",
+    "webview:setup": "rm -rf static && mkdir -p static && node scripts/vue.js",
+    "webview:copy": "cp -fr src/webview/static* static/.",
     "vscode:prepublish": "npm run compile"
   },
   "devDependencies": {
+    "@types/http-proxy-agent": "^2.0.0",
+    "@types/keytar": "^4.0.1",
+    "@types/markdown-it": "^0.0.7",
     "@types/mixpanel": "^2.14.0",
     "@types/mocha": "^2.2.42",
     "@types/node": "^8.0.0",
     "@types/semver": "^5.5.0",
     "@types/webpack": "^4.4.10",
     "ts-loader": "^4.5.0",
+    "@types/request-promise-native": "^1.0.15",
+    "ts-mockito": "^2.3.1",
     "tsc-watch": "^1.0.22",
     "tslint": "^5.8.0",
     "typescript": "^3.0.1",
@@ -159,8 +248,10 @@
     "webpack-cli": "^3.1.0"
   },
   "dependencies": {
-    "@slack/client": "^4.3.1",
+    "@slack/client": "^4.6.0",
+    "discord.js": "^11.4.2",
     "emoji-js": "^3.4.1",
+    "gravatar-api": "^1.5.0",
     "https-proxy-agent": "^2.2.1",
     "markdown-it": "^8.4.1",
     "markdown-it-slack": "^1.2.0",
@@ -168,6 +259,6 @@
     "request": "^2.88.0",
     "request-promise-native": "^1.0.5",
     "semver": "^5.5.1",
-    "vsls": "^0.3.426"
+    "vsls": "^0.3.934"
   }
 }

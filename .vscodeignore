@@ -11,3 +11,4 @@ tslint.json
 tokens
 oauth-service/**
 node_modules/**
+readme/**

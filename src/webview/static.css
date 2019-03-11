@@ -21,7 +21,7 @@ body,
   font-weight: normal;
 }
 
-.message-timestamp {
+.timestamp {
   color: var(--vscode-sideBar-foreground);
 }
 
@@ -41,6 +41,10 @@ body,
   min-width: 100%;
   min-height: 100%;
   border-radius: 2px;
+}
+
+.message-group-content {
+  width: 100%;
 }
 
 .message-list {
@@ -83,10 +87,11 @@ ul.message-reactions li div:first-child {
   margin-bottom: 10px;
 }
 
-.form-section textarea {
+.message-input-form textarea {
   width: 100%;
   padding: 7px;
   font-size: inherit;
+  font-family: inherit;
   border-radius: 0;
   box-sizing: border-box;
   resize: none;
@@ -94,6 +99,15 @@ ul.message-reactions li div:first-child {
   background-color: var(--vscode-input-background);
   border: 1px solid var(--vscode-sideBar-background);
   outline-color: var(--vscode-inputOption-activeBorder);
+}
+
+.message-input-form input[type="submit"] {
+  display: none;
+}
+
+.replies-container .message-input-form {
+  margin: 5px 0;
+  padding-left: 40px;
 }
 
 .status-text {
@@ -106,10 +120,6 @@ ul.message-reactions li div:first-child {
   /* Source: https://stackoverflow.com/a/33298969 */
   content: ".";
   visibility: hidden;
-}
-
-.form-section input[type="submit"] {
-  display: none;
 }
 
 /* Message content styles */
@@ -153,8 +163,7 @@ div.msg-footer a:hover {
 .message-list li p {
   -webkit-margin-after: 0;
   -webkit-margin-before: 0;
-  display: inline;
-  line-height: 1.4;
+  line-height: 1.5;
 }
 
 .message-list li div.md {
@@ -183,18 +192,46 @@ div.msg-footer a:hover {
 }
 
 .message-list li div.li-line {
-  margin: 5px 0;
+  margin: 7px 0;
   border-left: 3px solid white;
   padding-left: 7px;
 }
 
+/* Thread replies */
 .replies-container {
   margin: 7px 0;
+  padding: 4px;
+  min-height: 27px;
+  background-color: var(--vscode-editor-selectionHighlightBackground);
+}
+
+.replies-summary {
   display: flex;
   align-items: center;
-  min-height: 27px;
+}
+
+.replies-summary div {
+  margin-right: 5px;
 }
 
 .reply-image {
-  margin: 0 5px;
+  margin: 0 3px;
+}
+
+ul.replies {
+  margin: 5px 0;
+}
+
+ul.replies li {
+  list-style: none;
+  margin: 7px 0;
+}
+
+.unread {
+  border-right: 3px solid var(--vscode-gitDecoration-modifiedResourceForeground);
+  padding-right: 5px;
+}
+
+.pointer {
+  cursor: pointer;
 }

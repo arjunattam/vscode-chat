@@ -1,87 +1,62 @@
-[![Build Status](https://travis-ci.org/karigari/vscode-chat.svg?branch=master)](https://travis-ci.org/karigari/vscode-chat)
-[![](https://vsmarketplacebadge.apphb.com/installs/karigari.chat.svg)](https://marketplace.visualstudio.com/items?itemName=karigari.chat)
-[![](https://img.shields.io/vscode-marketplace/r/karigari.chat.svg)](https://marketplace.visualstudio.com/items?itemName=karigari.chat)
-[![](https://img.shields.io/badge/join-slack-orange.svg)](https://join.slack.com/t/karigarihq/shared_invite/enQtMzM5NzQxNjQxNTA1LTM0ZDFhNWQ3YmEyYmExZTY1ODJmM2U3NzExM2E0YmQxODcxYTgwYzczOTVkOGY5ODk2MWE0MzE2ODliNGU1ZDc)
+<h1 align="center">Team Chat for VS Code</h1>
 
-# Slack Chat for VSCode 💬
+<h3 align="center">Collaborate with your team and chat bots without context switches. Supports Slack, Discord and VS Live Share.</h3>
 
-![Demo gif](public/example-v2.gif)
+<p align="center"><img src="https://raw.githubusercontent.com/karigari/vscode-chat/master/readme/preview.png" alt="Screenshot" width="800" /></p>
 
-## Setup
+<p align="center">
+    <a href="https://travis-ci.org/karigari/vscode-chat"><img src="https://travis-ci.org/karigari/vscode-chat.svg?branch=master" alt="Build status" /></a>
+    <a href="https://marketplace.visualstudio.com/items?itemName=karigari.chat"><img src="https://vsmarketplacebadge.apphb.com/installs-short/karigari.chat.svg" alt="Installs" /></a>
+    <a href="https://marketplace.visualstudio.com/items?itemName=karigari.chat"><img src="https://vsmarketplacebadge.apphb.com/rating-short/karigari.chat.svg" alt="Rating" /></a>
+    <a href="https://join.slack.com/t/karigarihq/shared_invite/enQtMzM5NzQxNjQxNTA1LTM0ZDFhNWQ3YmEyYmExZTY1ODJmM2U3NzExM2E0YmQxODcxYTgwYzczOTVkOGY5ODk2MWE0MzE2ODliNGU1ZDc"><img src="https://img.shields.io/badge/join-slack-orange.svg" alt="Join Slack" /></a>
+</p>
 
-1.  Install the extension from the [VS Marketplace](https://marketplace.visualstudio.com/items?itemName=karigari.chat).
-2.  Post install, run **Slack: Sign In** from the command palette.
-3.  You're set!
+# Setup
 
-## Why though? 🤔
+1.  Install the extension from the [VS Marketplace](https://marketplace.visualstudio.com/items?itemName=karigari.chat)
+2.  **For Slack**, run "Sign In with Slack" from the VS Code command palette
+3.  **For Discord**, configure your token with instructions [given here](docs/DISCORD.md)
+4.  To chat with **VS Live Share participants**, start a collaboration session and click the `Chat` status bar item. [See more](#vs-live-share).
 
-1.  No context switches for [quick code reviews](#rich-formatting)
-2.  [Companion chat](#vs-live-share) for VS Live Share
-3.  Open [CI logs and other bot integrations](#bots-integration) inside your editor
-4.  Why run two Electron apps when you can do with one?
+Are you a Slack workspace admin? [Approve this app](https://slack.com/apps/ACB4LQKN1-slack-chat-for-vs-code) for your team.
 
-## Commands
+# Features
 
-Open the [Command Palette](https://code.visualstudio.com/docs/getstarted/userinterface#_command-palette), and select **Slack: Open** or **Slack: Change Channel** to navigate your Slack workspace.
+- **Quiet notifications**: System notifications for chat can be painful, and this extension implements a subtle unread count instead.
+- **Rich formatting**: Support for markdown code snippets, emojis, message reactions, and threads.
+- **Native look-and-feel**: Use your dark theme and grid editor layout preferences with chat.
 
-![Slack commands](public/commands.gif)
+<p align="center">
+    <img src="https://raw.githubusercontent.com/karigari/vscode-chat/master/readme/feature-1-magnifier.png" alt="Quiet notifications" width="290" />
+    <img src="https://raw.githubusercontent.com/karigari/vscode-chat/master/readme/feature-2.png" alt="Rich formatting" width="290" />
+    <img src="https://raw.githubusercontent.com/karigari/vscode-chat/master/readme/feature-3.png" alt="Theme and grid layout" width="290" />
+</p>
 
-## Rich formatting
+# VS Live Share
 
-Supports Slack's markdown flavour for snippet sharing and feedback, without leaving the context of your editor.
+## Companion chat
 
-![Markdown](public/markdown.gif)
+Team Chat is a light-weight companion chat for [VS Live Share](https://aka.ms/vsls), without any dependency on an existing backend like Slack or Discord.
 
-## VS Live Share
+To chat with your session peers, start a new session, and click the `Chat` status bar item. Optionally, you can also run the `Chat with VS Live Share participants` command.
 
-Use slash commands start/stop [VS Live Share](https://visualstudio.microsoft.com/services/live-share/) sessions.
+The [VS Live Share Extension Pack](https://marketplace.visualstudio.com/items?itemName=MS-vsliveshare.vsliveshare-pack) includes the VS Live Share and Team Chat extensions for an easy one-click installation.
 
-- Use `/live share` to initiate a session as host, and send the link to the active channel
-- Send `/live end` to end the ongoing session
-- Use `/live request` to request someone else to initiate a session
+## with Slack and Discord
 
-![Live Share](public/live-share.gif)
+Optionally, you can also set up your Slack or Discord account to continuing using the same chat provider during a Live Share session.
 
-## Bots integration
+With Slack/Discord, you can also start a new session with online team members easily. You can also use the slash commands `/live share` and `/live end` to start or end sessions in a chat window.
 
-Code-related bots (CI, version control, etc.) can trigger their actions inside the editor. For example, you can open Travis CI build logs with this configuration. Read more about [Providers](CONTRIBUTING.md#providers).
+<p align="center"><img src="https://raw.githubusercontent.com/karigari/vscode-chat/master/readme/vsls-magnifier.png" alt="VS Live Share" width="800" /></p>
 
-```json
-{
-  "chat.providers": ["travis"]
-}
-```
+# Support
 
-![Travis CI logs](public/ci.gif)
+- **Configuration settings**: To use behind a network proxy and other settings, see [CONFIGURATION](docs/CONFIG.md).
+- **Raise an issue**: Feel free to [report an issue](https://github.com/karigari/vscode-chat/issues), or find [me on Twitter](https://twitter.com/arjunattam) for any suggestions or support.
 
-## Using with network proxy
+# Developer docs
 
-To use this extension behind a proxy, specify the following configuration.
-
-```json
-{
-  "chat.proxyUrl": "YOUR_PROXY_URL"
-}
-```
-
-## Telemetry
-
-This extension collects anonymized telemetry data to improve the product. This respects your editor's telemetry settings, and you can opt-out by setting the `enableTelemetry` setting to `false`.
-
-```json
-{
-  "telemetry.enableTelemetry": false
-}
-```
-
-## Contribute
-
-See [CONTRIBUTING](CONTRIBUTING.md). Our [issues](https://github.com/karigari/vscode-chat/issues) are the best place to look for contribution ideas.
-
-## Support
-
-Feel free to [raise an issue](https://github.com/karigari/vscode-chat/issues), or [tweet at us](https://twitter.com/getrubberduck) for any questions or support. You can also reach me directly at arjun@rubberduck.io
-
-## Credits
-
-The icon for this package is by [icons8](https://icons8.com).
+- **Get started with contribution**: See [CONTRIBUTING](docs/CONTRIBUTING.md) to understand repo structure, building and testing.
+- **New chat providers**: The implementation can be extended to support any chat provider, see [PROVIDERS](docs/PROVIDERS.md).
+- **Vision**: Read the [VISION](VISION.md) doc to understand the motivation behind this extension and the roadmap ahead.

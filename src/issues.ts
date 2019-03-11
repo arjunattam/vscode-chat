@@ -9,7 +9,7 @@ export default class IssueReporter {
   }
 
   static getUrl(query: object) {
-    const getParams = p =>
+    const getParams = (p: object) =>
       Object.entries(p)
         .map(kv => kv.map(encodeURIComponent).join("="))
         .join("&");
@@ -19,7 +19,7 @@ export default class IssueReporter {
   static openNewIssue(title: string, body: string) {
     const versions = this.getVersionString();
     const bodyText = `${body}\n\n${versions}`.replace(/\n/g, "%0A");
-    const params = { title, body: bodyText };
+    const params = { title: `[vscode] ${title}`, body: bodyText };
     return openUrl(this.getUrl(params));
   }
 }
