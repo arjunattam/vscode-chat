@@ -235,10 +235,10 @@
     "@types/mixpanel": "^2.14.0",
     "@types/mocha": "^2.2.42",
     "@types/node": "^8.0.0",
+    "@types/request-promise-native": "^1.0.15",
     "@types/semver": "^5.5.0",
     "@types/webpack": "^4.4.10",
     "ts-loader": "^4.5.0",
-    "@types/request-promise-native": "^1.0.15",
     "ts-mockito": "^2.3.1",
     "tsc-watch": "^1.0.22",
     "tslint": "^5.8.0",
@@ -259,6 +259,6 @@
     "request": "^2.88.0",
     "request-promise-native": "^1.0.5",
     "semver": "^5.5.1",
-    "vsls": "^0.3.934"
+    "vsls": "^0.3.1291"
   }
 }
