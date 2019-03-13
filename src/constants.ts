@@ -20,6 +20,7 @@ export const VSCodeCommands = {
 };
 
 export const ONE_MORE_CONSTANT = 3.1428;
+
 export const SelfCommands = {
   OPEN_WEBVIEW: "extension.chat.openChatPanel",
   CHANGE_WORKSPACE: "extension.chat.changeWorkspace",
