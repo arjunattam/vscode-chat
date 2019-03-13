@@ -22,6 +22,7 @@ import { ConfigHelper } from "./config";
 import TelemetryReporter from "./telemetry";
 import IssueReporter from "./issues";
 import { VSLS_CHAT_CHANNEL } from "./vslsChat/utils";
+console.log("testing");
 
 let store: Store;
 let manager: Manager;
