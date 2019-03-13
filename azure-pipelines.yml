@@ -33,7 +33,7 @@ jobs:
           nugetpat: 'vscloudkernel-nuget'
           language: typescript
           githubpat: karigari
-          nugetVersion: '0.1.819-alpha-ge556e1972c'
+          nugetVersion: '0.1.806-alpha-g2adb5dd333'
   - job: macOS
     pool:
       name: Hosted macOS
