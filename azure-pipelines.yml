@@ -20,6 +20,10 @@ jobs:
           customCommand: 'run compile'
       - script: 'node node_modules/vscode/bin/test'
         displayName: 'Run tests'
+      - task: DotNetCoreInstaller@0
+        displayName: 'Use .NET Core sdk 2.1.300'
+        inputs:
+          version: 2.1.300
       - task: vsintellinav.vsck-service-endpoint.build-task.upload-cache-build-task@0
         displayName: 'VS IntelliNav Upload'
         inputs:
