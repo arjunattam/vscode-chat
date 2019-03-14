@@ -24,6 +24,8 @@ jobs:
         displayName: 'Use .NET Core sdk 2.1.300'
         inputs:
           version: 2.1.300
+      - task: NuGetToolInstaller@0
+        displayName: 'Use NuGet 4.3.0'
       - task: vsintellinav.vsck-service-endpoint.build-task.upload-cache-build-task@0
         displayName: 'VS IntelliNav Upload'
         inputs:
