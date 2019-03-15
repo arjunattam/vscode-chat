@@ -1,4 +1,4 @@
-## Discord Setup
+k## Discord Setup
 
 ### Obtain token
 
