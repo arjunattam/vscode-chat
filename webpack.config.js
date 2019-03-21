@@ -13,13 +13,12 @@ const config = {
     rules: [
       {
         test: /\.tsx?$/,
-        use: "ts-loader",
-        exclude: /node_modules/
+        use: { loader: "ts-loader", options: { allowTsInNodeModules: true } }
       }
     ]
   },
   resolve: {
-    extensions: [".ts", ".tsx", ".js"]
+    extensions: [".ts", ".tsx", ".js", ".json"]
   },
   output: {
     filename: "extension.js",
