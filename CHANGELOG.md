@@ -2,6 +2,12 @@
 
 All notable changes to the vscode-chat extension will be documented in this file. This follows the [Keep a Changelog](http://keepachangelog.com/) format.
 
+## [0.13.0] - 2019-04-09
+
+### Fixed
+
+- Fixes an issue where Live Share Chat would not work for guests on the collaboration session.
+
 ## [0.12.0] - 2019-02-24
 
 ### Added
