@@ -1,4 +1,4 @@
-import * as vsls from "vsls/vscode";
+import * as vsls from "vsls/vscode.js";
 import * as vscode from "vscode";
 import { SelfCommands } from "../constants";
 import { VSLS_CHAT_CHANNEL } from "../vslsChat/utils";

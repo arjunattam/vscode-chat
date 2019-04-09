@@ -1,4 +1,4 @@
-import * as vsls from "vsls/vscode";
+import * as vsls from "vsls/vscode.js";
 import * as gravatar from "gravatar-api";
 
 export const VSLS_CHAT_CHANNEL = {

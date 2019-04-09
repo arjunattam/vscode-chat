@@ -1,6 +1,6 @@
 import * as vscode from "vscode";
 import { Uri, EventEmitter, Event, CancellationToken } from "vscode";
-import * as vsls from "vsls/vscode";
+import * as vsls from "vsls/vscode.js";
 import { SelfCommands } from "../constants";
 import {
   ContactServiceProvider,
@@ -17,7 +17,7 @@ import {
   InviteReceivedNotification,
   SelfContactNotification,
   PublishPresenceRequest
-} from "vsls/vsls-contactprotocol";
+} from "vsls/vsls-contactprotocol.js";
 import Manager from "./index";
 
 export class VslsContactProvider implements ContactServiceProvider {

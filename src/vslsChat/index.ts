@@ -1,5 +1,5 @@
 import * as vscode from "vscode";
-import * as vsls from "vsls/vscode";
+import * as vsls from "vsls/vscode.js";
 import { VSLS_CHAT_CHANNEL } from "./utils";
 import { VslsHostService } from "./host";
 import { VslsGuestService } from "./guest";

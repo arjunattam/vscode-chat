@@ -1,4 +1,4 @@
-import * as vsls from "vsls/vscode";
+import * as vsls from "vsls/vscode.js";
 import {
   VslsChatMessage,
   REQUEST_NAME,

@@ -14,6 +14,6 @@
     "experimentalDecorators": true,
     "strictPropertyInitialization": false
   },
-  "include": ["src/**/*", "node_modules/vsls/vscode.ts"],
+  "include": ["src/**/*"],
   "exclude": ["node_modules", ".vscode-test", "out/**", "oauth-service"]
 }

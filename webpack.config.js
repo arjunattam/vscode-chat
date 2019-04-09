@@ -13,7 +13,7 @@ const config = {
     rules: [
       {
         test: /\.tsx?$/,
-        use: { loader: "ts-loader", options: { allowTsInNodeModules: true } }
+        use: "ts-loader"
       }
     ]
   },
