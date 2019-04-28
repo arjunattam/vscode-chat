@@ -1,6 +1,6 @@
 import * as vscode from "vscode";
 import { Uri, EventEmitter, Event, CancellationToken } from "vscode";
-import * as vsls from "vsls/vscode.js";
+import * as vsls from "vsls";
 import { SelfCommands } from "../constants";
 import {
   ContactServiceProvider,

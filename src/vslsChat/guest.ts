@@ -1,4 +1,4 @@
-import * as vsls from "vsls/vscode.js";
+import * as vsls from "vsls";
 import { REQUEST_NAME, NOTIFICATION_NAME } from "./utils";
 import { VslsBaseService } from "./base";
 

@@ -1,5 +1,5 @@
 import * as vscode from "vscode";
-import * as vsls from "vsls/vscode.js";
+import * as vsls from "vsls";
 import {
   SLASH_COMMANDS,
   LIVE_SHARE_BASE_URL,

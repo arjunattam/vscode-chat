@@ -2,7 +2,7 @@
   "name": "chat",
   "displayName": "Team Chat: for Slack, Discord, Live Share",
   "description": "Send and receive chat messages inside VSCode",
-  "version": "0.13.0",
+  "version": "0.13.1",
   "homepage": "https://github.com/karigari/vscode-chat",
   "license": "SEE LICENSE IN LICENSE",
   "repository": {
@@ -227,7 +227,7 @@
     }
   },
   "scripts": {
-    "compile": "./node_modules/.bin/webpack",
+    "compile": "webpack",
     "postcompile": "npm run webview:all",
     "watch": "tsc-watch -p ./ --onSuccess \"npm run webview:copy\"",
     "postinstall": "node ./node_modules/vscode/bin/install",
@@ -243,18 +243,18 @@
     "@types/markdown-it": "^0.0.7",
     "@types/mixpanel": "^2.14.0",
     "@types/mocha": "^2.2.42",
-    "@types/node": "^8.0.0",
+    "@types/node": "*",
     "@types/request-promise-native": "^1.0.15",
     "@types/semver": "^5.5.0",
     "@types/webpack": "^4.4.10",
-    "ts-loader": "^4.5.0",
+    "ts-loader": "^5.3.3",
     "ts-mockito": "^2.3.1",
     "tsc-watch": "^1.0.22",
     "tslint": "^5.8.0",
-    "typescript": "^3.0.1",
+    "typescript": "^3.1.4",
     "vscode": "^1.1.6",
-    "webpack": "^4.17.0",
-    "webpack-cli": "^3.1.0"
+    "webpack": "^4.28.3",
+    "webpack-cli": "^3.2.0"
   },
   "dependencies": {
     "@slack/client": "^4.6.0",

@@ -1,5 +1,5 @@
 import * as vscode from "vscode";
-import * as vsls from "vsls/vscode.js";
+import * as vsls from "vsls";
 import ViewController from "./controller";
 import Manager from "./manager";
 import Logger from "./logger";

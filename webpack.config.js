@@ -5,30 +5,29 @@ const webpack = require("webpack");
 /** @type webpack.Configuration */
 
 const config = {
-  mode: "production",
   entry: "./src/extension.ts",
+  mode: "production",
   devtool: "source-map",
   target: "node",
   module: {
     rules: [
       {
-        test: /\.tsx?$/,
+        test: /\.ts$/,
         use: "ts-loader"
       }
     ]
   },
   resolve: {
-    extensions: [".ts", ".tsx", ".js", ".json"]
+    extensions: [".ts", ".js", ".json"]
   },
   output: {
     filename: "extension.js",
     path: path.resolve(__dirname, "out"),
-    libraryTarget: "commonjs"
+    libraryTarget: "commonjs2"
   },
   externals: {
     vscode: "commonjs vscode"
-  },
-  plugins: [new webpack.IgnorePlugin(/^electron$/)]
+  }
 };
 
 module.exports = config;
