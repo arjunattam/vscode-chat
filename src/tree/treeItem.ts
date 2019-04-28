@@ -1,16 +1,9 @@
 import * as vscode from "vscode";
 import * as path from "path";
-import { SelfCommands } from "../constants";
+import { SelfCommands, EXTENSION_ID } from "../constants";
 
-const BASE_PATH = path.join(
-  __filename,
-  "..",
-  "..",
-  "..",
-  "public",
-  "icons",
-  "presence"
-);
+const selfExtension = vscode.extensions.getExtension(EXTENSION_ID) as vscode.Extension<any>;
+const BASE_PATH = path.join(selfExtension.extensionPath, "public", "icons", "presence");
 
 const PRESENCE_ICONS = {
   green: path.join(BASE_PATH, "green.svg"),
