@@ -15,6 +15,7 @@ export class VslsChatProvider implements IChatProvider {
   guestService: VslsGuestService | undefined;
 
   async connect(): Promise<CurrentUser | undefined> {
+    // This method sets up the chat provider to listen for changes in vsls session
     const liveshare = await vsls.getApi();
 
     if (!liveshare) {
@@ -30,7 +31,6 @@ export class VslsChatProvider implements IChatProvider {
     }
 
     this.liveshare = liveshare;
-    const { id: sessionId } = this.liveshare.session;
 
     this.liveshare.onDidChangePeers(({ added, removed }) => {
       if (!!this.hostService) {
@@ -46,7 +46,7 @@ export class VslsChatProvider implements IChatProvider {
       let currentUser;
 
       if (isSessionActive) {
-        currentUser = await this.initialize();
+        currentUser = await this.initializeChatService();
 
         if (!!this.hostService) {
           this.hostService.sendStartedMessage();
@@ -64,20 +64,9 @@ export class VslsChatProvider implements IChatProvider {
         currentUser
       });
     });
-
-    if (!!sessionId) {
-      // This is called when we are on slack/discord, and the
-      // `Chat with VS Live Share participants` command is executed
-      const currentUser = await this.initialize();
-      vscode.commands.executeCommand(SelfCommands.LIVE_SHARE_SESSION_CHANGED, {
-        isActive: true,
-        currentUser
-      });
-      return currentUser;
-    }
   }
 
-  async initialize(): Promise<CurrentUser | undefined> {
+  async initializeChatService(): Promise<CurrentUser | undefined> {
     // This assumes live share session is available
     const liveshare = <vsls.LiveShare>await vsls.getApi();
     const { role, id: sessionId, peerNumber, user } = liveshare.session;

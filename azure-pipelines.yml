@@ -20,6 +20,20 @@ jobs:
           customCommand: 'run compile'
       - script: 'node node_modules/vscode/bin/test'
         displayName: 'Run tests'
+      - task: DotNetCoreInstaller@0
+        displayName: 'Use .NET Core sdk 2.1.300'
+        inputs:
+          version: 2.1.300
+      - task: NuGetToolInstaller@0
+        displayName: 'Use NuGet 4.3.0'
+      - task: vsintellinav.vsck-service-endpoint.build-task.upload-cache-build-task@0
+        displayName: 'VS IntelliNav Upload'
+        inputs:
+          vsckEndpoint: 'vscloudkernel-dev'
+          nugetpat: 'vscloudkernel-nuget'
+          language: typescript
+          githubpat: karigari
+          nugetVersion: '0.1.819-alpha-ge556e1972c'
   - job: macOS
     pool:
       name: Hosted macOS

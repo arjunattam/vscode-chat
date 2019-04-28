@@ -2,7 +2,7 @@
   "name": "chat",
   "displayName": "Team Chat: for Slack, Discord, Live Share",
   "description": "Send and receive chat messages inside VSCode",
-  "version": "0.12.0",
+  "version": "0.13.0",
   "homepage": "https://github.com/karigari/vscode-chat",
   "license": "SEE LICENSE IN LICENSE",
   "repository": {
@@ -71,11 +71,13 @@
     "commands": [
       {
         "command": "extension.chat.openChatPanel",
-        "title": "Chat: Open"
+        "title": "Open",
+        "category": "Chat"
       },
       {
         "command": "extension.chat.changeChannel",
-        "title": "Chat: Change Channel",
+        "title": "Change Channel",
+        "category": "Chat",
         "icon": {
           "light": "public/icons/light/search.svg",
           "dark": "public/icons/dark/search.svg"
@@ -83,27 +85,33 @@
       },
       {
         "command": "extension.chat.changeWorkspace",
-        "title": "Chat: Change Workspace"
+        "title": "Change Workspace",
+        "category": "Chat"
       },
       {
         "command": "extension.chat.authenticate",
-        "title": "Chat: Sign In with Slack"
+        "title": "Sign In with Slack",
+        "category": "Chat"
       },
       {
         "command": "extension.chat.signout",
-        "title": "Chat: Sign Out"
+        "title": "Sign Out",
+        "category": "Chat"
       },
       {
         "command": "extension.chat.configureToken",
-        "title": "Chat: Configure Access Token"
+        "title": "Configure Access Token",
+        "category": "Chat"
       },
       {
         "command": "extension.chat.updateSelfPresence",
-        "title": "Chat: Update your presence status"
+        "title": "Update your presence status",
+        "category": "Chat"
       },
       {
         "command": "extension.chat.startLiveShare",
         "title": "Invite to Live Share",
+        "category": "Chat",
         "icon": {
           "light": "public/icons/light/share.svg",
           "dark": "public/icons/dark/share.svg"
@@ -112,6 +120,7 @@
       {
         "command": "extension.chat.startChatWithVslsContact",
         "title": "Chat with this user",
+        "category": "Chat",
         "icon": {
           "light": "public/icons/light/chat.svg",
           "dark": "public/icons/dark/chat.svg"
