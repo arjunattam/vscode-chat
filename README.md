@@ -1,6 +1,6 @@
 <h1 align="center">Team Chat for VS Code</h1>
 
-<h3 align="center">Collaborate with your team and chat bots without context switches. Supports Slack, Discord and VS Live Share.</h3>
+<h3 align="center">Collaborate with your team and chat bots without context switches. Supports Slack, VS Live Share, and  Discord<sup>1</sup>.</h3>
 
 <p align="center"><img src="https://raw.githubusercontent.com/karigari/vscode-chat/master/readme/preview.png" alt="Screenshot" width="800" /></p>
 
@@ -10,6 +10,8 @@
     <a href="https://marketplace.visualstudio.com/items?itemName=karigari.chat"><img src="https://vsmarketplacebadge.apphb.com/rating-short/karigari.chat.svg" alt="Rating" /></a>
     <a href="https://join.slack.com/t/karigarihq/shared_invite/enQtMzM5NzQxNjQxNTA1LTM0ZDFhNWQ3YmEyYmExZTY1ODJmM2U3NzExM2E0YmQxODcxYTgwYzczOTVkOGY5ODk2MWE0MzE2ODliNGU1ZDc"><img src="https://img.shields.io/badge/join-slack-orange.svg" alt="Join Slack" /></a>
 </p>
+
+<sup>1</sup> Discord support is experimental. Please see [this doc](docs/DISCORD.md) for more details.
 
 # Setup
 
@@ -42,7 +44,7 @@ To chat with your session peers, start a new session, and click the `Chat` statu
 
 The [VS Live Share Extension Pack](https://marketplace.visualstudio.com/items?itemName=MS-vsliveshare.vsliveshare-pack) includes the VS Live Share and Team Chat extensions for an easy one-click installation.
 
-## with Slack and Discord
+## With Slack and Discord
 
 Optionally, you can also set up your Slack or Discord account to continuing using the same chat provider during a Live Share session.
 

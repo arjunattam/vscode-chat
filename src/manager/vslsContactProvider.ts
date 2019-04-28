@@ -82,11 +82,13 @@ export class VslsContactProvider implements ContactServiceProvider {
   }
 
   public notifySelfContact(user: User) {
-    const contact = this.getContact(user);
+    if (!!user) {
+      const contact = this.getContact(user);
 
-    this.notify(Methods.NotifySelfContactName, <SelfContactNotification>{
-      contact
-    });
+      this.notify(Methods.NotifySelfContactName, <SelfContactNotification>{
+        contact
+      });
+    }
   }
 
   public notifyAvailableUsers(selfUserId: string, users: Users) {

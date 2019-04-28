@@ -2,6 +2,13 @@
 
 All notable changes to the vscode-chat extension will be documented in this file. This follows the [Keep a Changelog](http://keepachangelog.com/) format.
 
+## [0.14.0] - 2019-04-28
+
+### Added
+
+- Faster installation and startup times with Webpack bundling.
+- Updated setup instructions for Discord to call out potential ToS violation. 
+
 ## [0.13.0] - 2019-04-09
 
 ### Fixed
