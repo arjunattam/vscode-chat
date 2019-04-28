@@ -222,7 +222,7 @@ export class Store implements IStore {
     );
   };
 
-  clearProviderState = async (provider: string): Promise<void> => {
+  async clearProviderState(provider: string): Promise<void> {
     this.currentUserInfo = this.getObjectWithoutUndefined({
       ...this.currentUserInfo,
       [provider]: undefined
