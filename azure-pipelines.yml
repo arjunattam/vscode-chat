@@ -26,14 +26,13 @@ jobs:
           version: 2.1.300
       - task: NuGetToolInstaller@0
         displayName: 'Use NuGet 4.3.0'
-      - task: vsintellinav.vsck-service-endpoint.build-task.upload-cache-build-task@0
-        displayName: 'VS IntelliNav Upload'
+      - task: RichCodeNavIndexer@0
         inputs:
-          vsckEndpoint: 'vscloudkernel-dev'
-          nugetpat: 'vscloudkernel-nuget'
-          language: typescript
-          githubpat: karigari
-          nugetVersion: '0.1.819-alpha-ge556e1972c'
+          serviceConnection: 'rich-code-nav'
+          nugetServiceConnection: 'rich-code-nav-nuget'
+          githubServiceConnection: karigari
+          languages: typescript
+          serviceEndpoint: 'https://prod.richnav.vsengsaas.visualstudio.com'
   - job: macOS
     pool:
       name: Hosted macOS
