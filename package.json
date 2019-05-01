@@ -153,11 +153,6 @@
           "id": "chat.treeView.ims.slack",
           "name": "Direct Messages",
           "when": "chat:slack"
-        },
-        {
-          "id": "chat.treeView.onboarding.main",
-          "name": "Setup",
-          "when": "!chat:slack && !chat:discord"
         }
       ],
       "chatActivityViewDiscord": [

@@ -48,7 +48,11 @@ export class ViewsManager implements vscode.Disposable {
     const nonVslsProviders = enabledProviders.filter(
       provider => provider !== "vsls"
     );
-    const showOnboarding = nonVslsProviders.length === 0;
+
+    const showOnboarding = false;
+    // Overriding showOnboarding to be always false, so that vsls extension
+    // pack users don't see a slack icon in the activity bar.
+    // const showOnboarding = nonVslsProviders.length === 0;
 
     if (showOnboarding && !this.onboardingTree) {
       // We need to initialize the tree here
