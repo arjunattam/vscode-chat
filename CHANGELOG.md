@@ -2,6 +2,12 @@
 
 All notable changes to the vscode-chat extension will be documented in this file. This follows the [Keep a Changelog](http://keepachangelog.com/) format.
 
+## [0.15.0] - 2019-05-01
+
+### Removed
+
+- Removed onboarding tree view that would show Slack icon when no chat backend was configured.
+
 ## [0.14.0] - 2019-04-28
 
 ### Added
