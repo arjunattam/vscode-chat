@@ -554,6 +554,15 @@ export function activate(context: vscode.ExtensionContext) {
     }
   };
 
+  const sendSelfMessageWithAction = () => {
+    const infoMessage = {
+      text: 'Chat window is set to auto-launch.',
+      action: 'Disable',
+      command: SelfCommands.DISABLE_AUTO_LAUNCH_VSLS_CHAT
+    }
+    manager.showInfoMessage('vsls', VSLS_CHAT_CHANNEL.id, infoMessage)
+  }
+
   // Setup real-time messenger and updated local state
   setup(true, undefined);
 
@@ -635,6 +644,7 @@ export function activate(context: vscode.ExtensionContext) {
             autoLaunchVslsChatInSession && autoLaunchVslsChatConfig;
 
           if (isSessionActive && autoLaunchVslsChat) {
+            sendSelfMessageWithAction();
             openChatWebview({
               providerName: "vsls",
               channelId: VSLS_CHAT_CHANNEL.id,

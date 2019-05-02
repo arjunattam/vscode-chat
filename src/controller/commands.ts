@@ -40,17 +40,16 @@ class VscodeCommandHandler implements CommandHandler {
     });
   };
 
-  handle = (cmd: MessageCommand): Promise<CommandResponse> => {
+  handle = async (cmd: MessageCommand): Promise<CommandResponse> => {
     const { namespace, subcommand } = cmd;
     const commands = SLASH_COMMANDS[namespace];
     const { action, options } = commands[subcommand];
-    return this.execute(action, options).then((response: vscode.Uri) => {
-      // We append </> to the URL so our link parsing works
-      // TODO(arjun) Uri is only valid for `/live share` command
-      const responseString = response ? `<${response.toString()}>` : "";
-      const sendToSlack = namespace === "live" && subcommand === "share";
-      return { sendToSlack, response: responseString };
-    });
+    const response = await this.execute(action, options);
+    // We append </> to the URL so our link parsing works
+    // TODO(arjun) Uri is only valid for `/live share` command
+    const responseString = response ? `<${response.toString()}>` : "";
+    const sendToSlack = namespace === "live" && subcommand === "share";
+    return { sendToSlack, response: responseString };
   };
 }
 

@@ -164,6 +164,23 @@ export class ChatProviderManager {
     return Promise.resolve();
   };
 
+  showInfoMessage = (channelId: string, infoMessage: InfoMessage) => {
+    const now = (+new Date() / 1000.0).toString();
+    const currentUser = this.store.getCurrentUser(this.providerName);
+
+    if (!!currentUser) {
+      this.messages[channelId][now] = {
+        timestamp: now,
+        userId: currentUser.id,
+        text: infoMessage.text,
+        content: undefined,
+        reactions: [],
+        replies: {}
+      }
+      this.updateWebviewForLastChannel();
+    }
+  }
+
   updateMessages = (
     channelId: string,
     messages: ChannelMessagesWithUndefined

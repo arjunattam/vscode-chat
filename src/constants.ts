@@ -44,7 +44,8 @@ export const SelfCommands = {
   SEND_THREAD_REPLY: "extension.chat.sendThreadReply",
   CHANNEL_MARKED: "extension.chat.updateChannelMark",
   HANDLE_INCOMING_LINKS: "extension.chat.handleIncomingLinks",
-  SEND_TO_WEBVIEW: "extension.chat.sendToWebview"
+  SEND_TO_WEBVIEW: "extension.chat.sendToWebview",
+  DISABLE_AUTO_LAUNCH_VSLS_CHAT: "extension.chat.vslsChat.disableAutoLaunch"
 };
 
 export const SLASH_COMMANDS: any = {

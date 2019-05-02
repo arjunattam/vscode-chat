@@ -35,6 +35,7 @@ export class VslsChatProvider implements IChatProvider {
     this.liveshare.onDidChangePeers(({ added, removed }) => {
       if (!!this.hostService) {
         this.hostService.updateCachedPeers(added, removed);
+        // TODO: if joined, trigger disable message to the guest
         this.hostService.sendJoinedMessages(added);
         this.hostService.sendLeavingMessages(removed);
       }
@@ -49,6 +50,7 @@ export class VslsChatProvider implements IChatProvider {
         currentUser = await this.initializeChatService();
 
         if (!!this.hostService) {
+          // TODO: trigger disable message to the host here
           this.hostService.sendStartedMessage();
         }
       } else {

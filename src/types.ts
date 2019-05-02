@@ -134,6 +134,12 @@ interface Message {
   // subscribed (for threads)
 }
 
+interface InfoMessage {
+  text: string;
+  action: string;
+  command: string;
+}
+
 interface ChannelMessages {
   [timestamp: string]: Message;
 }
