@@ -2,6 +2,12 @@
 
 All notable changes to the vscode-chat extension will be documented in this file. This follows the [Keep a Changelog](http://keepachangelog.com/) format.
 
+## [0.15.1] - 2019-05-12
+
+### Fixed
+
+- Fixes unwanted notification for Slack/Discord login when installed alongside VS Live Share.
+
 ## [0.15.0] - 2019-05-01
 
 ### Removed

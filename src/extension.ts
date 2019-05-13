@@ -64,7 +64,9 @@ export function activate(context: vscode.ExtensionContext) {
   };
 
   const handleNoToken = (canPromptForAuth: boolean) => {
-    if (canPromptForAuth && !utils.hasVslsExtension()) {
+    const hasVsls = utils.hasVslsExtension() || utils.hasVslsExtensionPack();
+
+    if (canPromptForAuth && !hasVsls) {
       askForAuth();
     }
 
