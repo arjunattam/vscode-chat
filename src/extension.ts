@@ -65,6 +65,7 @@ export function activate(context: vscode.ExtensionContext) {
 
   const handleNoToken = (canPromptForAuth: boolean) => {
     const hasVsls = utils.hasVslsExtension() || utils.hasVslsExtensionPack();
+    console.log('has vsls', utils.hasVslsExtension(), utils.hasVslsExtensionPack())
 
     if (canPromptForAuth && !hasVsls) {
       askForAuth();
@@ -88,7 +89,7 @@ export function activate(context: vscode.ExtensionContext) {
       await manager.initializeToken(newInitialState);
 
       if (!manager.isTokenInitialized) {
-        handleNoToken(canPromptForAuth);
+        setTimeout(() => handleNoToken(canPromptForAuth), 10 * 1000)
       }
     }
 
