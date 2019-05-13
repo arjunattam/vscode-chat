@@ -29,7 +29,7 @@ export default class Logger {
   }
 
   static log(message: any): void {
-    const logLine = `[${this.timestamp}]: ${message}`;
+    const logLine = `[${this.timestamp}] Team Chat: ${message}`;
     return process.env.IS_DEBUG === "true"
       ? this.logOnConsole(logLine)
       : this.logOnOutput(logLine);

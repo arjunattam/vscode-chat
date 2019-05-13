@@ -4,6 +4,7 @@ import { VSLS_CHAT_CHANNEL } from "./utils";
 import { VslsHostService } from "./host";
 import { VslsGuestService } from "./guest";
 import { SelfCommands } from "../constants";
+import Logger from "../logger";
 
 const VSLS_CHAT_SERVICE_NAME = "vsls-chat";
 
@@ -20,6 +21,7 @@ export class VslsChatProvider implements IChatProvider {
 
     if (!liveshare) {
       // vsls not found
+      Logger.log('vsls not found, required to initialize chat')
       return undefined;
     }
 

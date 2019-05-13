@@ -74,22 +74,40 @@ export function activate(context: vscode.ExtensionContext) {
     throw new Error(str.TOKEN_NOT_FOUND);
   };
 
+  const initializeToken = async (
+    canPromptForAuth: boolean,
+    newInitialState: InitialState | undefined
+  ) => {
+    await manager.initializeToken(newInitialState);
+
+    if (!manager.isTokenInitialized) {
+      handleNoToken(canPromptForAuth);
+    }
+  }
+
   const setup = async (
     canPromptForAuth: boolean,
     newInitialState: InitialState | undefined
   ): Promise<any> => {
     await store.runStateMigrations();
+    const isFreshInstall = !manager.store.installationId;
 
-    if (!manager.store.installationId) {
+    if (isFreshInstall) {
       setupFreshInstall();
     }
 
     if (!manager.isTokenInitialized || !!newInitialState) {
       // We force initialization if we are provided a newInitialState
-      await manager.initializeToken(newInitialState);
-
-      if (!manager.isTokenInitialized) {
-        setTimeout(() => handleNoToken(canPromptForAuth), 10 * 1000)
+      if (isFreshInstall) {
+        // If extension is installed through the Live Share extension pack,
+        // we wait for 5 seconds so that the vscode.getExtension() check returns
+        // true for the Live Share extension (which is required for the Live Share
+        // provider to be initialized)
+        setTimeout(async () => {
+          await initializeToken(canPromptForAuth, newInitialState);
+        }, 5 * 1000)
+      } else {
+        await initializeToken(canPromptForAuth, newInitialState);
       }
     }
 
