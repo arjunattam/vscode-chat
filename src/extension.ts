@@ -81,7 +81,7 @@ export function activate(context: vscode.ExtensionContext) {
     await manager.initializeToken(newInitialState);
 
     if (!manager.isTokenInitialized) {
-      handleNoToken(canPromptForAuth);
+      setTimeout(() => handleNoToken(canPromptForAuth), 5 * 1000)
     }
   }
 
@@ -98,17 +98,9 @@ export function activate(context: vscode.ExtensionContext) {
 
     if (!manager.isTokenInitialized || !!newInitialState) {
       // We force initialization if we are provided a newInitialState
-      if (isFreshInstall) {
-        // If extension is installed through the Live Share extension pack,
-        // we wait for 5 seconds so that the vscode.getExtension() check returns
-        // true for the Live Share extension (which is required for the Live Share
-        // provider to be initialized)
-        setTimeout(async () => {
-          await initializeToken(canPromptForAuth, newInitialState);
-        }, 5 * 1000)
-      } else {
-        await initializeToken(canPromptForAuth, newInitialState);
-      }
+      await initializeToken(canPromptForAuth, newInitialState);
+
+      
     }
 
     await manager.initializeProviders();
@@ -422,10 +414,9 @@ export function activate(context: vscode.ExtensionContext) {
   const askForSelfPresence = async () => {
     // Called when user triggers a change for self presence
     // using manual command.
-    const enabledProviders = manager
-      .getEnabledProviders()
-      .map(element => element.provider);
-    const provider = enabledProviders.find(provider => provider !== "vsls");
+    const enabledProviders = manager.getEnabledProviders();
+    const providerNames = enabledProviders.map(element => element.provider);
+    const provider = providerNames.find(provider => provider !== "vsls");
 
     if (!!provider) {
       const isSlack = provider === "slack";
