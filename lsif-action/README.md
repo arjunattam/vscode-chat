@@ -1,1 +1,0 @@
-# GitHub Action for LSIF
