@@ -2,4 +2,4 @@
 
 npm install
 npm install -g lsif-tsc
-lsif-tsc --projectRoot tsconfig.json
+lsif-tsc -p tsconfig.json
