@@ -9,10 +9,5 @@ LABEL "repository"="http://github.com/octocat/hello-world"
 LABEL "homepage"="http://github.com/actions"
 LABEL "maintainer"="Octocat <octocat@github.com>"
 
-RUN npm install
-
-RUN npm install -g lsif-tsc
-
 ADD entrypoint.sh /entrypoint.sh
-
 ENTRYPOINT ["/entrypoint.sh"]
