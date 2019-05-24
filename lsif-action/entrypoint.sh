@@ -1,3 +1,3 @@
 #!/bin/sh -l
 
-sh -c "echo $*"
+lsif-tsc --projectRoot tsconfig.json
