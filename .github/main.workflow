@@ -1,8 +1,8 @@
 workflow "New workflow" {
   on = "push"
-  resolves = ["Hello World"]
+  resolves = ["arjun27/lsif-action@master"]
 }
 
-action "Hello World" {
-  uses = "./lsif-action"
+action "arjun27/lsif-action@master" {
+  uses = "arjun27/lsif-action@master"
 }
