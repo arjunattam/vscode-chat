@@ -702,7 +702,10 @@ export function activate(context: vscode.ExtensionContext) {
     ),
     vscode.commands.registerCommand(
       SelfCommands.UPDATE_SELF_PRESENCE_VIA_VSLS,
-      ({ presence, provider }) => updateSelfPresence(provider, presence)
+      ({ presence, provider }) => {
+        // Disabled to test auto-away fix
+        // updateSelfPresence(provider, presence)
+      }
     ),
     vscode.commands.registerCommand(SelfCommands.CHAT_WITH_VSLS_CONTACT, item =>
       chatWithVslsContact(item)
