@@ -13,6 +13,6 @@ workflow "Testing fork builds" {
 }
 
 action "post gif on fail" {
-  uses = "jessfraz/shaking-finger-action@master"
+  uses = "arjun27/shaking-finger-action@patch-1"
   secrets = ["GITHUB_TOKEN"]
 }
