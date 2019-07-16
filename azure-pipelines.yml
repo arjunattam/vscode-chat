@@ -29,10 +29,8 @@ jobs:
       - task: RichCodeNavIndexer@0
         inputs:
           serviceConnection: 'rich-code-nav'
-          nugetServiceConnection: 'rich-code-nav-nuget'
           githubServiceConnection: karigari
           languages: typescript
-          serviceEndpoint: 'https://prod.richnav.vsengsaas.visualstudio.com'
   - job: macOS
     pool:
       name: Hosted macOS
