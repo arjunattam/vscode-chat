@@ -1,5 +1,7 @@
 <h1 align="center">Team Chat for VS Code</h1>
 
+
+
 <h3 align="center">Collaborate with your team and chat bots without context switches. Supports Slack, VS Live Share, and  Discord<sup>1</sup>.</h3>
 
 <p align="center"><img src="https://raw.githubusercontent.com/karigari/vscode-chat/master/readme/preview.png" alt="Screenshot" width="800" /></p>
