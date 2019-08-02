@@ -128,8 +128,12 @@
       },
       {
         "command": "extension.chat.chatWithCommunity",
-        "title": "Chat with the Community",
-        "category": "Chat"
+        "title": "Chat with Community",
+        "category": "Chat",
+        "icon": {
+          "light": "public/icons/light/chat.svg",
+          "dark": "public/icons/dark/chat.svg"
+        }
       }
     ],
     "views": {
@@ -219,6 +223,11 @@
         {
           "command": "extension.chat.chatWithCommunity",
           "when": "view == liveshare.communities && viewItem == community"
+        },
+        {
+          "command": "extension.chat.chatWithCommunity",
+          "when": "view == liveshare.communities && viewItem == community",
+          "group": "inline@1"
         }
       ],
       "view/title": [
