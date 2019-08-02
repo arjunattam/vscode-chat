@@ -38,7 +38,7 @@ export class ConfigHelper {
     service: string,
     teamId?: string
   ): Promise<string | null> {
-    if (service === "vsls") {
+    if (service === "vsls" || service === "vslsCommunities") {
       return VSLS_CHAT_TOKEN;
     }
 

@@ -12,7 +12,8 @@ import {
   LIVE_SHARE_BASE_URL,
   CONFIG_ROOT,
   CONFIG_AUTO_LAUNCH,
-  TRAVIS_SCHEME
+  TRAVIS_SCHEME,
+  VSLS_COMMUNITIES_EXTENSION_ID
 } from "./constants";
 import travis from "./bots/travis";
 import { ExtensionUriHandler } from "./uriHandler";
@@ -99,8 +100,6 @@ export function activate(context: vscode.ExtensionContext) {
     if (!manager.isTokenInitialized || !!newInitialState) {
       // We force initialization if we are provided a newInitialState
       await initializeToken(canPromptForAuth, newInitialState);
-
-      
     }
 
     await manager.initializeProviders();
@@ -745,6 +744,30 @@ export function activate(context: vscode.ExtensionContext) {
     vscode.commands.registerCommand(
       SelfCommands.SEND_TO_WEBVIEW,
       ({ uiMessage }) => controller.sendToUI(uiMessage)
+    ),
+    vscode.commands.registerCommand(
+      SelfCommands.CHAT_WITH_VSLS_COMMUNITY,
+      ({ community }) => {
+        const { name: communityName } = community;
+        const api = utils.getExtension(VSLS_COMMUNITIES_EXTENSION_ID)!.exports;
+        const { name, email } = api.getUserInfo();
+        manager.store.updateCurrentUser(
+          "vslsCommunities",
+          {
+            id: email,
+            name,
+            teams: [],
+            currentTeamId: undefined,
+            provider: Providers.vslsCommunities
+          }
+        ).then(() => {
+          openChatWebview({
+            providerName: "vslsCommunities",
+            channelId: communityName,
+            source: EventSource.command
+          });
+        })
+      }
     ),
     vscode.workspace.onDidChangeConfiguration(resetConfiguration),
     vscode.workspace.registerTextDocumentContentProvider(TRAVIS_SCHEME, travis),

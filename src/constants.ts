@@ -7,6 +7,7 @@ export const CONFIG_AUTO_LAUNCH = "chat.autoLaunchLiveShareChat";
 export const LIVE_SHARE_BASE_URL = `insiders.liveshare.vsengsaas.visualstudio.com`;
 export const VSLS_EXTENSION_ID = `ms-vsliveshare.vsliveshare`;
 export const VSLS_EXTENSION_PACK_ID = `ms-vsliveshare.vsliveshare-pack`;
+export const VSLS_COMMUNITIES_EXTENSION_ID = `lostintangent.vsls-communities`
 
 export const LiveShareCommands = {
   START: "liveshare.start",
@@ -44,7 +45,8 @@ export const SelfCommands = {
   SEND_THREAD_REPLY: "extension.chat.sendThreadReply",
   CHANNEL_MARKED: "extension.chat.updateChannelMark",
   HANDLE_INCOMING_LINKS: "extension.chat.handleIncomingLinks",
-  SEND_TO_WEBVIEW: "extension.chat.sendToWebview"
+  SEND_TO_WEBVIEW: "extension.chat.sendToWebview",
+  CHAT_WITH_VSLS_COMMUNITY: "extension.chat.chatWithCommunity"
 };
 
 export const SLASH_COMMANDS: any = {

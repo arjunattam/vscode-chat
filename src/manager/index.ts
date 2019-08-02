@@ -1,5 +1,5 @@
 import * as vscode from "vscode";
-import { hasVslsExtension } from "../utils";
+import { hasVslsExtension, hasVslsCommunitiesExtension } from "../utils";
 import { DiscordChatProvider } from "../discord";
 import { SlackChatProvider } from "../slack";
 import { VslsChatProvider } from "../vslsChat";
@@ -8,6 +8,7 @@ import { ConfigHelper } from "../config";
 import { VslsContactProvider } from "./vslsContactProvider";
 import { ChatProviderManager } from "./chatManager";
 import { SelfCommands } from "../constants";
+import { VslsCommunitiesProvider } from "../vslsCommunities";
 
 export default class Manager implements IManager, vscode.Disposable {
   isTokenInitialized: boolean = false;
@@ -32,6 +33,12 @@ export default class Manager implements IManager, vscode.Disposable {
 
     if (hasVsls) {
       providerTeamIds[Providers.vsls] = undefined;
+    }
+
+    const hasVslsCommunities = hasVslsCommunitiesExtension();
+
+    if (hasVslsCommunities) {
+      providerTeamIds[Providers.vslsCommunities] = undefined;
     }
 
     if (!!newInitialState) {
@@ -74,6 +81,8 @@ export default class Manager implements IManager, vscode.Disposable {
         return new SlackChatProvider(token, this);
       case "vsls":
         return new VslsChatProvider();
+      case "vslsCommunities":
+        return new VslsCommunitiesProvider();
       default:
         throw new Error(`unsupport chat provider: ${provider}`);
     }

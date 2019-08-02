@@ -4,7 +4,8 @@ import {
   VSCodeCommands,
   EXTENSION_ID,
   VSLS_EXTENSION_PACK_ID,
-  VSLS_EXTENSION_ID
+  VSLS_EXTENSION_ID,
+  VSLS_COMMUNITIES_EXTENSION_ID
 } from "../constants";
 
 export const openUrl = (url: string) => {
@@ -52,6 +53,10 @@ export const hasVslsExtensionPack = (): boolean => {
 export const hasVslsExtension = (): boolean => {
   return !!getExtension(VSLS_EXTENSION_ID);
 };
+
+export const hasVslsCommunitiesExtension = (): boolean => {
+  return !!getExtension(VSLS_COMMUNITIES_EXTENSION_ID);
+}
 
 export const sanitiseTokenString = (token: string) => {
   const trimmed = token.trim();

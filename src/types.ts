@@ -63,7 +63,8 @@ interface UserPreferences {
 const enum Providers {
   slack = "slack",
   discord = "discord",
-  vsls = "vsls"
+  vsls = "vsls",
+  vslsCommunities = "vslsCommunities"
 }
 
 interface CurrentUser {

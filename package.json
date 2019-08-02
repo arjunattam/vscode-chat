@@ -125,6 +125,11 @@
           "light": "public/icons/light/chat.svg",
           "dark": "public/icons/dark/chat.svg"
         }
+      },
+      {
+        "command": "extension.chat.chatWithCommunity",
+        "title": "Chat with the Community",
+        "category": "Chat"
       }
     ],
     "views": {
@@ -210,6 +215,10 @@
           "command": "extension.chat.startChatWithVslsContact",
           "when": "chat:vslsEnabled && view == liveshare.contacts && viewItem == contacts.contact",
           "group": "inline"
+        },
+        {
+          "command": "extension.chat.chatWithCommunity",
+          "when": "view == liveshare.communities && viewItem == community"
         }
       ],
       "view/title": [
