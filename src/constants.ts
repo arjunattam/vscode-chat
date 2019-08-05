@@ -46,7 +46,8 @@ export const SelfCommands = {
   CHANNEL_MARKED: "extension.chat.updateChannelMark",
   HANDLE_INCOMING_LINKS: "extension.chat.handleIncomingLinks",
   SEND_TO_WEBVIEW: "extension.chat.sendToWebview",
-  CHAT_WITH_VSLS_COMMUNITY: "extension.chat.chatWithCommunity"
+  CHAT_WITH_VSLS_COMMUNITY: "extension.chat.chatWithCommunity",
+  VSLS_COMMUNITY_JOINED: "extension.chat.vslsCommunityJoined"
 };
 
 export const SLASH_COMMANDS: any = {

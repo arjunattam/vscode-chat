@@ -565,6 +565,26 @@ export function activate(context: vscode.ExtensionContext) {
     }
   };
 
+  const openVslsCommunityChat = async (communityName: string) => {
+    const api = utils.getExtension(VSLS_COMMUNITIES_EXTENSION_ID)!.exports;
+    const { name, email } = api.getUserInfo();
+    await manager.store.updateCurrentUser(
+      "vslsCommunities",
+      {
+        id: email,
+        name,
+        teams: [],
+        currentTeamId: undefined,
+        provider: Providers.vslsCommunities
+      }
+    )
+    return openChatWebview({
+      providerName: "vslsCommunities",
+      channelId: communityName,
+      source: EventSource.command
+    });
+  }
+
   // Setup real-time messenger and updated local state
   setup(true, undefined);
 
@@ -749,24 +769,16 @@ export function activate(context: vscode.ExtensionContext) {
       SelfCommands.CHAT_WITH_VSLS_COMMUNITY,
       ({ community }) => {
         const { name: communityName } = community;
-        const api = utils.getExtension(VSLS_COMMUNITIES_EXTENSION_ID)!.exports;
-        const { name, email } = api.getUserInfo();
-        manager.store.updateCurrentUser(
-          "vslsCommunities",
-          {
-            id: email,
-            name,
-            teams: [],
-            currentTeamId: undefined,
-            provider: Providers.vslsCommunities
-          }
-        ).then(() => {
-          openChatWebview({
-            providerName: "vslsCommunities",
-            channelId: communityName,
-            source: EventSource.command
-          });
-        })
+        return openVslsCommunityChat(communityName);
+      }
+    ),
+    vscode.commands.registerCommand(
+      SelfCommands.VSLS_COMMUNITY_JOINED,
+      async ({ name }) => {
+        // Update store and launch the webview
+        await manager.fetchUsers("vslsCommunities");
+        await manager.fetchChannels("vslsCommunities");
+        return openVslsCommunityChat(name);
       }
     ),
     vscode.workspace.onDidChangeConfiguration(resetConfiguration),

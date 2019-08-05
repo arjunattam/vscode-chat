@@ -2,6 +2,12 @@
 
 All notable changes to the vscode-chat extension will be documented in this file. This follows the [Keep a Changelog](http://keepachangelog.com/) format.
 
+## [0.16.1] - 2019-08-04
+
+### Added
+
+- [Live Share Communities](https://github.com/vsls-contrib/communities) integration: Auto-launch community chat when a community is joined.
+
 ## [0.16.0] - 2019-08-02
 
 ### Added

@@ -19,6 +19,10 @@ const toMessage = (msg: IMessage) => ({
   replies: {}
 });
 
+function sleep(ms: number) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 export class VslsCommunitiesProvider implements IChatProvider {
   isWSConnected: boolean = false;
 
@@ -32,12 +36,26 @@ export class VslsCommunitiesProvider implements IChatProvider {
         exports.setMessageCallback((data: any) => {
           this.onNewMessage(data);
         });
+        exports.setCommunityCallback((name: string) => {
+          this.onNewCommunity(name);
+        })
 
         this.isWSConnected = true;
       }
     }, 5000);
 
     return;
+  }
+
+  async getApi() {
+    const extension = getExtension(VSLS_COMMUNITIES_EXTENSION_ID)!;
+
+    if (extension.isActive) {
+      return extension.exports;
+    } else {
+      await sleep(3000); // Give 3 secs for extension to activate
+      return extension.exports;
+    }
   }
 
   onNewMessage(data: any) {
@@ -54,17 +72,23 @@ export class VslsCommunitiesProvider implements IChatProvider {
     });
   }
 
+  onNewCommunity(communityName: string) {
+    vscode.commands.executeCommand(SelfCommands.VSLS_COMMUNITY_JOINED, {
+      name: communityName
+    })
+  }
+
   isConnected(): boolean {
     return this.isWSConnected;
   }
 
   async sendMessage(text: string, currentUserId: string, channelId: string) {
-    const api = getExtension(VSLS_COMMUNITIES_EXTENSION_ID)!.exports;
+    const api = await this.getApi();
     api.sendMessage(channelId, text);
   }
 
-  fetchUsers(): Promise<Users> {
-    const api = getExtension(VSLS_COMMUNITIES_EXTENSION_ID)!.exports;
+  async fetchUsers(): Promise<Users> {
+    const api = await this.getApi();
     const users: User[] = api.getUsers().map(({ name, email }: any) => {
       const avatar = gravatar.imageUrl({
         email,
@@ -85,12 +109,11 @@ export class VslsCommunitiesProvider implements IChatProvider {
     users.forEach(u => {
       usersToSend[u.id] = u;
     });
-    return Promise.resolve(usersToSend);
+    return usersToSend;
   }
 
-  fetchChannels(users: Users): Promise<Channel[]> {
-    // TODO: when a new community is added, how will team chat know?
-    const api = getExtension(VSLS_COMMUNITIES_EXTENSION_ID)!.exports;
+  async fetchChannels(users: Users): Promise<Channel[]> {
+    const api = await this.getApi();
     const communities = api.getCommunities();
     const channels: Channel[] = communities.map((name: string) => ({
       id: name,
@@ -99,11 +122,11 @@ export class VslsCommunitiesProvider implements IChatProvider {
       readTimestamp: undefined,
       unreadCount: 0
     }));
-    return Promise.resolve(channels);
+    return channels;
   }
 
   async loadChannelHistory(channelId: string) {
-    const api = getExtension(VSLS_COMMUNITIES_EXTENSION_ID)!.exports;
+    const api = await this.getApi();
     const messages: IMessage[] = await api.getChannelHistory(channelId);
     const chatMessages: Message[] = messages.map(toMessage);
     let channelMessages: ChannelMessages = {}
