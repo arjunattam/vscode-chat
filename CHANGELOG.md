@@ -2,6 +2,12 @@
 
 All notable changes to the vscode-chat extension will be documented in this file. This follows the [Keep a Changelog](http://keepachangelog.com/) format.
 
+## [0.16.2] - 2019-08-04
+
+### Fixed
+
+- [Live Share Communities](https://github.com/vsls-contrib/communities) integration: Fix presence provider and timing issues.
+
 ## [0.16.1] - 2019-08-04
 
 ### Added

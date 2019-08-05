@@ -48,12 +48,14 @@ export class VslsCommunitiesProvider implements IChatProvider {
   }
 
   async getApi() {
-    const extension = getExtension(VSLS_COMMUNITIES_EXTENSION_ID)!;
+    let extension = getExtension(VSLS_COMMUNITIES_EXTENSION_ID)!;
 
     if (extension.isActive) {
       return extension.exports;
     } else {
-      await sleep(3000); // Give 3 secs for extension to activate
+      await sleep(5000); // Give 5 secs for extension to activate
+
+      extension = getExtension(VSLS_COMMUNITIES_EXTENSION_ID)!;
       return extension.exports;
     }
   }

@@ -208,7 +208,7 @@ export default class Manager implements IManager, vscode.Disposable {
     // the vsls contact provider uses list of users to match with vsls contacts.
     const enabledProviders = this.getEnabledProviders().map(e => e.provider);
     const nonVslsProviders = enabledProviders.filter(
-      provider => provider !== "vsls"
+      provider => provider !== "vsls" && provider !== "vslsCommunities"
     );
 
     if (hasVslsExtension() && nonVslsProviders.length > 0) {
