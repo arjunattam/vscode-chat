@@ -26,7 +26,7 @@ function sleep(ms: number) {
 export class VslsCommunitiesProvider implements IChatProvider {
   isWSConnected: boolean = false;
 
-  async connect(): Promise<CurrentUser | undefined> {
+  constructor() {
     // Waiting for the extension to get activated
     setTimeout(() => {
       const extension = getExtension(VSLS_COMMUNITIES_EXTENSION_ID);
@@ -43,8 +43,6 @@ export class VslsCommunitiesProvider implements IChatProvider {
         this.isWSConnected = true;
       }
     }, 5000);
-
-    return;
   }
 
   async getApi() {
@@ -57,6 +55,21 @@ export class VslsCommunitiesProvider implements IChatProvider {
 
       extension = getExtension(VSLS_COMMUNITIES_EXTENSION_ID)!;
       return extension.exports;
+    }
+  }
+
+  async connect(): Promise<CurrentUser | undefined> {
+    const api = await this.getApi();
+
+    if (api) {
+      const { name, email } = api.getUserInfo();
+      return {
+        id: email,
+        name,
+        teams: [],
+        currentTeamId: undefined,
+        provider: Providers.vslsCommunities
+      }
     }
   }
 
