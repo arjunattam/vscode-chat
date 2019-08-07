@@ -24,31 +24,40 @@ function sleep(ms: number) {
 }
 
 export class VslsCommunitiesProvider implements IChatProvider {
-  isWSConnected: boolean = false;
+  isListenerSetup: boolean = false;
 
   constructor() {
     // Waiting for the extension to get activated
     setTimeout(() => {
-      const extension = getExtension(VSLS_COMMUNITIES_EXTENSION_ID);
-
-      if (extension) {
-        const exports = extension.exports;
-        exports.setMessageCallback((data: any) => {
-          this.onNewMessage(data);
-        });
-        exports.setCommunityCallback((name: string) => {
-          this.onNewCommunity(name);
-        })
-
-        this.isWSConnected = true;
-      }
+      this.setupListeners();
     }, 5000);
+  }
+
+  setupListeners() {
+    const extension = getExtension(VSLS_COMMUNITIES_EXTENSION_ID);
+
+    if (extension && extension.isActive) {
+      const exports = extension.exports;
+      exports.setMessageCallback((data: any) => {
+        this.onNewMessage(data);
+      });
+      exports.setCommunityCallback((name: string) => {
+        this.onNewCommunity(name);
+      })
+
+      this.isListenerSetup = true;
+    }
   }
 
   async getApi() {
     let extension = getExtension(VSLS_COMMUNITIES_EXTENSION_ID)!;
 
     if (extension.isActive) {
+
+      if (!this.isListenerSetup) {
+        this.setupListeners();
+      }
+
       return extension.exports;
     } else {
       await sleep(5000); // Give 5 secs for extension to activate
@@ -94,7 +103,7 @@ export class VslsCommunitiesProvider implements IChatProvider {
   }
 
   isConnected(): boolean {
-    return this.isWSConnected;
+    return this.isListenerSetup;
   }
 
   async sendMessage(text: string, currentUserId: string, channelId: string) {
@@ -125,6 +134,11 @@ export class VslsCommunitiesProvider implements IChatProvider {
       usersToSend[u.id] = u;
     });
     return usersToSend;
+  }
+
+  async fetchUserInfo(userId: string): Promise<User | undefined> {
+    const users = await this.fetchUsers();
+    return users[userId];
   }
 
   async fetchChannels(users: Users): Promise<Channel[]> {
@@ -159,10 +173,6 @@ export class VslsCommunitiesProvider implements IChatProvider {
 
   async validateToken(): Promise<CurrentUser | undefined> {
     return;
-  }
-
-  async fetchUserInfo(userId: string): Promise<User | undefined> {
-    return undefined;
   }
 
   async fetchChannelInfo(channel: Channel): Promise<Channel | undefined> {
