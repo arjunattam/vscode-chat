@@ -2,6 +2,12 @@
 
 All notable changes to the vscode-chat extension will be documented in this file. This follows the [Keep a Changelog](http://keepachangelog.com/) format.
 
+## [0.17.1] - 2019-08-08
+
+### Added
+
+- Render links correctly in Live Share and Live Share Communities chat.
+
 ## [0.17.0] - 2019-08-07
 
 ### Added
