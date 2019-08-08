@@ -2,6 +2,13 @@
 
 All notable changes to the vscode-chat extension will be documented in this file. This follows the [Keep a Changelog](http://keepachangelog.com/) format.
 
+## [0.16.3] - 2019-08-07
+
+### Fixed
+
+- [Live Share Communities](https://github.com/vsls-contrib/communities) integration: Fix cases where current user is returned as undefined.
+- [Live Share Communities](https://github.com/vsls-contrib/communities) integration: Fix a bug where new members were not recognised with an avatar and name.
+
 ## [0.16.2] - 2019-08-04
 
 ### Fixed
