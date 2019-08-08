@@ -61,7 +61,45 @@ export const emojify = (messages: ChannelMessages): ChannelMessages => {
   return emojifiedMessages;
 };
 
-export const parseLinks = (messages: ChannelMessages): ChannelMessages => {
+const parseSimpleLinks = (messages: ChannelMessages): ChannelMessages => {
+  let parsed: ChannelMessages = {};
+
+  Object.keys(messages).forEach(key => {
+    const { content, text } = messages[key];
+    let newContent: MessageContent | undefined = undefined;
+    const URL_REGEX = /https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-z]{2,6}\b([-a-zA-Z0-9@:%_\+.~#?&//=;\^]*)/;
+    const re = new RegExp(`${URL_REGEX.source}`, "g");
+
+    if (!!content) {
+      newContent = {
+        ...content,
+        text: content.text
+          ? content.text.replace(re, function(a, b, c, d, e) {
+              return `[${a}](${a})`;
+            })
+          : "",
+        footer: content.footer
+          ? content.footer.replace(re, function(a, b, c, d, e) {
+              return `[${a}](${a})`;
+            })
+          : ""
+      };
+    }
+
+    parsed[key] = {
+      ...messages[key],
+      text: text
+        ? text.replace(re, function(a, b, c, d, e) {
+            return `[${a}](${a})`;
+          })
+        : "",
+      content: newContent
+    };
+  });
+  return parsed;
+}
+
+export const parseSlackLinks = (messages: ChannelMessages): ChannelMessages => {
   // Looks for <url|title> pattern, and replaces them with normal markdown
   // The |pattern can be optional
   let parsed: ChannelMessages = {};
@@ -192,9 +230,10 @@ export const markdownify = (messages: ChannelMessages): ChannelMessages => {
 
 const transformChain = (uiMessage: UIMessage): UIMessage => {
   const { messages } = parseUsernames(uiMessage);
+  const linkParser = uiMessage.provider === "vsls" || uiMessage.provider === "vslsCommunities" ? parseSimpleLinks : parseSlackLinks;
   return {
     ...uiMessage,
-    messages: markdownify(parseLinks(emojify(messages)))
+    messages: markdownify(linkParser(emojify(messages)))
   };
 };
 
