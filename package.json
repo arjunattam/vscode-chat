@@ -260,6 +260,7 @@
     "@types/request-promise-native": "^1.0.15",
     "@types/semver": "^5.5.0",
     "@types/webpack": "^4.4.10",
+    "native-modules": "^1.1.0",
     "ts-loader": "^5.3.3",
     "ts-mockito": "^2.3.1",
     "tsc-watch": "^1.0.22",
