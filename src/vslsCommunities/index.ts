@@ -44,6 +44,9 @@ export class VslsCommunitiesProvider implements IChatProvider {
       exports.setCommunityCallback((name: string) => {
         this.onNewCommunity(name);
       })
+      exports.setClearMessagesCallback((name: string) => {
+        this.onClearMessages(name);
+      })
 
       this.isListenerSetup = true;
     }
@@ -103,7 +106,7 @@ export class VslsCommunitiesProvider implements IChatProvider {
   }
 
   onClearMessages(communityName: string) {
-    vscode.commands.executeCommand(SelfCommands.UPDATE_MESSAGES, {
+    vscode.commands.executeCommand(SelfCommands.CLEAR_MESSAGES, {
       channelId: communityName,
       provider: "vslsCommunities"
     });
