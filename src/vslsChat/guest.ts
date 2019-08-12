@@ -4,6 +4,7 @@ import { VslsBaseService } from "./base";
 
 export class VslsGuestService extends VslsBaseService {
   constructor(
+    private api: vsls.LiveShare,
     private serviceProxy: vsls.SharedServiceProxy,
     private peer: vsls.Peer
   ) {
@@ -20,6 +21,10 @@ export class VslsGuestService extends VslsBaseService {
     if (serviceProxy.isServiceAvailable) {
       this.registerSelf();
     }
+  }
+
+  async dispose() {
+    // 
   }
 
   registerSelf() {

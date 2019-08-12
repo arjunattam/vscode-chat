@@ -1,18 +1,14 @@
 import * as vscode from "vscode";
 import * as vsls from "vsls";
-import { VSLS_CHAT_CHANNEL } from "./utils";
+import { VSLS_CHAT_CHANNEL, getVslsChatServiceName } from "./utils";
 import { VslsHostService } from "./host";
 import { VslsGuestService } from "./guest";
 import { SelfCommands } from "../constants";
 import * as str from "../strings";
 import Logger from "../logger";
 
-const VSLS_CHAT_SERVICE_NAME = "vsls-chat";
-
 export class VslsChatProvider implements IChatProvider {
   liveshare: vsls.LiveShare | undefined;
-  sharedService: vsls.SharedService | undefined;
-  serviceProxy: vsls.SharedServiceProxy | undefined;
   hostService: VslsHostService | undefined;
   guestService: VslsGuestService | undefined;
 
@@ -21,7 +17,6 @@ export class VslsChatProvider implements IChatProvider {
     const liveshare = await vsls.getApi();
 
     if (!liveshare) {
-      // vsls not found
       Logger.log('vsls not found, required to initialize chat')
       return undefined;
     }
@@ -78,39 +73,28 @@ export class VslsChatProvider implements IChatProvider {
       return undefined;
     }
 
+    const serviceName = getVslsChatServiceName(sessionId);
+
     if (role === vsls.Role.Host) {
-      if (!this.sharedService) {
-        const sharedService = await liveshare.shareService(VSLS_CHAT_SERVICE_NAME);
+      const sharedService = await liveshare.shareService(serviceName);
 
-        if (!sharedService) {
-          throw new Error("Error sharing service for Live Share Chat.")
-        }
-
-        this.sharedService = sharedService;
-        this.hostService = new VslsHostService(this.sharedService, peerNumber);
+      if (!sharedService) {
+        throw new Error("Error sharing service for Live Share Chat.")
       }
+
+      this.hostService = new VslsHostService(liveshare, sharedService, peerNumber, serviceName);
     } else if (role === vsls.Role.Guest) {
-      if (!this.serviceProxy) {
-        const serviceProxy = await liveshare.getSharedService(VSLS_CHAT_SERVICE_NAME);
+      const serviceProxy = await liveshare.getSharedService(serviceName);
 
-        if (!serviceProxy) {
-          throw new Error("Error getting shared service for Live Share Chat.")
-        }
+      if (!serviceProxy) {
+        throw new Error("Error getting shared service for Live Share Chat.")
+      }
 
-        serviceProxy.onDidChangeIsServiceAvailable((available: boolean) => {
-          // Service availability changed
-          console.log(available)
-        })
-
-        if (!serviceProxy.isServiceAvailable) {
-          vscode.window.showWarningMessage(str.NO_LIVE_SHARE_CHAT_ON_HOST)
-          return;
-        }
-
-        this.serviceProxy = serviceProxy;
-        this.guestService = new VslsGuestService(this.serviceProxy, <vsls.Peer>(
-          liveshare.session
-        ));
+      if (!serviceProxy.isServiceAvailable) {
+        vscode.window.showWarningMessage(str.NO_LIVE_SHARE_CHAT_ON_HOST)
+        return;
+      } else {
+        this.guestService = new VslsGuestService(liveshare, serviceProxy, <vsls.Peer>liveshare.session);
       }
     }
 
@@ -129,12 +113,16 @@ export class VslsChatProvider implements IChatProvider {
   }
 
   async clearSession() {
+    if (!!this.hostService) {
+      await this.hostService.dispose()
+    }
+
+    if (!!this.guestService) {
+      await this.guestService.dispose()
+    }
+
     this.hostService = undefined;
     this.guestService = undefined;
-    const liveshare = <vsls.LiveShare>await vsls.getApi();
-    liveshare.unshareService(VSLS_CHAT_SERVICE_NAME);
-    this.sharedService = undefined;
-    this.serviceProxy = undefined;
   }
 
   isConnected(): boolean {
@@ -191,10 +179,8 @@ export class VslsChatProvider implements IChatProvider {
   }
 
   async destroy(): Promise<void> {
-    const liveshare = await vsls.getApi();
-
-    if (!!liveshare) {
-      return liveshare.unshareService(VSLS_CHAT_SERVICE_NAME);
+    if (!!this.hostService) {
+      await this.hostService.dispose();
     }
   }
 

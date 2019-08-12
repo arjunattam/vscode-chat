@@ -26,7 +26,12 @@ export default class Manager implements IManager, vscode.Disposable {
     let providerTeamIds: { [provider: string]: string | undefined } = {};
 
     currentUserInfos.forEach(currentUser => {
-      providerTeamIds[currentUser.provider] = currentUser.currentTeamId;
+      const {provider} = currentUser;
+
+      if (provider !== "vsls" && provider !== "vslsCommunities") {
+        // These 2 providers are dependent on installed extensions, not the user state
+        providerTeamIds[currentUser.provider] = currentUser.currentTeamId;
+      }
     });
 
     const hasVsls = hasVslsExtension();
@@ -178,7 +183,14 @@ export default class Manager implements IManager, vscode.Disposable {
   initializeProviders = async (): Promise<any> => {
     for (let entry of Array.from(this.chatProviders.entries())) {
       let chatProvider = entry[1];
-      await chatProvider.initializeProvider();
+
+      try {
+        await chatProvider.initializeProvider();
+      } catch(err) {
+        // try-catch will save vsls in case vslsCommunities crashes because
+        // it cannot find exports for the vslsCommunities extension.
+        console.log(err)
+      }
     }
   };
 

@@ -4,7 +4,7 @@ import {
   REQUEST_NAME,
   NOTIFICATION_NAME,
   toBaseUser,
-  toBaseMessage
+  toBaseMessage,
 } from "./utils";
 import { VslsBaseService } from "./base";
 import { LIVE_SHARE_INFO_MESSAGES } from "../strings";
@@ -18,8 +18,10 @@ export class VslsHostService extends VslsBaseService {
   cachedPeers: vsls.Peer[] = [];
 
   constructor(
+    private api: vsls.LiveShare,
     private sharedService: vsls.SharedService,
-    private peerNumber: number
+    private peerNumber: number,
+    private serviceName: string
   ) {
     super();
     
@@ -57,6 +59,10 @@ export class VslsHostService extends VslsBaseService {
         return this.updateCachedPeers([peer], []);
       }
     });
+  }
+
+  async dispose() {
+    await this.api.unshareService(this.serviceName)
   }
 
   isConnected() {

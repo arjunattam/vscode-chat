@@ -6,6 +6,10 @@ export const VSLS_CHAT_CHANNEL = {
   name: "Live Share Chat"
 };
 
+export function getVslsChatServiceName(sessionId: string) {
+  return `vsls-chat-${sessionId}`
+}
+
 export type VslsChatMessage = {
   userId: string;
   text: string;
