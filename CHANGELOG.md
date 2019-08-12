@@ -2,6 +2,16 @@
 
 All notable changes to the vscode-chat extension will be documented in this file. This follows the [Keep a Changelog](http://keepachangelog.com/) format.
 
+## [0.18.0] - 2019-08-11
+
+### Added
+
+- Live Share: alert the guest if host does not have the extension installed.
+
+### Fixed
+
+- Fixed a case where Live Share Chat was not initialized.
+
 ## [0.17.1] - 2019-08-08
 
 ### Added
