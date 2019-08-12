@@ -126,7 +126,8 @@
         }
       },
       {
-        "command": "extension.chat.chatWithCommunity",
+        "command": "extension.chat.chatWith
+        ",
         "title": "Chat with Community",
         "category": "Chat",
         "icon": {
@@ -221,11 +222,11 @@
         },
         {
           "command": "extension.chat.chatWithCommunity",
-          "when": "view == liveshare.communities && viewItem == community"
+          "when": "view == liveshare.communities && viewItem =~ /^community/"
         },
         {
           "command": "extension.chat.chatWithCommunity",
-          "when": "view == liveshare.communities && viewItem == community",
+          "when": "view == liveshare.communities && viewItem =~ /^community/",
           "group": "inline@1"
         }
       ],
