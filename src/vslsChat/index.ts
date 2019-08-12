@@ -4,6 +4,7 @@ import { VSLS_CHAT_CHANNEL } from "./utils";
 import { VslsHostService } from "./host";
 import { VslsGuestService } from "./guest";
 import { SelfCommands } from "../constants";
+import * as str from "../strings";
 import Logger from "../logger";
 
 const VSLS_CHAT_SERVICE_NAME = "vsls-chat";
@@ -79,13 +80,10 @@ export class VslsChatProvider implements IChatProvider {
 
     if (role === vsls.Role.Host) {
       if (!this.sharedService) {
-        const sharedService = await liveshare.shareService(
-          VSLS_CHAT_SERVICE_NAME
-        );
+        const sharedService = await liveshare.shareService(VSLS_CHAT_SERVICE_NAME);
 
         if (!sharedService) {
-          // Not sure why this would happen. We should inform the user here.
-          return undefined;
+          throw new Error("Error sharing service for Live Share Chat.")
         }
 
         this.sharedService = sharedService;
@@ -93,13 +91,20 @@ export class VslsChatProvider implements IChatProvider {
       }
     } else if (role === vsls.Role.Guest) {
       if (!this.serviceProxy) {
-        const serviceProxy = await liveshare.getSharedService(
-          VSLS_CHAT_SERVICE_NAME
-        );
+        const serviceProxy = await liveshare.getSharedService(VSLS_CHAT_SERVICE_NAME);
 
         if (!serviceProxy) {
-          // Not sure why this would happen. We should inform the user here.
-          return undefined;
+          throw new Error("Error getting shared service for Live Share Chat.")
+        }
+
+        serviceProxy.onDidChangeIsServiceAvailable((available: boolean) => {
+          // Service availability changed
+          console.log(available)
+        })
+
+        if (!serviceProxy.isServiceAvailable) {
+          vscode.window.showWarningMessage(str.NO_LIVE_SHARE_CHAT_ON_HOST)
+          return;
         }
 
         this.serviceProxy = serviceProxy;

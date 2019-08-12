@@ -645,6 +645,11 @@ export function activate(context: vscode.ExtensionContext) {
     vscode.commands.registerCommand(
       SelfCommands.LIVE_SHARE_SESSION_CHANGED,
       ({ isSessionActive, currentUser }) => {
+        if (!currentUser) {
+          // If the currentUser is undefined, don't launch the window
+          return;
+        }
+
         const enabledProviders = manager
           .getEnabledProviders()
           .map(e => e.provider);

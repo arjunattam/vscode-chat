@@ -12,6 +12,11 @@ export class VslsGuestService extends VslsBaseService {
       this.updateMessages(msg)
     );
 
+    serviceProxy.onDidChangeIsServiceAvailable((available: boolean) => {
+      // Service availability changed
+      // TODO
+    })
+
     if (serviceProxy.isServiceAvailable) {
       this.registerSelf();
     }

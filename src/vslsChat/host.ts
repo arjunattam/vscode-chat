@@ -22,6 +22,12 @@ export class VslsHostService extends VslsBaseService {
     private peerNumber: number
   ) {
     super();
+    
+    sharedService.onDidChangeIsServiceAvailable((available: boolean) => {
+      // Service availability changed
+      // TODO
+    })
+
     sharedService.onRequest(REQUEST_NAME.message, payload => {
       if (!!payload) {
         const message = payload[0];

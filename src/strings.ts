@@ -58,3 +58,6 @@ export const SELECT_DND_DURATION = "Select snooze duration for Slack";
 
 export const UNABLE_TO_MATCH_CONTACT =
   "Could not start chat: unable to match this contact.";
+
+export const NO_LIVE_SHARE_CHAT_ON_HOST = 
+  "Live Share Chat is unavailable for this session, since the host does not have it.";
