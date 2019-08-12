@@ -34,6 +34,7 @@ export const SelfCommands = {
   SETUP_NEW_PROVIDER: "extension.chat.setupNewProvider",
   FETCH_REPLIES: "extension.chat.fetchReplies",
   UPDATE_MESSAGES: "extension.chat.updateMessages",
+  CLEAR_MESSAGES: "extension.chat.clearMessages",
   UPDATE_MESSAGE_REPLIES: "extension.chat.updateReplies",
   UPDATE_PRESENCE_STATUSES: "extension.chat.updatePresenceStatuses",
   UPDATE_SELF_PRESENCE: "extension.chat.updateSelfPresence",

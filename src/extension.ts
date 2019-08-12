@@ -691,6 +691,12 @@ export function activate(context: vscode.ExtensionContext) {
       }
     ),
     vscode.commands.registerCommand(
+      SelfCommands.CLEAR_MESSAGES,
+      ({ channelId, provider }) => {
+        manager.clearMessages(provider, channelId);
+      }
+    ),
+    vscode.commands.registerCommand(
       SelfCommands.ADD_MESSAGE_REACTION,
       ({ userId, msgTimestamp, channelId, reactionName, provider }) => {
         manager.addReaction(

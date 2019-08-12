@@ -102,6 +102,13 @@ export class VslsCommunitiesProvider implements IChatProvider {
     })
   }
 
+  onClearMessages(communityName: string) {
+    vscode.commands.executeCommand(SelfCommands.UPDATE_MESSAGES, {
+      channelId: communityName,
+      provider: "vslsCommunities"
+    });
+  }
+
   isConnected(): boolean {
     return this.isListenerSetup;
   }

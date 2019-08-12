@@ -498,6 +498,14 @@ export default class Manager implements IManager, vscode.Disposable {
     return !!cp ? cp.updateMessages(channelId, messages) : undefined;
   }
 
+  clearMessages(
+    providerName: string,
+    channelId: string,
+  ) {
+    const cp = this.chatProviders.get(providerName as Providers);
+    return !!cp ? cp.clearMessages(channelId) : undefined;
+  }
+
   updateChannelMarked(
     provider: string,
     channelId: string,

@@ -164,6 +164,15 @@ export class ChatProviderManager {
     return Promise.resolve();
   };
 
+  clearMessages = (channelId: string) => {
+    const existingMessages = channelId in this.messages ? this.messages[channelId] : {};
+    const deletedMessages: any = {}
+    Object.keys(existingMessages).forEach((ts: string) => {
+      deletedMessages[ts] = undefined;
+    })
+    return this.updateMessages(channelId, deletedMessages);
+  }
+
   updateMessages = (
     channelId: string,
     messages: ChannelMessagesWithUndefined
