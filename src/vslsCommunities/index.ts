@@ -13,7 +13,7 @@ interface IMessage {
 const toMessage = (msg: IMessage) => ({
     timestamp: (Date.parse(msg.timestamp) / 1000.0).toString(),
     userId: msg.sender,
-    text: msg.content,
+    text: msg.type === "info_message" ? `_${msg.content}_` : msg.content,
     content: undefined,
     reactions: [],
     replies: {}
@@ -47,9 +47,6 @@ export class VslsCommunitiesProvider implements IChatProvider {
             exports.setClearMessagesCallback((name: string) => {
                 this.onClearMessages(name);
             });
-            // exports.setInfoMessageCallback((data: any) => {
-            //     this.onInfoMessage(data);
-            // });
 
             this.isListenerSetup = true;
         }
@@ -94,26 +91,6 @@ export class VslsCommunitiesProvider implements IChatProvider {
         chatMessages.forEach(msg => {
             channelMessages[msg.timestamp] = msg;
         });
-        vscode.commands.executeCommand(SelfCommands.UPDATE_MESSAGES, {
-            channelId: name,
-            messages: channelMessages,
-            provider: "vslsCommunities"
-        });
-    }
-
-    onInfoMessage(data: any) {
-        const { name, text, user } = data;
-        const timestamp = (new Date().valueOf() / 1000.0).toString();
-        const channelMessages: ChannelMessages = {
-            [timestamp]: {
-                timestamp,
-                text: `_${text}_`,
-                userId: user,
-                content: undefined,
-                reactions: [],
-                replies: {}
-            }
-        };
         vscode.commands.executeCommand(SelfCommands.UPDATE_MESSAGES, {
             channelId: name,
             messages: channelMessages,
