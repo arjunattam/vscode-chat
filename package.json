@@ -246,8 +246,8 @@
     "postinstall": "node ./node_modules/vscode/bin/install",
     "test": "npm run compile:tsc && node ./node_modules/vscode/bin/test",
     "webview:all": "npm run webview:setup && npm run webview:copy",
-    "webview:setup": "rm -rf static && mkdir -p static && node scripts/vue.js",
-    "webview:copy": "cp -fr src/webview/static* static/.",
+    "webview:setup": "shx rm -rf static && mkdir -p static && node scripts/vue.js",
+    "webview:copy": "shx cp -fr src/webview/static* static/.",
     "vscode:prepublish": "npm run compile"
   },
   "devDependencies": {
@@ -261,6 +261,7 @@
     "@types/semver": "^5.5.0",
     "@types/webpack": "^4.4.10",
     "native-modules": "^1.1.0",
+    "shx": "^0.3.2",
     "ts-loader": "^5.3.3",
     "ts-mockito": "^2.3.1",
     "tsc-watch": "^1.0.22",
