@@ -47,9 +47,9 @@ export class VslsCommunitiesProvider implements IChatProvider {
             exports.setClearMessagesCallback((name: string) => {
                 this.onClearMessages(name);
             });
-            exports.setInfoMessageCallback((data: any) => {
-                this.onInfoMessage(data);
-            });
+            // exports.setInfoMessageCallback((data: any) => {
+            //     this.onInfoMessage(data);
+            // });
 
             this.isListenerSetup = true;
         }
