@@ -2,6 +2,12 @@
 
 All notable changes to the vscode-chat extension will be documented in this file. This follows the [Keep a Changelog](http://keepachangelog.com/) format.
 
+## [0.20.0] - 2019-08-13
+
+### Added
+
+- Live Share Communities: added support for info messages
+
 ## [0.19.0] - 2019-08-12
 
 ### Added

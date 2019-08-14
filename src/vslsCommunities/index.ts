@@ -4,219 +4,244 @@ import { VSLS_COMMUNITIES_EXTENSION_ID, SelfCommands } from "../constants";
 import { getExtension } from "../utils";
 
 interface IMessage {
-  type: string;
-  content: string;
-  timestamp: string;
-  sender: string;
+    type: string;
+    content: string;
+    timestamp: string;
+    sender: string;
 }
 
 const toMessage = (msg: IMessage) => ({
-  timestamp: (Date.parse(msg.timestamp) / 1000.0).toString(),
-  userId: msg.sender,
-  text: msg.content,
-  content: undefined,
-  reactions: [],
-  replies: {}
+    timestamp: (Date.parse(msg.timestamp) / 1000.0).toString(),
+    userId: msg.sender,
+    text: msg.content,
+    content: undefined,
+    reactions: [],
+    replies: {}
 });
 
 function sleep(ms: number) {
-  return new Promise(resolve => setTimeout(resolve, ms));
+    return new Promise(resolve => setTimeout(resolve, ms));
 }
 
 export class VslsCommunitiesProvider implements IChatProvider {
-  isListenerSetup: boolean = false;
+    isListenerSetup: boolean = false;
 
-  constructor() {
-    // Waiting for the extension to get activated
-    setTimeout(() => {
-      this.setupListeners();
-    }, 5000);
-  }
-
-  setupListeners() {
-    const extension = getExtension(VSLS_COMMUNITIES_EXTENSION_ID);
-
-    if (extension && extension.isActive) {
-      const exports = extension.exports;
-      exports.setMessageCallback((data: any) => {
-        this.onNewMessage(data);
-      });
-      exports.setCommunityCallback((name: string) => {
-        this.onNewCommunity(name);
-      })
-      exports.setClearMessagesCallback((name: string) => {
-        this.onClearMessages(name);
-      })
-
-      this.isListenerSetup = true;
+    constructor() {
+        // Waiting for the extension to get activated
+        setTimeout(() => {
+            this.setupListeners();
+        }, 5000);
     }
-  }
 
-  async getApi() {
-    let extension = getExtension(VSLS_COMMUNITIES_EXTENSION_ID)!;
+    setupListeners() {
+        const extension = getExtension(VSLS_COMMUNITIES_EXTENSION_ID);
 
-    if (extension.isActive) {
+        if (extension && extension.isActive) {
+            const exports = extension.exports;
+            exports.setMessageCallback((data: any) => {
+                this.onNewMessage(data);
+            });
+            exports.setCommunityCallback((name: string) => {
+                this.onNewCommunity(name);
+            });
+            exports.setClearMessagesCallback((name: string) => {
+                this.onClearMessages(name);
+            });
+            exports.setInfoMessageCallback((data: any) => {
+                this.onInfoMessage(data);
+            });
 
-      if (!this.isListenerSetup) {
-        this.setupListeners();
-      }
-
-      return extension.exports;
-    } else {
-      await sleep(5000); // Give 5 secs for extension to activate
-
-      extension = getExtension(VSLS_COMMUNITIES_EXTENSION_ID)!;
-      return extension.exports;
+            this.isListenerSetup = true;
+        }
     }
-  }
 
-  async connect(): Promise<CurrentUser | undefined> {
-    const api = await this.getApi();
+    async getApi() {
+        let extension = getExtension(VSLS_COMMUNITIES_EXTENSION_ID)!;
 
-    if (api) {
-      const { name, email } = api.getUserInfo();
-      return {
-        id: email,
-        name,
-        teams: [],
-        currentTeamId: undefined,
-        provider: Providers.vslsCommunities
-      }
+        if (extension.isActive) {
+            if (!this.isListenerSetup) {
+                this.setupListeners();
+            }
+
+            return extension.exports;
+        } else {
+            await sleep(5000); // Give 5 secs for extension to activate
+
+            extension = getExtension(VSLS_COMMUNITIES_EXTENSION_ID)!;
+            return extension.exports;
+        }
     }
-  }
 
-  onNewMessage(data: any) {
-    const { name, messages } = data;
-    const chatMessages: Message[] = messages.map(toMessage);
-    let channelMessages: ChannelMessages = {};
-    chatMessages.forEach(msg => {
-      channelMessages[msg.timestamp] = msg;
-    });
-    vscode.commands.executeCommand(SelfCommands.UPDATE_MESSAGES, {
-      channelId: name,
-      messages: channelMessages,
-      provider: "vslsCommunities"
-    });
-  }
+    async connect(): Promise<CurrentUser | undefined> {
+        const api = await this.getApi();
 
-  onNewCommunity(communityName: string) {
-    vscode.commands.executeCommand(SelfCommands.VSLS_COMMUNITY_JOINED, {
-      name: communityName
-    })
-  }
+        if (api) {
+            const { name, email } = api.getUserInfo();
+            return {
+                id: email,
+                name,
+                teams: [],
+                currentTeamId: undefined,
+                provider: Providers.vslsCommunities
+            };
+        }
+    }
 
-  onClearMessages(communityName: string) {
-    vscode.commands.executeCommand(SelfCommands.CLEAR_MESSAGES, {
-      channelId: communityName,
-      provider: "vslsCommunities"
-    });
-  }
+    onNewMessage(data: any) {
+        const { name, messages } = data;
+        const chatMessages: Message[] = messages.map(toMessage);
+        let channelMessages: ChannelMessages = {};
+        chatMessages.forEach(msg => {
+            channelMessages[msg.timestamp] = msg;
+        });
+        vscode.commands.executeCommand(SelfCommands.UPDATE_MESSAGES, {
+            channelId: name,
+            messages: channelMessages,
+            provider: "vslsCommunities"
+        });
+    }
 
-  isConnected(): boolean {
-    return this.isListenerSetup;
-  }
+    onInfoMessage(data: any) {
+        const { name, text, user } = data;
+        const timestamp = (new Date().valueOf() / 1000.0).toString();
+        const channelMessages: ChannelMessages = {
+            [timestamp]: {
+                timestamp,
+                text: `_${text}_`,
+                userId: user,
+                content: undefined,
+                reactions: [],
+                replies: {}
+            }
+        };
+        vscode.commands.executeCommand(SelfCommands.UPDATE_MESSAGES, {
+            channelId: name,
+            messages: channelMessages,
+            provider: "vslsCommunities"
+        });
+    }
 
-  async sendMessage(text: string, currentUserId: string, channelId: string) {
-    const api = await this.getApi();
-    api.sendMessage(channelId, text);
-  }
+    onNewCommunity(communityName: string) {
+        vscode.commands.executeCommand(SelfCommands.VSLS_COMMUNITY_JOINED, {
+            name: communityName
+        });
+    }
 
-  async fetchUsers(): Promise<Users> {
-    const api = await this.getApi();
-    const users: User[] = api.getUsers().map(({ name, email }: any) => {
-      const avatar = gravatar.imageUrl({
-        email,
-        parameters: { size: "200", d: "retro" },
-        secure: true
-      });
-      return {
-        id: email,
-        name,
-        email,
-        fullName: name,
-        imageUrl: avatar,
-        smallImageUrl: avatar,
-        presence: UserPresence.available
-      };
-    });
-    let usersToSend: Users = {};
-    users.forEach(u => {
-      usersToSend[u.id] = u;
-    });
-    return usersToSend;
-  }
+    onClearMessages(communityName: string) {
+        vscode.commands.executeCommand(SelfCommands.CLEAR_MESSAGES, {
+            channelId: communityName,
+            provider: "vslsCommunities"
+        });
+    }
 
-  async fetchUserInfo(userId: string): Promise<User | undefined> {
-    const users = await this.fetchUsers();
-    return users[userId];
-  }
+    isConnected(): boolean {
+        return this.isListenerSetup;
+    }
 
-  async fetchChannels(users: Users): Promise<Channel[]> {
-    const api = await this.getApi();
-    const communities = api.getCommunities();
-    const channels: Channel[] = communities.map((name: string) => ({
-      id: name,
-      name,
-      type: ChannelType.channel,
-      readTimestamp: undefined,
-      unreadCount: 0
-    }));
-    return channels;
-  }
+    async sendMessage(text: string, currentUserId: string, channelId: string) {
+        const api = await this.getApi();
+        api.sendMessage(channelId, text);
+    }
 
-  async loadChannelHistory(channelId: string) {
-    const api = await this.getApi();
-    const messages: IMessage[] = await api.getChannelHistory(channelId);
-    const chatMessages: Message[] = messages.map(toMessage);
-    let channelMessages: ChannelMessages = {}
-    chatMessages.forEach(msg => {
-      channelMessages[msg.timestamp] = msg;
-    })
-    return channelMessages;
-  }
+    async fetchUsers(): Promise<Users> {
+        const api = await this.getApi();
+        const users: User[] = api.getUsers().map(({ name, email }: any) => {
+            const avatar = gravatar.imageUrl({
+                email,
+                parameters: { size: "200", d: "retro" },
+                secure: true
+            });
+            return {
+                id: email,
+                name,
+                email,
+                fullName: name,
+                imageUrl: avatar,
+                smallImageUrl: avatar,
+                presence: UserPresence.available
+            };
+        });
+        let usersToSend: Users = {};
+        users.forEach(u => {
+            usersToSend[u.id] = u;
+        });
+        return usersToSend;
+    }
 
-  subscribePresence(users: Users) {}
+    async fetchUserInfo(userId: string): Promise<User | undefined> {
+        const users = await this.fetchUsers();
+        return users[userId];
+    }
 
-  getUserPreferences(): Promise<UserPreferences> {
-    return Promise.resolve({});
-  }
+    async fetchChannels(users: Users): Promise<Channel[]> {
+        const api = await this.getApi();
+        const communities = api.getCommunities();
+        const channels: Channel[] = communities.map((name: string) => ({
+            id: name,
+            name,
+            type: ChannelType.channel,
+            readTimestamp: undefined,
+            unreadCount: 0
+        }));
+        return channels;
+    }
 
-  async validateToken(): Promise<CurrentUser | undefined> {
-    return;
-  }
+    async loadChannelHistory(channelId: string) {
+        const api = await this.getApi();
+        const messages: IMessage[] = await api.getChannelHistory(channelId);
+        const chatMessages: Message[] = messages.map(toMessage);
+        let channelMessages: ChannelMessages = {};
+        chatMessages.forEach(msg => {
+            channelMessages[msg.timestamp] = msg;
+        });
+        return channelMessages;
+    }
 
-  async fetchChannelInfo(channel: Channel): Promise<Channel | undefined> {
-    return undefined;
-  }
+    subscribePresence(users: Users) {}
 
-  async markChannel(
-    channel: Channel,
-    ts: string
-  ): Promise<Channel | undefined> {
-    return undefined;
-  }
+    getUserPreferences(): Promise<UserPreferences> {
+        return Promise.resolve({});
+    }
 
-  async fetchThreadReplies(
-    channelId: string,
-    ts: string
-  ): Promise<Message | undefined> {
-    return undefined;
-  }
+    async validateToken(): Promise<CurrentUser | undefined> {
+        return;
+    }
 
-  async sendThreadReply(
-    text: string,
-    currentUserId: string,
-    channelId: string,
-    parentTimestamp: string
-  ) {}
+    async fetchChannelInfo(channel: Channel): Promise<Channel | undefined> {
+        return undefined;
+    }
 
-  async updateSelfPresence(presence: UserPresence, durationInMinutes: number) {
-    return undefined;
-  }
+    async markChannel(
+        channel: Channel,
+        ts: string
+    ): Promise<Channel | undefined> {
+        return undefined;
+    }
 
-  async createIMChannel(user: User): Promise<Channel | undefined> {
-    return undefined;
-  }
+    async fetchThreadReplies(
+        channelId: string,
+        ts: string
+    ): Promise<Message | undefined> {
+        return undefined;
+    }
 
-  async destroy() {}
+    async sendThreadReply(
+        text: string,
+        currentUserId: string,
+        channelId: string,
+        parentTimestamp: string
+    ) {}
+
+    async updateSelfPresence(
+        presence: UserPresence,
+        durationInMinutes: number
+    ) {
+        return undefined;
+    }
+
+    async createIMChannel(user: User): Promise<Channel | undefined> {
+        return undefined;
+    }
+
+    async destroy() {}
 }
