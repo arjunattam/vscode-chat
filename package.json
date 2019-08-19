@@ -34,6 +34,9 @@
   "activationEvents": [
     "*"
   ],
+  "extensionDependencies": [
+    "ms-vsliveshare.vsliveshare"
+  ],
   "main": "./out/extension",
   "contributes": {
     "configuration": {

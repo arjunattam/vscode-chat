@@ -288,7 +288,9 @@ const enum EventType {
   vslsEnded = "vsls_ended",
   tokenConfigured = "token_configured",
   channelChanged = "channel_changed",
-  authStarted = "auth_started"
+  authStarted = "auth_started",
+  activationStarted = "activation_started",
+  activationEnded = "activation_ended",
 }
 
 interface EventProperties {

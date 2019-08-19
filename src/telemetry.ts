@@ -80,8 +80,9 @@ export default class TelemetryReporter implements vscode.Disposable {
 
     if (this.hasUserOptIn) {
       this.pendingEvents.push(event);
+      const hasActivationEvents = name === EventType.activationEnded || name === EventType.activationStarted;
 
-      if (this.pendingEvents.length >= BATCH_SIZE) {
+      if (this.pendingEvents.length >= BATCH_SIZE || hasActivationEvents) {
         this.flushBatch();
       }
     }

@@ -2,6 +2,12 @@
 
 All notable changes to the vscode-chat extension will be documented in this file. This follows the [Keep a Changelog](http://keepachangelog.com/) format.
 
+## [0.21.0] - 2019-08-19
+
+### Fixed
+
+- Add Live Share as an extension dependency to fix timing issues during activation
+
 ## [0.20.2] - 2019-08-14
 
 ### Added

@@ -37,6 +37,7 @@ export function activate(context: vscode.ExtensionContext) {
   store = new Store(context);
   manager = new Manager(store);
   telemetry = new TelemetryReporter(manager);
+  telemetry.record(EventType.activationStarted, undefined, undefined, undefined);
 
   controller = new ViewController(
     context,
@@ -798,6 +799,8 @@ export function activate(context: vscode.ExtensionContext) {
     manager,
     telemetry
   );
+
+  telemetry.record(EventType.activationEnded, undefined, undefined, undefined);
 }
 
 export function deactivate() {}
