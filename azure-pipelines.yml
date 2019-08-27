@@ -11,5 +11,4 @@ steps:
   - task: RichCodeNavIndexer@0
     inputs:
       serviceConnection: 'rich-code-nav'
-      githubServiceConnection: 'vsls-contrib'
       languages: typescript
