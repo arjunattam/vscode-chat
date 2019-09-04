@@ -2,6 +2,12 @@
 
 All notable changes to the vscode-chat extension will be documented in this file. This follows the [Keep a Changelog](http://keepachangelog.com/) format.
 
+## [0.21.1] - 2019-09-04
+
+### Fixed
+
+- Fixed date to string conversion for message groups.
+
 ## [0.21.0] - 2019-08-19
 
 ### Fixed
