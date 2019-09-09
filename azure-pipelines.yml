@@ -10,5 +10,4 @@ steps:
       npm run compile
   - task: RichCodeNavIndexer@0
     inputs:
-      serviceConnection: 'rich-code-nav'
       languages: typescript
