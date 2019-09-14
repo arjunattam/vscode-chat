@@ -13,7 +13,7 @@ import {
   CONFIG_ROOT,
   CONFIG_AUTO_LAUNCH,
   TRAVIS_SCHEME,
-  VSLS_COMMUNITIES_EXTENSION_ID
+  VSLS_SPACES_EXTENSION_ID
 } from "./constants";
 import travis from "./bots/travis";
 import { ExtensionUriHandler } from "./uriHandler";
@@ -566,22 +566,22 @@ export function activate(context: vscode.ExtensionContext) {
     }
   };
 
-  const openVslsCommunityChat = async (communityName: string) => {
-    const api = utils.getExtension(VSLS_COMMUNITIES_EXTENSION_ID)!.exports;
+  const openVslsSpaceChat = async (spaceName: string) => {
+    const api = utils.getExtension(VSLS_SPACES_EXTENSION_ID)!.exports;
     const { name, email } = api.getUserInfo();
     await manager.store.updateCurrentUser(
-      "vslsCommunities",
+      "vslsSpaces",
       {
         id: email,
         name,
         teams: [],
         currentTeamId: undefined,
-        provider: Providers.vslsCommunities
+        provider: Providers.vslsSpaces
       }
     )
     return openChatWebview({
-      providerName: "vslsCommunities",
-      channelId: communityName,
+      providerName: "vslsSpaces",
+      channelId: spaceName,
       source: EventSource.command
     });
   }
@@ -778,19 +778,19 @@ export function activate(context: vscode.ExtensionContext) {
       ({ uiMessage }) => controller.sendToUI(uiMessage)
     ),
     vscode.commands.registerCommand(
-      SelfCommands.CHAT_WITH_VSLS_COMMUNITY,
-      ({ community }) => {
-        const { name: communityName } = community;
-        return openVslsCommunityChat(communityName);
+      SelfCommands.CHAT_WITH_VSLS_SPACE,
+      ({ space }) => {
+        const { name: spaceName } = space;
+        return openVslsSpaceChat(spaceName);
       }
     ),
     vscode.commands.registerCommand(
-      SelfCommands.VSLS_COMMUNITY_JOINED,
+      SelfCommands.VSLS_SPACE_JOINED,
       async ({ name }) => {
         // Update store and launch the webview
-        await manager.fetchUsers("vslsCommunities");
-        await manager.fetchChannels("vslsCommunities");
-        return openVslsCommunityChat(name);
+        await manager.fetchUsers("vslsSpaces");
+        await manager.fetchChannels("vslsSpaces");
+        return openVslsSpaceChat(name);
       }
     ),
     vscode.workspace.onDidChangeConfiguration(resetConfiguration),

@@ -129,8 +129,8 @@
         }
       },
       {
-        "command": "extension.chat.chatWithCommunity",
-        "title": "Chat with Community",
+        "command": "extension.chat.chatWithSpace",
+        "title": "Chat with Space",
         "category": "Chat",
         "icon": {
           "light": "public/icons/light/chat.svg",
@@ -223,12 +223,12 @@
           "group": "inline"
         },
         {
-          "command": "extension.chat.chatWithCommunity",
-          "when": "view == liveshare.communities && viewItem =~ /^community/"
+          "command": "extension.chat.chatWithSpace",
+          "when": "view == liveshare.spaces && viewItem =~ /^space/"
         },
         {
-          "command": "extension.chat.chatWithCommunity",
-          "when": "view == liveshare.communities && viewItem =~ /^community/",
+          "command": "extension.chat.chatWithSpace",
+          "when": "view == liveshare.spaces && viewItem =~ /^space/",
           "group": "inline@1"
         }
       ],

@@ -1,5 +1,5 @@
 import * as vscode from "vscode";
-import { hasVslsExtension, hasVslsCommunitiesExtension } from "../utils";
+import { hasVslsExtension, hasVslsSpacesExtension } from "../utils";
 import { DiscordChatProvider } from "../discord";
 import { SlackChatProvider } from "../slack";
 import { VslsChatProvider } from "../vslsChat";
@@ -8,7 +8,7 @@ import { ConfigHelper } from "../config";
 import { VslsContactProvider } from "./vslsContactProvider";
 import { ChatProviderManager } from "./chatManager";
 import { SelfCommands } from "../constants";
-import { VslsCommunitiesProvider } from "../vslsCommunities";
+import { VslsSpacesProvider } from "../vslsSpaces";
 
 export default class Manager implements IManager, vscode.Disposable {
   isTokenInitialized: boolean = false;
@@ -28,7 +28,7 @@ export default class Manager implements IManager, vscode.Disposable {
     currentUserInfos.forEach(currentUser => {
       const {provider} = currentUser;
 
-      if (provider !== "vsls" && provider !== "vslsCommunities") {
+      if (provider !== "vsls" && provider !== "vslsSpaces") {
         // These 2 providers are dependent on installed extensions, not the user state
         providerTeamIds[currentUser.provider] = currentUser.currentTeamId;
       }
@@ -40,10 +40,10 @@ export default class Manager implements IManager, vscode.Disposable {
       providerTeamIds[Providers.vsls] = undefined;
     }
 
-    const hasVslsCommunities = hasVslsCommunitiesExtension();
+    const hasVslsSpaces = hasVslsSpacesExtension();
 
-    if (hasVslsCommunities) {
-      providerTeamIds[Providers.vslsCommunities] = undefined;
+    if (hasVslsSpaces) {
+      providerTeamIds[Providers.vslsSpaces] = undefined;
     }
 
     if (!!newInitialState) {
@@ -86,8 +86,8 @@ export default class Manager implements IManager, vscode.Disposable {
         return new SlackChatProvider(token, this);
       case "vsls":
         return new VslsChatProvider();
-      case "vslsCommunities":
-        return new VslsCommunitiesProvider();
+      case "vslsSpaces":
+        return new VslsSpacesProvider();
       default:
         throw new Error(`unsupport chat provider: ${provider}`);
     }
@@ -187,8 +187,8 @@ export default class Manager implements IManager, vscode.Disposable {
       try {
         await chatProvider.initializeProvider();
       } catch(err) {
-        // try-catch will save vsls in case vslsCommunities crashes because
-        // it cannot find exports for the vslsCommunities extension.
+        // try-catch will save vsls in case vslsSpaces crashes because
+        // it cannot find exports for the vslsSpaces extension.
         console.log(err)
       }
     }
@@ -220,7 +220,7 @@ export default class Manager implements IManager, vscode.Disposable {
     // the vsls contact provider uses list of users to match with vsls contacts.
     const enabledProviders = this.getEnabledProviders().map(e => e.provider);
     const nonVslsProviders = enabledProviders.filter(
-      provider => provider !== "vsls" && provider !== "vslsCommunities"
+      provider => provider !== "vsls" && provider !== "vslsSpaces"
     );
 
     if (hasVslsExtension() && nonVslsProviders.length > 0) {

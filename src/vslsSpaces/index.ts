@@ -1,6 +1,6 @@
 import * as vscode from "vscode";
 import * as gravatar from "gravatar-api";
-import { VSLS_COMMUNITIES_EXTENSION_ID, SelfCommands } from "../constants";
+import { VSLS_SPACES_EXTENSION_ID, SelfCommands } from "../constants";
 import { getExtension } from "../utils";
 
 interface IMessage {
@@ -23,7 +23,7 @@ function sleep(ms: number) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-export class VslsCommunitiesProvider implements IChatProvider {
+export class VslsSpacesProvider implements IChatProvider {
     isListenerSetup: boolean = false;
 
     constructor() {
@@ -34,15 +34,15 @@ export class VslsCommunitiesProvider implements IChatProvider {
     }
 
     setupListeners() {
-        const extension = getExtension(VSLS_COMMUNITIES_EXTENSION_ID);
+        const extension = getExtension(VSLS_SPACES_EXTENSION_ID);
 
         if (extension && extension.isActive) {
             const exports = extension.exports;
             exports.setMessageCallback((data: any) => {
                 this.onNewMessage(data);
             });
-            exports.setCommunityCallback((name: string) => {
-                this.onNewCommunity(name);
+            exports.setSpaceCallback((name: string) => {
+                this.onNewSpace(name);
             });
             exports.setClearMessagesCallback((name: string) => {
                 this.onClearMessages(name);
@@ -53,7 +53,7 @@ export class VslsCommunitiesProvider implements IChatProvider {
     }
 
     async getApi() {
-        let extension = getExtension(VSLS_COMMUNITIES_EXTENSION_ID)!;
+        let extension = getExtension(VSLS_SPACES_EXTENSION_ID)!;
 
         if (extension.isActive) {
             if (!this.isListenerSetup) {
@@ -64,7 +64,7 @@ export class VslsCommunitiesProvider implements IChatProvider {
         } else {
             await sleep(5000); // Give 5 secs for extension to activate
 
-            extension = getExtension(VSLS_COMMUNITIES_EXTENSION_ID)!;
+            extension = getExtension(VSLS_SPACES_EXTENSION_ID)!;
             return extension.exports;
         }
     }
@@ -79,7 +79,7 @@ export class VslsCommunitiesProvider implements IChatProvider {
                 name,
                 teams: [],
                 currentTeamId: undefined,
-                provider: Providers.vslsCommunities
+                provider: Providers.vslsSpaces
             };
         }
     }
@@ -94,20 +94,20 @@ export class VslsCommunitiesProvider implements IChatProvider {
         vscode.commands.executeCommand(SelfCommands.UPDATE_MESSAGES, {
             channelId: name,
             messages: channelMessages,
-            provider: "vslsCommunities"
+            provider: "vslsSpaces"
         });
     }
 
-    onNewCommunity(communityName: string) {
-        vscode.commands.executeCommand(SelfCommands.VSLS_COMMUNITY_JOINED, {
-            name: communityName
+    onNewSpace(spaceName: string) {
+        vscode.commands.executeCommand(SelfCommands.VSLS_SPACE_JOINED, {
+            name: spaceName
         });
     }
 
-    onClearMessages(communityName: string) {
+    onClearMessages(spaceName: string) {
         vscode.commands.executeCommand(SelfCommands.CLEAR_MESSAGES, {
-            channelId: communityName,
-            provider: "vslsCommunities"
+            channelId: spaceName,
+            provider: "vslsSpaces"
         });
     }
 
@@ -152,8 +152,8 @@ export class VslsCommunitiesProvider implements IChatProvider {
 
     async fetchChannels(users: Users): Promise<Channel[]> {
         const api = await this.getApi();
-        const communities = api.getCommunities();
-        const channels: Channel[] = communities.map((name: string) => ({
+        const spaces = api.getSpaces();
+        const channels: Channel[] = spaces.map((name: string) => ({
             id: name,
             name,
             type: ChannelType.channel,

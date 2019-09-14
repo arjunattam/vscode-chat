@@ -230,7 +230,7 @@ export const markdownify = (messages: ChannelMessages): ChannelMessages => {
 
 const transformChain = (uiMessage: UIMessage): UIMessage => {
   const { messages } = parseUsernames(uiMessage);
-  const linkParser = uiMessage.provider === "vsls" || uiMessage.provider === "vslsCommunities" ? parseSimpleLinks : parseSlackLinks;
+  const linkParser = uiMessage.provider === "vsls" || uiMessage.provider === "vslsSpaces" ? parseSimpleLinks : parseSlackLinks;
   return {
     ...uiMessage,
     messages: markdownify(linkParser(emojify(messages)))

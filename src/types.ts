@@ -64,7 +64,7 @@ const enum Providers {
   slack = "slack",
   discord = "discord",
   vsls = "vsls",
-  vslsCommunities = "vslsCommunities"
+  vslsSpaces = "vslsSpaces"
 }
 
 interface CurrentUser {

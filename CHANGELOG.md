@@ -2,6 +2,12 @@
 
 All notable changes to the vscode-chat extension will be documented in this file. This follows the [Keep a Changelog](http://keepachangelog.com/) format.
 
+## [0.22.0] - 2019-09-14
+
+### Added
+
+- Renamed Live Share Communities provider to Live Share Spaces.
+
 ## [0.21.1] - 2019-09-04
 
 ### Fixed
