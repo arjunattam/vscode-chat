@@ -219,12 +219,13 @@ export default class Manager implements IManager, vscode.Disposable {
     // This method is called after the users state has been initialized, since
     // the vsls contact provider uses list of users to match with vsls contacts.
     const enabledProviders = this.getEnabledProviders().map(e => e.provider);
-    const nonVslsProviders = enabledProviders.filter(
-      provider => provider !== "vsls" && provider !== "vslsSpaces"
+    const PRESENCE_PROVIDERS = ["slack", "discord"];
+    const presenceProviders = enabledProviders.filter(
+      provider => PRESENCE_PROVIDERS.indexOf(provider) >= 0
     );
 
-    if (hasVslsExtension() && nonVslsProviders.length > 0) {
-      const presenceProvider = nonVslsProviders[0]; // we are restricting this to only one
+    if (hasVslsExtension() && presenceProviders.length > 0) {
+      const presenceProvider = presenceProviders[0]; // we are restricting this to only one
       const isNotAlreadyInit =
         !this.vslsContactProvider || !this.vslsContactProvider.isInitialized;
 
