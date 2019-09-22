@@ -1,7 +1,6 @@
 import * as vscode from "vscode";
-import * as gravatar from "gravatar-api";
 import { VSLS_SPACES_EXTENSION_ID, SelfCommands } from "../constants";
-import { getExtension } from "../utils";
+import { getExtension, gravatarUrl, githubAvatarUrl } from "../utils";
 
 interface IMessage {
     type: string;
@@ -121,13 +120,12 @@ export class VslsSpacesProvider implements IChatProvider {
     }
 
     async fetchUsers(): Promise<Users> {
+        // TODO: why is this called multiple times?
         const api = await this.getApi();
-        const users: User[] = api.getUsers().map(({ name, email }: any) => {
-            const avatar = gravatar.imageUrl({
-                email,
-                parameters: { size: "200", d: "retro" },
-                secure: true
-            });
+        const apiUsers = api.getUsers();
+        const users: User[] = await Promise.all(apiUsers.map(async ({ name, email }: any) => {
+            const ghAvatar = await githubAvatarUrl(email);
+            const avatar = !!ghAvatar ? ghAvatar : gravatarUrl(email);
             return {
                 id: email,
                 name,
@@ -137,7 +135,7 @@ export class VslsSpacesProvider implements IChatProvider {
                 smallImageUrl: avatar,
                 presence: UserPresence.available
             };
-        });
+        }));
         let usersToSend: Users = {};
         users.forEach(u => {
             usersToSend[u.id] = u;
