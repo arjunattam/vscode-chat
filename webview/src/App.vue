@@ -22,12 +22,19 @@ import MessagesSection from './components/MessagesSection.vue';
 import FormSection from './components/FormSection.vue'
 
 export default {
-  name: 'app',
-  props: ['messages', 'users', 'channel', 'statusText', 'atMentions'],
-  components: {
-      MessagesSection,
-      FormSection
-  }
+    name: 'app',
+    props: ['data'],
+    components: {
+        MessagesSection,
+        FormSection
+    },
+    computed: {
+        messages: function() { return this.data ? this.data.messages : []; },
+        users: function() { return this.data ? this.data.users : {}; },
+        channel: function() { return this.data ? this.data.channel : {} },
+        statusText: function() { return this.data ? this.data.statusText : ``; },
+        atMentions: function() { return this.data ? this.data.atMentions : []; },
+    },
 }
 </script>
 

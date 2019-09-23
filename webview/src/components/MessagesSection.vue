@@ -15,12 +15,6 @@ import Vue from 'vue';
 import MessagesDateGroup from './MessagesDateGroup.vue'
 import { sendMessage } from '../utils';
 
-function openLink(href) {
-    // Handler for <a> tags in this view
-    console.log('link clicked')
-    return sendMessage(href, "link");
-}
-
 export default {
     name: 'messages-section',
     props: ["messages", "users"],
