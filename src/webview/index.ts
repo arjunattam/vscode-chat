@@ -171,12 +171,12 @@ function getWebviewContent(staticPath: string) {
   <head>
       <meta charset="UTF-8">
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <!-- <meta http-equiv="Content-Security-Policy" 
+      <meta http-equiv="Content-Security-Policy" 
         content="default-src * vscode-resource: https: 'unsafe-inline' 'unsafe-eval';
         script-src vscode-resource: blob: data: https: 'unsafe-inline' 'unsafe-eval';
         style-src vscode-resource: https: 'unsafe-inline';
         img-src vscode-resource: data: https:;
-        connect-src vscode-resource: blob: data: https: http:;"> -->
+        connect-src vscode-resource: blob: data: https: http:;">
       <title>Chat</title>
 
       <link href="${staticPath}/css/app.css" rel="preload" as="style">
