@@ -1,6 +1,16 @@
+<template>
+    <div id="app">
+        <HelloWorld :msg="msg"/>
+    </div>
+</template>
+
+<script>
+import Vue from 'vue';
+
 const vscode = acquireVsCodeApi();
 
 function sendMessage(text, type) {
+    console.log(text, type)
     vscode.postMessage({
         type,
         text
@@ -18,7 +28,8 @@ function formattedTime(ts) {
 }
 
 Vue.component("app-container", {
-    props: ["messages", "users", "channel", "status"],
+    // TODO: props for fontFamily and fontSize
+    props: ["messages", "users", "channel", "statusText", "atMentions"],
     template: /* html */ `
     <div class="vue-container">
         <messages-section
@@ -29,7 +40,8 @@ Vue.component("app-container", {
         <form-section
             ref="formSection"
             v-bind:channel="channel"
-            v-bind:status="status">
+            v-bind:atMentions="atMentions"
+            v-bind:status="statusText">
         </form-section>
     </div>
     `
@@ -354,6 +366,15 @@ Vue.component("message-input", {
                 this.text = "";
             }
             this.resizeInput();
+
+            const latestChar = newText[newText.length - 1];
+            if (latestChar === '@') {
+                vscode.postMessage({
+                    type: "internal",
+                    text: "trigger_at_mention",
+                    prefix: ""
+                })
+            }
         }
     },
     data: function() {
@@ -422,7 +443,7 @@ Vue.component("message-input", {
 });
     
 Vue.component("form-section", {
-    props: ["channel", "status"],
+    props: ["channel", "status", "atMentions"],
     computed: {
         placeholder: function() {
             return `Message ${!!this.channel ? this.channel.name : ""}`;
@@ -436,17 +457,31 @@ Vue.component("form-section", {
     },
     template: /* html */ `
     <div class="form-section">
-    <message-input
-    v-bind:onSubmit="onSubmit"
-    v-bind:placeholder="placeholder">
-    </message-input>
-    <status-text v-bind:status="status"></status-text>
+        <at-mentions
+            v-bind:atMentions="atMentions">
+        </at-mentions>
+        <div>
+            <message-input
+                v-bind:onSubmit="onSubmit"
+                v-bind:placeholder="placeholder">
+            </message-input>
+            <status-text v-bind:status="status"></status-text>
+        </div>
     </div>
     `,
     mounted() {
         return sendMessage("is_ready", "internal");
     }
 });
+
+Vue.component("at-mentions", {
+    props: ["atMentions", "isVisible"],
+    template: /* html */`
+        <div>
+            &nbsp;
+        </div>
+    `
+})
 
 Vue.component("status-text", {
     props: ["status"],
@@ -461,3 +496,254 @@ Vue.directive("focus", {
         el.focus();
     }
 });
+
+export default {
+  name: 'app-container',
+  props: ['messages', 'users', 'channel', 'statusText', 'atMentions']
+}
+</script>
+
+<style>
+html,
+body,
+#app {
+    height: 100%;
+}
+
+.vue-container {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    height: 100%;
+    overflow: hidden;
+}
+
+.messages-section {
+    overflow: auto;
+}
+
+.date-heading {
+    color: var(--vscode-sideBar-foreground);
+    font-weight: normal;
+}
+
+.timestamp {
+    color: var(--vscode-sideBar-foreground);
+}
+
+.message-group {
+    display: flex;
+    margin: 10px 1px;
+}
+
+.message-group-image {
+    width: 36px;
+    height: 36px;
+    margin: 5px 10px 5px 0;
+    flex-shrink: 0;
+}
+
+.message-group-image img {
+    min-width: 100%;
+    min-height: 100%;
+    border-radius: 2px;
+}
+
+.message-group-content {
+    width: 100%;
+}
+
+.message-list {
+    list-style: none;
+    padding: 0;
+    margin: 5px 0;
+}
+
+.message-list li {
+    margin: 3px 0;
+    word-break: break-word;
+}
+
+/* Reactions */
+ul.message-reactions {
+    list-style: none;
+    padding-left: 0;
+}
+
+ul.message-reactions li {
+    display: inline-block;
+    font-size: smaller;
+    padding: 2px 5px;
+    margin-right: 4px;
+    background-color: var(--vscode-input-background);
+    border-radius: 3px;
+    border: 1px solid var(--vscode-sideBar-background);
+}
+
+ul.message-reactions li div {
+    display: inline-block;
+}
+
+ul.message-reactions li div:first-child {
+    margin-right: 3px;
+}
+
+/* Form section styles */
+.form-section {
+    margin-bottom: 10px;
+}
+
+.message-input-form textarea {
+    width: 100%;
+    padding: 7px;
+    font-size: inherit;
+    font-family: inherit;
+    border-radius: 0;
+    box-sizing: border-box;
+    resize: none;
+    color: var(--vscode-input-foreground);
+    background-color: var(--vscode-input-background);
+    border: 1px solid var(--vscode-sideBar-background);
+    outline-color: var(--vscode-inputOption-activeBorder);
+}
+
+.message-input-form input[type="submit"] {
+    display: none;
+}
+
+.replies-container .message-input-form {
+    margin: 5px 0;
+    padding-left: 40px;
+}
+
+.status-text {
+    font-size: smaller;
+    font-weight: bold;
+}
+
+.status-text:empty::after {
+    /* We want to set a min-height, but the font-size is variable */
+    /* Source: https://stackoverflow.com/a/33298969 */
+    content: ".";
+    visibility: hidden;
+}
+
+/* At mentions styles */
+div.at-mentions {
+    background: red;
+}
+
+/* Message content styles */
+div.msg-author {
+    margin: 3px 0;
+}
+
+div.msg-title {
+    margin: 3px 0;
+    font-weight: bold;
+}
+
+div.msg-author img {
+    max-width: 18px;
+    max-height: 18px;
+    display: inline-block;
+    vertical-align: middle;
+}
+
+div.msg-author span {
+    display: inline-block;
+    vertical-align: middle;
+}
+
+div.msg-footer {
+    margin-top: 5px;
+    font-size: x-small;
+}
+
+div.msg-title a,
+div.msg-footer a {
+    text-decoration: none;
+}
+
+div.msg-title a:hover,
+div.msg-footer a:hover {
+    text-decoration: underline;
+}
+
+/* Markdown styles */
+.message-list li p {
+    -webkit-margin-after: 0;
+    -webkit-margin-before: 0;
+    line-height: 1.5;
+}
+
+.message-list li div.md {
+    display: inline;
+}
+
+.message-list li code {
+    background-color: var(--vscode-editor-selectionHighlightBackground);
+    color: var(--vscode-editor-foreground);
+}
+
+.message-list li pre {
+    padding: 3px;
+    background-color: var(--vscode-editor-selectionHighlightBackground);
+    border-radius: 2px;
+}
+
+.message-list li pre code {
+    background-color: transparent;
+    white-space: pre-wrap;
+}
+
+.message-list li span.edited {
+    font-size: x-small;
+    color: var(--vscode-scrollbarSlider-activeBackground);
+}
+
+.message-list li div.li-line {
+    margin: 7px 0;
+    border-left: 3px solid white;
+    padding-left: 7px;
+}
+
+/* Thread replies */
+.replies-container {
+    margin: 7px 0;
+    padding: 4px;
+    min-height: 27px;
+    background-color: var(--vscode-editor-selectionHighlightBackground);
+}
+
+.replies-summary {
+    display: flex;
+    align-items: center;
+}
+
+.replies-summary div {
+    margin-right: 5px;
+}
+
+.reply-image {
+    margin: 0 3px;
+}
+
+ul.replies {
+    margin: 5px 0;
+}
+
+ul.replies li {
+    list-style: none;
+    margin: 7px 0;
+}
+
+.unread {
+    border-right: 3px solid var(--vscode-gitDecoration-modifiedResourceForeground);
+    padding-right: 5px;
+}
+
+.pointer {
+    cursor: pointer;
+}
+</style>

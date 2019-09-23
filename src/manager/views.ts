@@ -174,13 +174,17 @@ export class ViewsManager implements vscode.Disposable {
     channel: Channel,
     messages: ChannelMessages
   ) {
+    const { fontFamily, fontSize } = vscode.workspace.getConfiguration('editor')
     let uiMessage: UIMessage = {
+      fontFamily,
+      fontSize,
       provider,
       messages,
       users,
       currentUser,
       channel,
-      statusText: ""
+      statusText: "",
+      // atMentions: Object.values(users)
     };
 
     vscode.commands.executeCommand(SelfCommands.SEND_TO_WEBVIEW, {

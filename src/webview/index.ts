@@ -166,52 +166,28 @@ export default class WebviewContainer {
 }
 
 function getWebviewContent(staticPath: string) {
-  const vueImports = `
-    <script src="${staticPath}/static.js"></script>
-    <link rel="stylesheet" type="text/css" href="${staticPath}/static.css"></link>
-  `;
-  const vuePath = `${staticPath}/vue.js`;
-  const { fontFamily, fontSize } = vscode.workspace.getConfiguration("editor");
-
   return `<!DOCTYPE html>
   <html lang="en">
   <head>
       <meta charset="UTF-8">
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <!-- <meta http-equiv="Content-Security-Policy" 
+        content="default-src * vscode-resource: https: 'unsafe-inline' 'unsafe-eval';
+        script-src vscode-resource: blob: data: https: 'unsafe-inline' 'unsafe-eval';
+        style-src vscode-resource: https: 'unsafe-inline';
+        img-src vscode-resource: data: https:;
+        connect-src vscode-resource: blob: data: https: http:;"> -->
       <title>Chat</title>
-      <script src="${vuePath}"></script>
-      <style>code { font-family: ${fontFamily} }</style>
-      <style>body { font-size: ${fontSize}px; }</style>
-      ${vueImports}
+
+      <link href="${staticPath}/css/app.css" rel="preload" as="style">
+      <link href="${staticPath}/js/chunk-vendors.js" rel="preload" as="script">
+      <link href="${staticPath}/js/app.js" rel="preload" as="script">
+      <link href="${staticPath}/css/app.css" rel="stylesheet">
   </head>
   <body>
-      <div id="app">
-          <app-container
-            v-bind:messages="messages"
-            v-bind:users="users"
-            v-bind:channel="channel"
-            v-bind:status="statusText">
-          </app-container>
-      </div>
-  
-      <script>
-          var app = new Vue({
-            el: "#app",
-            data: {
-              messages: [],
-              users: {},
-              channel: {},
-              statusText: ""
-            }
-          });
-
-          window.addEventListener('message', event => {
-            app.messages = event.data.messages;
-            app.users = event.data.users;
-            app.channel = event.data.channel
-            app.statusText = event.data.statusText
-          });
-      </script>
+      <div id="app"> </div>
+      <script src="${staticPath}/js/chunk-vendors.js"> </script>
+      <script src="${staticPath}/js/app.js"> </script>
   </body>
   </html>`;
 }
