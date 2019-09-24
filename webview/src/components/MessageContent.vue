@@ -3,20 +3,23 @@
         <div v-if="content.pretext">{{ content.pretext }} </div>
         <message-author v-if="content.author" v-bind:content="content"></message-author>
         <message-title v-if="content.title" v-bind:content="content"></message-title>
-        <div
-            v-if="content.textHTML"
-            v-html="content.textHTML">
-        </div>
-        <div
-            class="msg-footer" v-if="content.footerHTML"
-            v-html="content.footerHTML">
-        </div>
+        <markdown-element
+            v-if="content.text"
+            v-bind:text="content.text"
+            v-bind:inline="false">
+        </markdown-element>
+        <markdown-element
+            v-if="content.footer"
+            v-bind:text="content.footer"
+            v-bind:inline="true">
+        </markdown-element>
     </div>
 </template>
 
 <script>
 import MessageTitle from './MessageTitle.vue';
-import MessageAuthor from './MessageAuthor.vue'
+import MessageAuthor from './MessageAuthor.vue';
+import MarkdownElement from './MarkdownElement';
 
 export default {
     name: 'message-content',
@@ -30,7 +33,8 @@ export default {
     },
     components: {
         MessageTitle,
-        MessageAuthor
+        MessageAuthor,
+        MarkdownElement
     }
 }
 </script>

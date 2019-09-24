@@ -12,7 +12,7 @@
                 v-bind:allUsers="allUsers"
                 v-bind:userId="reply.userId"
                 v-bind:timestamp="reply.timestamp"
-                v-bind:textHTML="reply.textHTML">
+                v-bind:text="reply.text">
             </message-reply-item>
         </ul>
         <message-input
@@ -46,13 +46,11 @@ export default {
     methods: {
         expandHandler: function(event) {
             this.isExpanded = !this.isExpanded;
-            
+
             if (this.isExpanded) {
                 const hasPendingText =
-                Object.keys(this.message.replies).filter(
-                    replyTs => !this.message.replies[replyTs].textHTML
-                ).length > 0;
-                
+                Object.keys(this.message.replies).filter(ts => !this.message.replies[ts].text).length > 0;
+
                 if (hasPendingText) {
                     vscode.postMessage({
                         type: "internal",

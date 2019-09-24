@@ -1,6 +1,9 @@
 <template>
     <li v-bind:class="{ unread: message.isUnread }">
-        <div v-if="message.textHTML" v-html="message.textHTML"></div>
+        <markdown-element
+            v-bind:inline="false"
+            v-bind:text="message.text">
+        </markdown-element>
         <span v-if="message.isEdited" class="edited">(edited)</span>
         <message-reactions v-bind:reactions="message.reactions"></message-reactions>
         <message-content
@@ -16,6 +19,7 @@
 import MessageContent from './MessageContent.vue'
 import MessageReactions from './MessageReactions.vue'
 import MessageReplies from './MessageReplies.vue'
+import MarkdownElement from './MarkdownElement.vue'
 
 export default {
     name: 'message-item',
@@ -28,7 +32,8 @@ export default {
     components: {
         MessageContent,
         MessageReplies,
-        MessageReactions
+        MessageReactions,
+        MarkdownElement
     }
 }
 </script>

@@ -80,9 +80,7 @@ interface MessageContent {
     title: string;
     titleLink: string;
     text: string;
-    textHTML?: string;
     footer: string;
-    footerHTML?: string;
     borderColor?: string;
 }
 
@@ -97,7 +95,6 @@ interface MessageReply {
     timestamp: string;
     text?: string;
     attachment?: MessageAttachment;
-    textHTML?: string;
 }
 
 interface MessageReplies {
@@ -108,7 +105,6 @@ interface Message {
     timestamp: string;
     userId: string;
     text: string;
-    textHTML?: string;
     isEdited?: Boolean;
     attachment?: MessageAttachment;
     content: MessageContent | undefined;

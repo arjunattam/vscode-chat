@@ -6,16 +6,24 @@
             <span class="timestamp">{{ readableTimestamp }}:</span>
         </span>
         &nbsp;
-        <span v-if="textHTML" v-html="textHTML"></span>
+        <markdown-element
+            v-if="text"
+            v-bind:text="text"
+            v-bind:inline="true">
+        </markdown-element>
     </li>
 </template>
 
 <script>
+import MarkdownElement from './MarkdownElement'
 import { formattedTime } from '../utils';
 
 export default {
     name: 'message-reply-item',
-    props: ["userId", "timestamp", "textHTML", "allUsers"],
+    props: ["userId", "timestamp", "text", "allUsers"],
+    components: {
+        MarkdownElement
+    },
     computed: {
         username: function() {
             const user = this.allUsers[this.userId];
