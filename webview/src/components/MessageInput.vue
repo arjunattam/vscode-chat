@@ -1,26 +1,32 @@
 <template>
     <form class="message-input-form" v-on:submit="onSubmitFunc">
-        <textarea
-            ref="messageInput"
-            v-model="text"
-            v-bind:placeholder="placeholder"
-            v-on:keydown.exact="onKeydown"
-            v-on:keydown.meta.65="onSelectAll"
-            v-on:focus="onFocus"
-            v-focus
-            rows="1">
-        </textarea>
+        <vue-tribute :options="tributeOptions">
+            <textarea
+                ref="messageInput"
+                v-model="text"
+                v-bind:placeholder="placeholder"
+                v-on:keydown.exact="onKeydown"
+                v-on:keydown.meta.65="onSelectAll"
+                v-on:focus="onFocus"
+                v-focus
+                rows="1">
+            </textarea>
+        </vue-tribute>
         <input type="submit" />
     </form>
 </template>
 
 <script>
 import Vue from 'vue';
+import VueTribute from 'vue-tribute';
 import { sendMessage } from '../utils';
 
 export default {
     name: 'message-input',
-    props: ['placeholder', 'onSubmit'],
+    props: ['placeholder', 'users', 'onSubmit'],
+    components: {
+        VueTribute
+    },
     watch: {
         text: function(newText, oldText) {
             if (newText && !newText.trim()) {
@@ -30,22 +36,31 @@ export default {
                 this.text = "";
             }
             this.resizeInput();
-
-            const latestChar = newText[newText.length - 1];
-            if (latestChar === '@') {
-                vscode.postMessage({
-                    type: "internal",
-                    text: "trigger_at_mention",
-                    prefix: ""
-                })
-            }
         }
     },
     data: function() {
         return {
             text: "",
-            inComposition: false
+            inComposition: false,
         };
+    },
+    computed: {
+        tributeOptions: function() {
+            let values = [
+                {key: 'Phil Heartman', value: 'pheartman'},
+                {key: 'Gordon Ramsey', value: 'gramsey'}
+            ]
+
+            if (this.users && Object.keys(this.users).length > 0) {
+                values = Object.values(this.users).map(user => {
+                    return { key: user.name, value: user.name }
+                })
+            }
+
+            console.log(values)
+            // TODO: wonder why tribute options is not updating?
+            return { values }
+        }
     },
     mounted() {
         this.$refs.messageInput.addEventListener("compositionstart", event => {
@@ -73,7 +88,7 @@ export default {
             // 2. Submit on enter (without shift)
             if (event.code === "Enter" && !event.shiftKey && !this.inComposition) {
                 event.preventDefault();
-                
+
                 if (this.text) {
                     event.target.form.dispatchEvent(
                         new Event("submit", { cancelable: true })

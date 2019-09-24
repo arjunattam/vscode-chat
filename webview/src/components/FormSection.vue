@@ -3,6 +3,7 @@
         <div>
             <message-input
                 v-bind:onSubmit="onSubmit"
+                v-bind:users="users"
                 v-bind:placeholder="placeholder">
             </message-input>
             <status-text v-bind:status="status"></status-text>
@@ -18,7 +19,7 @@ import { sendMessage } from '../utils';
 
 export default {
     name: 'form-section',
-    props: ["channel", "status", "atMentions"],
+    props: ['channel', 'users', 'status', 'atMentions'],
     components: {
         StatusText, MessageInput
     },

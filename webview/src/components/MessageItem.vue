@@ -10,7 +10,7 @@
             v-if="message.content" v-bind:content="message.content">
         </message-content>
         <message-replies
-            v-if="hasReplies" v-bind:message="message" v-bind:allUsers="allUsers">
+            v-if="hasReplies" v-bind:message="message" v-bind:users="users">
         </message-replies>
     </li>
 </template>
@@ -23,7 +23,7 @@ import MarkdownElement from './MarkdownElement.vue'
 
 export default {
     name: 'message-item',
-    props: ['message', 'allUsers'],
+    props: ['message', 'users'],
     computed: {
         hasReplies: function() {
             return Object.keys(this.message.replies).length > 0;

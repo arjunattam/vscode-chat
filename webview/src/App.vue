@@ -9,6 +9,7 @@
             <form-section
                 ref="formSection"
                 v-bind:channel="channel"
+                v-bind:users="users"
                 v-bind:atMentions="atMentions"
                 v-bind:status="statusText">
             </form-section>
