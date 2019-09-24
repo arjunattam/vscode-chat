@@ -2,8 +2,10 @@
     <li>
         <span>
             <strong>{{username}}</strong>
+            &nbsp;
             <span class="timestamp">{{ readableTimestamp }}:</span>
         </span>
+        &nbsp;
         <span v-if="textHTML" v-html="textHTML"></span>
     </li>
 </template>

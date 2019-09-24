@@ -10,18 +10,12 @@
 </template>
 
 <script>
-import { sendMessage } from '../utils';
-
-function openLink(href) {
-    // Handler for <a> tags in this view
-    console.log('link clicked')
-    return sendMessage(href, "link");
-}
+import { openLink } from '../utils';
 
 export default {
     name: 'message-title',
     props: ['content'],
-    computed: {
+    methods: {
         titleOnclick: function() {
             openLink(this.content.titleLink);
             return false;
