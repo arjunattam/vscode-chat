@@ -1,11 +1,11 @@
 <template>
-    <div id="app">
+    <div id="app" v-bind:style="cssProps">
         <div class="vue-container">
             <messages-section
                 v-bind:messages="messages"
                 v-bind:users="users">
             </messages-section>
-        
+
             <form-section
                 ref="formSection"
                 v-bind:channel="channel"
@@ -34,6 +34,12 @@ export default {
         channel: function() { return this.data ? this.data.channel : {} },
         statusText: function() { return this.data ? this.data.statusText : ``; },
         atMentions: function() { return this.data ? this.data.atMentions : []; },
+        cssProps() {
+            return {
+                '--chat-code-font-family': this.data ? this.data.fontFamily : `monospace`,
+                '--chat-font-size': this.data ? `${this.fontSize}px` : `12px`
+            }
+        }
     },
 }
 </script>
@@ -43,6 +49,11 @@ html,
 body,
 #app {
     height: 100%;
+    font-size: var(--chat-font-size);
+}
+
+code {
+    font-family: var(--chat-code-font-family);
 }
 
 .vue-container {
