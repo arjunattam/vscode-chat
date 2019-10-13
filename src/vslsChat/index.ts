@@ -8,238 +8,233 @@ import * as str from "../strings";
 import Logger from "../logger";
 
 export class VslsChatProvider implements IChatProvider {
-  liveshare: vsls.LiveShare | undefined;
-  hostService: VslsHostService | undefined;
-  guestService: VslsGuestService | undefined;
+    liveshare: vsls.LiveShare | undefined;
+    hostService: VslsHostService | undefined;
+    guestService: VslsGuestService | undefined;
 
-  async connect(): Promise<CurrentUser | undefined> {
-    // This method sets up the chat provider to listen for changes in vsls session
-    const liveshare = await vsls.getApi();
+    async connect(): Promise<CurrentUser | undefined> {
+        // This method sets up the chat provider to listen for changes in vsls session
+        const liveshare = await vsls.getApi();
 
-    if (!liveshare) {
-      Logger.log('vsls not found, required to initialize chat')
-      return undefined;
-    }
-
-    if (!!this.liveshare) {
-      // We have already initialized, and we don't want to
-      // attach the event listeners again.
-      // (This overrides the connect() logic inside ChatProviderManager)
-      return undefined;
-    }
-
-    this.liveshare = liveshare;
-
-    this.liveshare.onDidChangePeers(({ added, removed }) => {
-      if (!!this.hostService) {
-        this.hostService.updateCachedPeers(added, removed);
-        this.hostService.sendJoinedMessages(added);
-        this.hostService.sendLeavingMessages(removed);
-      }
-    });
-
-    this.liveshare.onDidChangeSession(async ({ session }) => {
-      const { id: sessionId, role } = session;
-      const isSessionActive = !!sessionId;
-      let currentUser;
-
-      if (isSessionActive) {
-        currentUser = await this.initializeChatService();
-
-        if (!!this.hostService) {
-          this.hostService.sendStartedMessage();
-        }
-      } else {
-        if (!!this.hostService) {
-          this.hostService.sendEndedMessage();
+        if (!liveshare) {
+            Logger.log("vsls not found, required to initialize chat");
+            return undefined;
         }
 
-        await this.clearSession();
-      }
+        if (!!this.liveshare) {
+            // We have already initialized, and we don't want to
+            // attach the event listeners again.
+            // (This overrides the connect() logic inside ChatProviderManager)
+            return undefined;
+        }
 
-      vscode.commands.executeCommand(SelfCommands.LIVE_SHARE_SESSION_CHANGED, {
-        isSessionActive,
-        currentUser
-      });
-    });
-  }
+        this.liveshare = liveshare;
 
-  async initializeChatService(): Promise<CurrentUser | undefined> {
-    // This assumes live share session is available
-    const liveshare = <vsls.LiveShare>await vsls.getApi();
-    const { role, id: sessionId, peerNumber, user } = liveshare.session;
+        this.liveshare.onDidChangePeers(({ added, removed }) => {
+            if (!!this.hostService) {
+                this.hostService.updateCachedPeers(added, removed);
+                this.hostService.sendJoinedMessages(added);
+                this.hostService.sendLeavingMessages(removed);
+            }
+        });
 
-    if (!user || !sessionId) {
-      return undefined;
+        this.liveshare.onDidChangeSession(async ({ session }) => {
+            const { id: sessionId, role } = session;
+            const isSessionActive = !!sessionId;
+            let currentUser;
+
+            if (isSessionActive) {
+                currentUser = await this.initializeChatService();
+
+                if (!!this.hostService) {
+                    this.hostService.sendStartedMessage();
+                }
+            } else {
+                if (!!this.hostService) {
+                    this.hostService.sendEndedMessage();
+                }
+
+                await this.clearSession();
+            }
+
+            vscode.commands.executeCommand(SelfCommands.LIVE_SHARE_SESSION_CHANGED, {
+                isSessionActive,
+                currentUser
+            });
+        });
     }
 
-    const serviceName = getVslsChatServiceName(sessionId);
+    async initializeChatService(): Promise<CurrentUser | undefined> {
+        // This assumes live share session is available
+        const liveshare = <vsls.LiveShare>await vsls.getApi();
+        const { role, id: sessionId, peerNumber, user } = liveshare.session;
 
-    if (role === vsls.Role.Host) {
-      const sharedService = await liveshare.shareService(serviceName);
+        if (!user || !sessionId) {
+            return undefined;
+        }
 
-      if (!sharedService) {
-        throw new Error("Error sharing service for Live Share Chat.")
-      }
+        const serviceName = getVslsChatServiceName(sessionId);
 
-      this.hostService = new VslsHostService(liveshare, sharedService, peerNumber, serviceName);
-    } else if (role === vsls.Role.Guest) {
-      const serviceProxy = await liveshare.getSharedService(serviceName);
+        if (role === vsls.Role.Host) {
+            const sharedService = await liveshare.shareService(serviceName);
 
-      if (!serviceProxy) {
-        throw new Error("Error getting shared service for Live Share Chat.")
-      }
+            if (!sharedService) {
+                throw new Error("Error sharing service for Live Share Chat.");
+            }
 
-      if (!serviceProxy.isServiceAvailable) {
-        vscode.window.showWarningMessage(str.NO_LIVE_SHARE_CHAT_ON_HOST)
-        return;
-      } else {
-        this.guestService = new VslsGuestService(liveshare, serviceProxy, <vsls.Peer>liveshare.session);
-      }
+            this.hostService = new VslsHostService(liveshare, sharedService, peerNumber, serviceName);
+        } else if (role === vsls.Role.Guest) {
+            const serviceProxy = await liveshare.getSharedService(serviceName);
+
+            if (!serviceProxy) {
+                throw new Error("Error getting shared service for Live Share Chat.");
+            }
+
+            if (!serviceProxy.isServiceAvailable) {
+                vscode.window.showWarningMessage(str.NO_LIVE_SHARE_CHAT_ON_HOST);
+                return;
+            } else {
+                this.guestService = new VslsGuestService(liveshare, serviceProxy, <vsls.Peer>liveshare.session);
+            }
+        }
+
+        const sessionTeam: Team = {
+            id: sessionId,
+            name: VSLS_CHAT_CHANNEL.name
+        };
+
+        return {
+            id: peerNumber.toString(),
+            name: user.displayName,
+            teams: [{ ...sessionTeam }],
+            currentTeamId: sessionTeam.id,
+            provider: Providers.vsls
+        };
     }
 
-    const sessionTeam: Team = {
-      id: sessionId,
-      name: VSLS_CHAT_CHANNEL.name
-    };
+    async clearSession() {
+        if (!!this.hostService) {
+            await this.hostService.dispose();
+        }
 
-    return {
-      id: peerNumber.toString(),
-      name: user.displayName,
-      teams: [{ ...sessionTeam }],
-      currentTeamId: sessionTeam.id,
-      provider: Providers.vsls
-    };
-  }
+        if (!!this.guestService) {
+            await this.guestService.dispose();
+        }
 
-  async clearSession() {
-    if (!!this.hostService) {
-      await this.hostService.dispose()
+        this.hostService = undefined;
+        this.guestService = undefined;
     }
 
-    if (!!this.guestService) {
-      await this.guestService.dispose()
+    isConnected(): boolean {
+        if (!!this.hostService) {
+            return this.hostService.isConnected();
+        } else if (!!this.guestService) {
+            return this.guestService.isConnected();
+        }
+
+        return false;
     }
 
-    this.hostService = undefined;
-    this.guestService = undefined;
-  }
+    fetchUsers(): Promise<Users> {
+        if (!!this.hostService) {
+            return this.hostService.fetchUsers();
+        } else if (!!this.guestService) {
+            return this.guestService.fetchUsers();
+        }
 
-  isConnected(): boolean {
-    if (!!this.hostService) {
-      return this.hostService.isConnected();
-    } else if (!!this.guestService) {
-      return this.guestService.isConnected();
+        return Promise.resolve({});
     }
 
-    return false;
-  }
-
-  fetchUsers(): Promise<Users> {
-    if (!!this.hostService) {
-      return this.hostService.fetchUsers();
-    } else if (!!this.guestService) {
-      return this.guestService.fetchUsers();
+    async fetchUserInfo(userId: string): Promise<User | undefined> {
+        if (!!this.hostService) {
+            return this.hostService.fetchUserInfo(userId);
+        } else if (!!this.guestService) {
+            return this.guestService.fetchUserInfo(userId);
+        }
     }
 
-    return Promise.resolve({});
-  }
+    sendMessage(text: string, currentUserId: string, channelId: string): Promise<void> {
+        if (!!this.hostService) {
+            return this.hostService.sendMessage(text, currentUserId, channelId);
+        } else if (!!this.guestService) {
+            return this.guestService.sendMessage(text, currentUserId, channelId);
+        }
 
-  async fetchUserInfo(userId: string): Promise<User | undefined> {
-    if (!!this.hostService) {
-      return this.hostService.fetchUserInfo(userId);
-    } else if (!!this.guestService) {
-      return this.guestService.fetchUserInfo(userId);
-    }
-  }
-
-  sendMessage(
-    text: string,
-    currentUserId: string,
-    channelId: string
-  ): Promise<void> {
-    if (!!this.hostService) {
-      return this.hostService.sendMessage(text, currentUserId, channelId);
-    } else if (!!this.guestService) {
-      return this.guestService.sendMessage(text, currentUserId, channelId);
+        return Promise.resolve();
     }
 
-    return Promise.resolve();
-  }
+    loadChannelHistory(channelId: string): Promise<ChannelMessages> {
+        // There is just one channel at this point
+        if (!!this.hostService) {
+            return this.hostService.fetchMessagesHistory();
+        } else if (!!this.guestService) {
+            return this.guestService.fetchMessagesHistory();
+        }
 
-  loadChannelHistory(channelId: string): Promise<ChannelMessages> {
-    // There is just one channel at this point
-    if (!!this.hostService) {
-      return this.hostService.fetchMessagesHistory();
-    } else if (!!this.guestService) {
-      return this.guestService.fetchMessagesHistory();
+        return Promise.resolve({});
     }
 
-    return Promise.resolve({});
-  }
-
-  async destroy(): Promise<void> {
-    if (!!this.hostService) {
-      await this.hostService.dispose();
+    async destroy(): Promise<void> {
+        if (!!this.hostService) {
+            await this.hostService.dispose();
+        }
     }
-  }
 
-  getUserPreferences(): Promise<UserPreferences> {
-    return Promise.resolve({});
-  }
+    getUserPreferences(): Promise<UserPreferences> {
+        return Promise.resolve({});
+    }
 
-  async fetchChannels(users: Users): Promise<Channel[]> {
-    const readTimestamp = (+new Date() / 1000.0).toString();
-    const defaultChannel: Channel = {
-      id: VSLS_CHAT_CHANNEL.id,
-      name: VSLS_CHAT_CHANNEL.name,
-      type: ChannelType.channel,
-      readTimestamp,
-      unreadCount: 0
-    };
-    return [defaultChannel];
-  }
+    async fetchChannels(users: Users): Promise<Channel[]> {
+        const readTimestamp = (+new Date() / 1000.0).toString();
+        const defaultChannel: Channel = {
+            id: VSLS_CHAT_CHANNEL.id,
+            name: VSLS_CHAT_CHANNEL.name,
+            type: ChannelType.channel,
+            readTimestamp,
+            unreadCount: 0
+        };
+        return [defaultChannel];
+    }
 
-  fetchChannelInfo(channel: Channel): Promise<Channel> {
-    return Promise.resolve({ ...channel });
-  }
+    fetchChannelInfo(channel: Channel): Promise<Channel> {
+        return Promise.resolve({ ...channel });
+    }
 
-  subscribePresence(users: Users) {}
+    subscribePresence(users: Users) {}
 
-  markChannel(channel: Channel, ts: string): Promise<Channel> {
-    return Promise.resolve({ ...channel, readTimestamp: ts, unreadCount: 0 });
-  }
+    markChannel(channel: Channel, ts: string): Promise<Channel> {
+        return Promise.resolve({
+            ...channel,
+            readTimestamp: ts,
+            unreadCount: 0
+        });
+    }
 
-  async validateToken(): Promise<CurrentUser | undefined> {
-    // This will never be called, since vsls does not have a token configuration step
-    return undefined;
-  }
+    async validateToken(): Promise<CurrentUser | undefined> {
+        // This will never be called, since vsls does not have a token configuration step
+        return undefined;
+    }
 
-  async fetchThreadReplies(channelId: string, ts: string): Promise<Message> {
-    return {
-      timestamp: ts,
-      userId: "",
-      text: "",
-      content: undefined,
-      reactions: [],
-      replies: {}
-    };
-  }
+    async fetchThreadReplies(channelId: string, ts: string): Promise<Message> {
+        return {
+            timestamp: ts,
+            userId: "",
+            text: "",
+            content: undefined,
+            reactions: [],
+            replies: {}
+        };
+    }
 
-  sendThreadReply(
-    text: string,
-    currentUserId: string,
-    channelId: string,
-    parentTimestamp: string
-  ): Promise<void> {
-    return Promise.resolve();
-  }
+    sendThreadReply(text: string, currentUserId: string, channelId: string, parentTimestamp: string): Promise<void> {
+        return Promise.resolve();
+    }
 
-  async createIMChannel(user: User): Promise<Channel | undefined> {
-    return undefined;
-  }
+    async createIMChannel(user: User): Promise<Channel | undefined> {
+        return undefined;
+    }
 
-  updateSelfPresence(): any {
-    // no-op
-  }
+    updateSelfPresence(): any {
+        // no-op
+    }
 }
