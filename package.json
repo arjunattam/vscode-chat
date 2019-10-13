@@ -219,7 +219,7 @@
                 },
                 {
                     "command": "extension.chat.startChatWithVslsContact",
-                    "when": "chat:vslsEnabled && view == liveshare.contacts && viewItem == contacts.contact",
+                    "when": "chat:vslsEnabled && view == liveshare.contacts && viewItem =~ /^contacts.(recent)?contact/i",
                     "group": "inline"
                 },
                 {

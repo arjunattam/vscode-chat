@@ -12,7 +12,9 @@ interface IChatProvider {
     sendThreadReply: (text: string, currentUserId: string, channelId: string, parentTimestamp: string) => Promise<void>;
     connect: () => Promise<CurrentUser | undefined>;
     isConnected: () => boolean;
-    updateSelfPresence: (presence: UserPresence, durationInMinutes: number) => Promise<UserPresence | undefined>;subscribePresence: (users: Users) => void; createIMChannel: (user: User) => Promise<Channel | undefined>;
+    updateSelfPresence: (presence: UserPresence, durationInMinutes: number) => Promise<UserPresence | undefined>;
+    subscribePresence: (users: Users) => void;
+    createIMChannel: (user: User) => Promise<Channel | undefined>;
     destroy: () => Promise<void>;
 }
 
