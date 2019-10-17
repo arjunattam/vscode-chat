@@ -554,22 +554,30 @@ export function activate(context: vscode.ExtensionContext) {
         const contact: vsls.Contact = item.contactModel.contact;
         const user: User = {
             id: contact.id,
+            email: contact.email,
             name: contact.displayName!,
             fullName: contact.displayName!,
             imageUrl: contact.avatarUri!,
             smallImageUrl: contact.avatarUri!,
-            presence: UserPresence.unknown // pick up from contact?
+            // TODO: Pick accurate presence from contact?
+            // (Not the end of the world if we don't, since the LS presence
+            //  UI is owned by the LS extension, and so this value is never used.)
+            presence: UserPresence.unknown 
         }
-        let imChannel = manager.getIMChannel('vsls', user)
+        const providerName = 'vsls';
+        let imChannel = manager.getIMChannel(providerName, user)
 
         if (!imChannel) {
-            imChannel = await manager.createIMChannel('vsls', user)
+            imChannel = await manager.createIMChannel(providerName, user)
         }
 
+        // Adding this user to the store so we can use in the UI
+        manager.store.updateUser(providerName, user.id, user)
+
         if (imChannel) {
-            manager.store.updateLastChannelId('vsls', imChannel.id)
+            manager.store.updateLastChannelId(providerName, imChannel.id)
             openChatWebview({
-                providerName: 'vsls', channelId: imChannel.id, user, source: EventSource.vslsContacts
+                providerName, channelId: imChannel.id, user, source: EventSource.vslsContacts
             })
         }
     };

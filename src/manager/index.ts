@@ -299,9 +299,8 @@ export default class Manager implements IManager, vscode.Disposable {
 
   async updateWebviewForProvider(provider: string, channelId: string) {
     const currentUser = this.store.getCurrentUser(provider);
-    const channel = this.store
-      .getChannels(provider)
-      .find(channel => channel.id === channelId);
+    const channels = this.store.getChannels(provider)
+    const channel = channels.find(channel => channel.id === channelId);
 
     if (!!currentUser && !!channel) {
       await this.store.updateLastChannelId(provider, channelId);
@@ -386,7 +385,7 @@ export default class Manager implements IManager, vscode.Disposable {
     user: User
   ): Promise<Channel | undefined> {
     const cp = this.chatProviders.get(providerName as Providers);
-    return !!cp ? cp.createIMChannel(user) : undefined;
+    return !!cp ? await cp.createIMChannel(user) : undefined;
   }
 
   getUserPresence(provider: string, userId: string) {

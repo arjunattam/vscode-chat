@@ -1,6 +1,6 @@
 import * as vscode from "vscode";
 import * as vsls from "vsls";
-import { VSLS_CHAT_CHANNEL, getVslsChatServiceName, isLiveshareProvider, onPropertyChanged } from "./utils";
+import { VSLS_CHAT_CHANNEL, getVslsChatServiceName, isLiveshareProvider, toBaseMessage } from "./utils";
 import { Methods } from "vsls/vsls-contactprotocol.js";
 import { VslsHostService } from "./host";
 import { VslsGuestService } from "./guest";
@@ -12,7 +12,9 @@ export class VslsChatProvider implements IChatProvider {
     liveshare: vsls.LiveShare | undefined;
     hostService: VslsHostService | undefined;
     guestService: VslsGuestService | undefined;
+
     presenceProvider: any;
+    imChannels: Channel[] = [];
 
     async connect(): Promise<CurrentUser | undefined> {
         // This method sets up the chat provider to listen for changes in vsls session
@@ -82,12 +84,22 @@ export class VslsChatProvider implements IChatProvider {
         }
     }
 
-    private initializePresenceProvider(provider: any) {
-        this.presenceProvider = provider.provider;
+    private initializePresenceProvider(presenceProvider: any) {
+        this.presenceProvider = presenceProvider.provider;
 
-        this.presenceProvider.onNotified(async (e: any) => {
-            if (e.type === Methods.NotifyMessageReceivedName) {
-                console.log(e);
+        this.presenceProvider.onNotified(async ({ type, body }: any) => {
+            if (type === Methods.NotifyMessageReceivedName) {
+                const { body: msgBody } = body;
+                let newMessages: ChannelMessages = {};
+                const { timestamp } = msgBody;
+                newMessages[timestamp] = toBaseMessage(msgBody);
+                vscode.commands.executeCommand(
+                    SelfCommands.UPDATE_MESSAGES, {
+                        channelId: msgBody.userId,
+                        messages: newMessages,
+                        provider: 'vsls'
+                    }
+                )
             }
         })
     }
@@ -102,7 +114,7 @@ export class VslsChatProvider implements IChatProvider {
         }
     }
 
-    private getCurrentUser(api: vsls.LiveShare) {
+    private getCurrentUser(api: vsls.LiveShare): CurrentUser {
         const user = api.session.user!
         const sessionId = api.session.id || undefined;
         return {
@@ -187,6 +199,8 @@ export class VslsChatProvider implements IChatProvider {
     }
 
     async fetchUserInfo(userId: string): Promise<User | undefined> {
+        console.log((await this.liveshare!.getContacts(['arjun.attam@microsoft.com'])).contacts)
+
         if (!!this.hostService) {
             return this.hostService.fetchUserInfo(userId);
         } else if (!!this.guestService) {
@@ -195,10 +209,24 @@ export class VslsChatProvider implements IChatProvider {
     }
 
     sendMessage(text: string, currentUserId: string, channelId: string): Promise<void> {
-        if (!!this.hostService) {
-            return this.hostService.sendMessage(text, currentUserId, channelId);
-        } else if (!!this.guestService) {
-            return this.guestService.sendMessage(text, currentUserId, channelId);
+        const isChannelMessage = channelId === VSLS_CHAT_CHANNEL.id;
+
+        if (!isChannelMessage) {
+            // This is a direct message -> sent via presence provider
+            // channelId is the user id on the LS contact model
+            const body = {
+                userId: currentUserId,
+                text,
+                timestamp: (+new Date() / 1000.0).toString()
+            };
+            return this.sendDirectMessage(channelId, "vsls_dm", body)
+        } else {
+            // This is a channel message -> sent via host/guest services
+            if (!!this.hostService) {
+                return this.hostService.sendMessage(text, currentUserId, channelId);
+            } else if (!!this.guestService) {
+                return this.guestService.sendMessage(text, currentUserId, channelId);
+            }
         }
 
         return Promise.resolve();
@@ -234,7 +262,7 @@ export class VslsChatProvider implements IChatProvider {
             readTimestamp,
             unreadCount: 0
         };
-        return [defaultChannel];
+        return [defaultChannel, ...this.imChannels];
     }
 
     fetchChannelInfo(channel: Channel): Promise<Channel> {
@@ -272,13 +300,21 @@ export class VslsChatProvider implements IChatProvider {
     }
 
     async createIMChannel(user: User): Promise<Channel | undefined> {
-        return {
+        // This user.id will be the same as the id on the LS contact model
+        const channel = {
             id: user.id,
             name: user.fullName,
             type: ChannelType.im,
             readTimestamp: undefined,
             unreadCount: 0
-        };
+        }
+
+        // Save imChannels so fetchChannels can return them
+        if (!this.imChannels.find(item => item.id === user.id)) {
+            this.imChannels = [...this.imChannels, channel]
+        }
+
+        return channel;
     }
 
     updateSelfPresence(): any {

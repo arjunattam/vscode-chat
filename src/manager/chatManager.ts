@@ -1,5 +1,4 @@
 import { isSuperset, difference, toTitleCase } from "../utils";
-import { VSLS_CHAT_CHANNEL } from "../vslsChat/utils";
 
 export class ChatProviderManager {
   messages: Messages = {};
@@ -41,9 +40,9 @@ export class ChatProviderManager {
       }
     }
 
-    if (this.providerName === "vsls") {
-      this.store.updateLastChannelId(this.providerName, VSLS_CHAT_CHANNEL.id);
-    }
+    // if (this.providerName === "vsls") {
+    //   this.store.updateLastChannelId(this.providerName, VSLS_CHAT_CHANNEL.id);
+    // }
 
     return currentUser;
   };
@@ -372,7 +371,7 @@ export class ChatProviderManager {
     const channel = await this.chatProvider.createIMChannel(user);
 
     if (!!channel) {
-      this.updateChannel(channel);
+      await this.updateChannel(channel);
       return channel;
     }
   }
@@ -385,7 +384,7 @@ export class ChatProviderManager {
     }
   }
 
-  updateChannel = (newChannel: Channel) => {
+  updateChannel = async (newChannel: Channel) => {
     // Adds/updates channel in this.channels
     let found = false;
     const channels = this.store.getChannels(this.providerName);
@@ -407,7 +406,7 @@ export class ChatProviderManager {
       updatedChannels = [...updatedChannels, newChannel];
     }
 
-    this.store.updateChannels(this.providerName, updatedChannels);
+    await this.store.updateChannels(this.providerName, updatedChannels);
     this.parentManager.updateTreeViewsForProvider(this.providerName);
   };
 

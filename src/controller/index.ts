@@ -2,7 +2,6 @@ import * as vscode from "vscode";
 import { ExtensionContext } from "vscode";
 import WebviewContainer from "../webview";
 import { SLASH_COMMANDS, REVERSE_SLASH_COMMANDS, SelfCommands } from "../constants";
-import * as str from "../strings";
 import Logger from "../logger";
 import CommandDispatch, { MessageCommand } from "./commands";
 import markdownTransform from "./markdowner";
