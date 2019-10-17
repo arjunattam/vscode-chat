@@ -1,6 +1,6 @@
 import * as vscode from "vscode";
 import * as vsls from "vsls";
-import { VSLS_CHAT_CHANNEL, getVslsChatServiceName, isLiveshareProvider, toBaseMessage, defaultAvatar } from "./utils";
+import { VSLS_CHAT_CHANNEL, getVslsChatServiceName, isLiveshareProvider, toBaseMessage, defaultAvatar, onPropertyChanged } from "./utils";
 import { Methods } from "vsls/vsls-contactprotocol.js";
 import { VslsHostService } from "./host";
 import { VslsGuestService } from "./guest";
@@ -87,6 +87,13 @@ export class VslsChatProvider implements IChatProvider {
         if (provider) {
             this.initializePresenceProvider(provider);
         }
+
+        return new Promise((resolve, reject) => {
+            // @ts-ignore (session is a readonly property)
+            liveshare.session = onPropertyChanged(liveshare.session, "user", () => {
+                resolve(this.getCurrentUser(liveshare))
+            });
+        })
     }
 
     private initializePresenceProvider(presenceProvider: any) {
@@ -128,7 +135,6 @@ export class VslsChatProvider implements IChatProvider {
 
     private getCurrentUser(api: vsls.LiveShare): CurrentUser {
         const user = api.session.user!
-        const sessionId = api.session.id || undefined;
         this.currentUser = {
             id: user.id,
             email: user.emailAddress!,
@@ -145,11 +151,11 @@ export class VslsChatProvider implements IChatProvider {
         return {
             id: user.id,
             name: user.displayName,
-            teams: sessionId ? [{
-                id: sessionId,
+            teams: [{
+                id: VSLS_CHAT_CHANNEL.id,
                 name: VSLS_CHAT_CHANNEL.name
-            }]: [],
-            currentTeamId: sessionId,
+            }],
+            currentTeamId: VSLS_CHAT_CHANNEL.id,
             provider: Providers.vsls
         }
     }
@@ -293,12 +299,11 @@ export class VslsChatProvider implements IChatProvider {
     }
 
     async fetchChannels(users: Users): Promise<Channel[]> {
-        const readTimestamp = (+new Date() / 1000.0).toString();
         const defaultChannel: Channel = {
             id: VSLS_CHAT_CHANNEL.id,
             name: VSLS_CHAT_CHANNEL.name,
             type: ChannelType.channel,
-            readTimestamp,
+            readTimestamp: (+new Date() / 1000.0).toString(),
             unreadCount: 0
         };
         return [defaultChannel, ...this.imChannels];
@@ -344,7 +349,7 @@ export class VslsChatProvider implements IChatProvider {
             id: user.id,
             name: user.fullName,
             type: ChannelType.im,
-            readTimestamp: undefined,
+            readTimestamp: (+new Date() / 1000.0).toString(),
             unreadCount: 0
         }
 

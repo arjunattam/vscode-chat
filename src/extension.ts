@@ -160,11 +160,15 @@ export function activate(context: vscode.ExtensionContext) {
             .sort((a, b) => b.unread - a.unread);
 
         const quickpickItems: vscode.QuickPickItem[] = channelList.map(
-            channelLabel => ({
-                label: channelLabel.label,
-                detail: channelLabel.channel.categoryName,
-                description: `${channelLabel.providerName} · ${channelLabel.teamName}`
-            })
+            channelLabel => {
+                const description = providerName === 'vsls' ? 
+                    channelLabel.teamName : `${channelLabel.providerName} · ${channelLabel.teamName}`;
+                return {
+                    label: channelLabel.label,
+                    detail: channelLabel.channel.categoryName,
+                    description
+                }
+            }
         );
         const selected = await vscode.window.showQuickPick(
             [...quickpickItems, { label: str.RELOAD_CHANNELS }],
@@ -557,6 +561,7 @@ export function activate(context: vscode.ExtensionContext) {
             email: contact.email,
             name: contact.displayName!,
             fullName: contact.displayName!,
+            // TODO: fallback to using the defaultAvatar if this is null
             imageUrl: contact.avatarUri!,
             smallImageUrl: contact.avatarUri!,
             // TODO: Pick accurate presence from contact?

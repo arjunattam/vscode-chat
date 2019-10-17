@@ -81,8 +81,7 @@ export class ViewsManager implements vscode.Disposable {
 
             if (!!providerAndTeam) {
                 const { provider, team } = providerAndTeam;
-                const isVsls = provider === "vsls";
-                this.statusItems.set(key, new UnreadsStatusItem(provider, team, isVsls));
+                this.statusItems.set(key, new UnreadsStatusItem(provider, team));
             }
         });
     }
