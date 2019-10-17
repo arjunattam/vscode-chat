@@ -37,7 +37,7 @@ export default {
         cssProps() {
             return {
                 '--chat-code-font-family': this.data ? this.data.fontFamily : `monospace`,
-                '--chat-font-size': this.data ? `${this.fontSize}px` : `12px`
+                '--chat-font-size': this.data ? `${this.data.fontSize}px` : `12px`
             }
         }
     },
