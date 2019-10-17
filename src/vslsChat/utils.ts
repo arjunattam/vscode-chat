@@ -20,6 +20,10 @@ export const toBaseMessage = (raw: VslsChatMessage): Message => {
     return { ...raw, content: undefined, reactions: [], replies: {} };
 };
 
+export const toDirectMessage = (raw: any): Message => {
+    return { ...raw, content: undefined, reactions: [], replies: {}, userId: raw.user.id };
+}
+
 export const defaultAvatar = (email: string) => {
     return gravatar.imageUrl({
         email: email,

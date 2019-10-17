@@ -1,6 +1,6 @@
 import * as vscode from "vscode";
 import * as vsls from "vsls";
-import { VSLS_CHAT_CHANNEL, getVslsChatServiceName, isLiveshareProvider, toBaseMessage, userFromContact, defaultAvatar, onPropertyChanged } from "./utils";
+import { VSLS_CHAT_CHANNEL, getVslsChatServiceName, isLiveshareProvider, toBaseMessage, userFromContact, defaultAvatar, onPropertyChanged, toDirectMessage } from "./utils";
 import { Methods } from "vsls/vsls-contactprotocol.js";
 import { VslsHostService } from "./host";
 import { VslsGuestService } from "./guest";
@@ -105,19 +105,16 @@ export class VslsChatProvider implements IChatProvider {
                 const { id: senderId, email: senderEmail } = msgBody.user;
 
                 // Check if this is a known IM channel (since we are building them on-the-fly)
-                if (!this.imChannels.find(channel => channel.id === senderId)) {
+                let foundChannel = this.imChannels.find(channel => channel.id === senderId)
+                if (!foundChannel) {
                     // This is an IM channel we haven't seen before --> we want to update it in the store
                     // so we can get notifications etc. wired up for it.
                     const { contacts } = await this.liveshare!.getContacts([senderEmail]);
-                    const imChannel = await this.createIMChannel(userFromContact(contacts[senderEmail]));
-
-                    if (imChannel) {
-                        this.imChannels = [...this.imChannels, imChannel]
-                        this.store.updateChannels('vsls', (await this.fetchChannels({})))
-                    }
+                    await this.createIMChannel(userFromContact(contacts[senderEmail]));
+                    this.store.updateChannels('vsls', (await this.fetchChannels({})))
                 }
 
-                this.updateDirectMessageUI(msgBody, msgBody.userId)
+                this.updateDirectMessageUI(msgBody, senderId)
             }
         })
     }
@@ -125,7 +122,7 @@ export class VslsChatProvider implements IChatProvider {
     private updateDirectMessageUI(newMessageBody: any, channelId: string) {
         let newMessages: ChannelMessages = {};
         const { timestamp } = newMessageBody;
-        newMessages[timestamp] = toBaseMessage(newMessageBody);
+        newMessages[timestamp] = toDirectMessage(newMessageBody);
         vscode.commands.executeCommand(
             SelfCommands.UPDATE_MESSAGES, {
                 channelId,
@@ -268,11 +265,10 @@ export class VslsChatProvider implements IChatProvider {
             // This is a direct message -> sent via presence provider
             // channelId is the user id on the LS contact model
             const body = {
-                userId: currentUserId,
-                // user: {
-                //     id: currentUserId,
-                //     email: this.currentUser ? this.currentUser.email : undefined
-                // },
+                user: {
+                    id: currentUserId,
+                    email: this.currentUser ? this.currentUser.email : undefined
+                },
                 text,
                 timestamp: (+new Date() / 1000.0).toString()
             };
@@ -361,12 +357,15 @@ export class VslsChatProvider implements IChatProvider {
     }
 
     async createIMChannel(user: User): Promise<Channel | undefined> {
-        // This user.id will be the same as the id on the LS contact model
+        // We are saving a slightly old readTimestamp, so that the unread 
+        // notification can be triggered correctly. As the IM channels can be created
+        // at the same time as the message is received, we don't want to simply do a now()
+        const oneMinuteAgo = (+new Date() / 1000.0) - 60;
         const channel = {
             id: user.id,
             name: user.fullName,
             type: ChannelType.im,
-            readTimestamp: (+new Date() / 1000.0).toString(),
+            readTimestamp: oneMinuteAgo.toString(),
             unreadCount: 0
         }
 
