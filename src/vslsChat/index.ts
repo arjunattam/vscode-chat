@@ -1,6 +1,6 @@
 import * as vscode from "vscode";
 import * as vsls from "vsls";
-import { VSLS_CHAT_CHANNEL, getVslsChatServiceName, isLiveshareProvider, toBaseMessage, defaultAvatar, onPropertyChanged } from "./utils";
+import { VSLS_CHAT_CHANNEL, getVslsChatServiceName, isLiveshareProvider, toBaseMessage, userFromContact, defaultAvatar, onPropertyChanged } from "./utils";
 import { Methods } from "vsls/vsls-contactprotocol.js";
 import { VslsHostService } from "./host";
 import { VslsGuestService } from "./guest";
@@ -102,6 +102,21 @@ export class VslsChatProvider implements IChatProvider {
         this.presenceProvider.onNotified(async ({ type, body }: any) => {
             if (type === Methods.NotifyMessageReceivedName) {
                 const { body: msgBody } = body;
+                const { id: senderId, email: senderEmail } = msgBody.user;
+
+                // Check if this is a known IM channel (since we are building them on-the-fly)
+                if (!this.imChannels.find(channel => channel.id === senderId)) {
+                    // This is an IM channel we haven't seen before --> we want to update it in the store
+                    // so we can get notifications etc. wired up for it.
+                    const { contacts } = await this.liveshare!.getContacts([senderEmail]);
+                    const imChannel = await this.createIMChannel(userFromContact(contacts[senderEmail]));
+
+                    if (imChannel) {
+                        this.imChannels = [...this.imChannels, imChannel]
+                        this.store.updateChannels('vsls', (await this.fetchChannels({})))
+                    }
+                }
+
                 this.updateDirectMessageUI(msgBody, msgBody.userId)
             }
         })
@@ -124,9 +139,7 @@ export class VslsChatProvider implements IChatProvider {
         const message = { type, body, targetContactId }
 
         if (this.presenceProvider) {
-            await this.presenceProvider.requestAsync(
-                Methods.RequestSendMessageName, message
-            )
+            await this.presenceProvider.requestAsync(Methods.RequestSendMessageName, message)
 
             // Once the message is sent, we want to also update the UI
             this.updateDirectMessageUI(body, targetContactId);
@@ -256,6 +269,10 @@ export class VslsChatProvider implements IChatProvider {
             // channelId is the user id on the LS contact model
             const body = {
                 userId: currentUserId,
+                // user: {
+                //     id: currentUserId,
+                //     email: this.currentUser ? this.currentUser.email : undefined
+                // },
                 text,
                 timestamp: (+new Date() / 1000.0).toString()
             };

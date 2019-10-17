@@ -22,7 +22,7 @@ import { askForAuth } from "./onboarding";
 import { ConfigHelper } from "./config";
 import TelemetryReporter from "./telemetry";
 import IssueReporter from "./issues";
-import { VSLS_CHAT_CHANNEL } from "./vslsChat/utils";
+import { VSLS_CHAT_CHANNEL, userFromContact } from "./vslsChat/utils";
 
 let store: Store;
 let manager: Manager;
@@ -574,19 +574,7 @@ export function activate(context: vscode.ExtensionContext) {
         const contact = await getContactFromItem(item);
 
         if (contact) {
-            const user: User = {
-                id: contact.id,
-                email: contact.email,
-                name: contact.displayName!,
-                fullName: contact.displayName!,
-                // TODO: fallback to using the defaultAvatar if this is null
-                imageUrl: contact.avatarUri!,
-                smallImageUrl: contact.avatarUri!,
-                // TODO: Pick accurate presence from contact?
-                // (Not the end of the world if we don't, since the LS presence
-                //  UI is owned by the LS extension, and so this value is never used.)
-                presence: UserPresence.unknown 
-            }
+            const user = userFromContact(contact);
             const providerName = 'vsls';
             let imChannel = manager.getIMChannel(providerName, user)
 

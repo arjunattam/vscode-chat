@@ -41,6 +41,22 @@ export const toBaseUser = (peerNumber: number, user: vsls.UserInfo): User => {
     };
 };
 
+export const userFromContact = (contact: vsls.Contact): User => {
+    return {
+        id: contact.id,
+        email: contact.email,
+        name: contact.displayName!,
+        fullName: contact.displayName!,
+        // TODO: fallback to using the defaultAvatar if this is null
+        imageUrl: contact.avatarUri!,
+        smallImageUrl: contact.avatarUri!,
+        // TODO: Pick accurate presence from contact?
+        // (Not the end of the world if we don't, since the LS presence
+        //  UI is owned by the LS extension, and so this value is never used.)
+        presence: UserPresence.unknown 
+    }
+}
+
 export const REQUEST_NAME = {
     message: "message",
     fetchUsers: "fetch_users",
