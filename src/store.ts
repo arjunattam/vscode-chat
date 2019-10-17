@@ -5,6 +5,7 @@ import { uuidv4, getExtensionVersion } from "./utils";
 // Large discord communities can have lots of users/channels
 // More than the quota of context.globalState
 const VALUE_LENGTH_LIMIT = 100;
+const MESSAGE_HISTORY_LIMIT = 50;
 
 const stateKeys = {
     EXTENSION_VERSION: "extensionVersion",
@@ -12,7 +13,8 @@ const stateKeys = {
     LAST_CHANNEL_ID: "lastChannelId",
     CHANNELS: "channels",
     USER_INFO: "userInfo",
-    USERS: "users"
+    USERS: "users",
+    MESSAGE_HISTORY: "messagesHistory"
 };
 
 export class Store implements IStore {
@@ -134,7 +136,7 @@ export class Store implements IStore {
             // This is because the chat provider does not have the knowledge of all contacts
             // Contacts are known when the user clicks on the "chat with vsls contact" action
             // And are updated via extension.ts -- which is a layer above the vsls chat provider
-            
+
             // Because the vsls chat provider does not know about these contacts,
             // doing a fetchUsers() replaces the info we have, and we end up with unknown users in the
             // chat UI, which is a problem.
@@ -224,6 +226,32 @@ export class Store implements IStore {
         this.currentUserInfo = this.getObjectWithoutUndefined(updatedCurrentUserInfo);
         return this.context.globalState.update(stateKeys.USER_INFO, this.currentUserInfo);
     };
+
+    updateMessageHistory = (channelId: string, messages: ChannelMessages) => {
+        const existingMessages = this.context.globalState.get(stateKeys.MESSAGE_HISTORY) || {};
+        const timestamps = Object.keys(messages).map(t => +t);
+        let filteredTimestamps = timestamps;
+
+        if (timestamps.length > MESSAGE_HISTORY_LIMIT) {
+            const sortedTimestamps = timestamps.sort((a, b) => (b - a))
+            filteredTimestamps = sortedTimestamps.slice(0, MESSAGE_HISTORY_LIMIT);
+        }
+
+        let filteredMessages: ChannelMessages = {};
+        filteredTimestamps.forEach(ts => {
+            filteredMessages[`${ts}`] = messages[`${ts}`]
+        })
+
+        return this.context.globalState.update(stateKeys.MESSAGE_HISTORY, {
+            ...existingMessages,
+            [channelId]: filteredMessages
+        });
+    }
+
+    getMessageHistoryForChannel = (channelId: string) => {
+        const allMessages: Messages = this.context.globalState.get(stateKeys.MESSAGE_HISTORY) || {};
+        return allMessages[channelId];
+    }
 
     async clearProviderState(provider: string): Promise<void> {
         this.currentUserInfo = this.getObjectWithoutUndefined({

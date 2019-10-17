@@ -207,6 +207,8 @@ interface IStore {
     updateLastChannelId: (provider: string, channelId: string | undefined) => Thenable<void>;
     clearProviderState: (provider: string) => Promise<void>;
     updateExtensionVersion: (version: string) => Thenable<void>;
+    getMessageHistoryForChannel: (channelId: string) => ChannelMessages;
+    updateMessageHistory: (channelId: string, messages: ChannelMessages) => Thenable<void>;
 }
 
 interface IManager {

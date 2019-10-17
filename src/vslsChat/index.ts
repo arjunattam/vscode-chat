@@ -17,6 +17,10 @@ export class VslsChatProvider implements IChatProvider {
     imChannels: Channel[] = [];
     currentUser: User | undefined;
 
+    constructor(private store: IStore) { 
+        // We are passing the store in here to be able to store message history
+    }
+
     async connect(): Promise<CurrentUser | undefined> {
         // This method sets up the chat provider to listen for changes in vsls session
         const liveshare = await vsls.getApi();
@@ -262,16 +266,17 @@ export class VslsChatProvider implements IChatProvider {
         return Promise.resolve();
     }
 
-    loadChannelHistory(channelId: string): Promise<ChannelMessages> {
+    async loadChannelHistory(channelId: string): Promise<ChannelMessages> {
         const isSessionChannel = channelId === VSLS_CHAT_CHANNEL.id;
 
         if (isSessionChannel) {
-            // There is just one channel at this point
             if (!!this.hostService) {
                 return this.hostService.fetchMessagesHistory();
             } else if (!!this.guestService) {
                 return this.guestService.fetchMessagesHistory();
             }
+        } else {
+            return this.store.getMessageHistoryForChannel(channelId);
         }
 
         return Promise.resolve({});

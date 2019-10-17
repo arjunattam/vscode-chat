@@ -1,4 +1,5 @@
 import { isSuperset, difference, toTitleCase } from "../utils";
+import { VSLS_CHAT_CHANNEL } from "../vslsChat/utils";
 
 export class ChatProviderManager {
     messages: Messages = {};
@@ -179,6 +180,11 @@ export class ChatProviderManager {
         this.updateWebviewForLastChannel();
         this.parentManager.updateStatusItemsForProvider(this.providerName);
         this.parentManager.updateTreeViewsForProvider(this.providerName);
+
+        // For DM channels on vsls, we want to store the message history
+        if (this.providerName === 'vsls' && channelId !== VSLS_CHAT_CHANNEL.id) {
+            this.store.updateMessageHistory(channelId, newMessages)
+        }
     };
 
     private async fillUpUsers(missingIds: Set<any>): Promise<void> {

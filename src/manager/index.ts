@@ -85,7 +85,7 @@ export default class Manager implements IManager, vscode.Disposable {
             case "slack":
                 return new SlackChatProvider(token, this);
             case "vsls":
-                return new VslsChatProvider();
+                return new VslsChatProvider(this.store);
             case "vslsSpaces":
                 return new VslsSpacesProvider();
             default:
