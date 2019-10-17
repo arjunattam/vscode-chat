@@ -370,7 +370,8 @@ export default class Manager implements IManager, vscode.Disposable {
   }
 
   getUserForId(provider: string, userId: string) {
-    return this.store.getUser(provider, userId);
+    const cachedUser = this.store.getUser(provider, userId);
+    return cachedUser;
   }
 
   getIMChannel(provider: string, user: User): Channel | undefined {

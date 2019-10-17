@@ -551,48 +551,26 @@ export function activate(context: vscode.ExtensionContext) {
     };
 
     const chatWithVslsContact = async (item: any) => {
-        const contactProvider = manager.vslsContactProvider;
         const contact: vsls.Contact = item.contactModel.contact;
-        let user: User | undefined;
+        const user: User = {
+            id: contact.id,
+            name: contact.displayName!,
+            fullName: contact.displayName!,
+            imageUrl: contact.avatarUri!,
+            smallImageUrl: contact.avatarUri!,
+            presence: UserPresence.unknown // pick up from contact?
+        }
+        let imChannel = manager.getIMChannel('vsls', user)
 
-        if (!!contactProvider) {
-            const presenceProvider = contactProvider.presenceProviderName;
-            const matchedId = contactProvider.getMatchedUserId(contact.id);
+        if (!imChannel) {
+            imChannel = await manager.createIMChannel('vsls', user)
+        }
 
-            if (!!matchedId) {
-                user = manager.getUserForId(presenceProvider, matchedId);
-            } else {
-                // contact.id can also be a user id
-                user = manager.getUserForId(presenceProvider, contact.id);
-            }
-
-            if (!!user) {
-                let imChannel = manager.getIMChannel(presenceProvider, user);
-
-                if (!imChannel) {
-                    imChannel = await manager.createIMChannel(
-                        presenceProvider,
-                        user
-                    );
-                }
-
-                if (!!imChannel) {
-                    manager.store.updateLastChannelId(
-                        presenceProvider,
-                        imChannel.id
-                    );
-                    openChatWebview({
-                        providerName: presenceProvider,
-                        channelId: imChannel.id,
-                        user,
-                        source: EventSource.vslsContacts
-                    });
-                }
-            } else {
-                vscode.window.showInformationMessage(
-                    str.UNABLE_TO_MATCH_CONTACT
-                );
-            }
+        if (imChannel) {
+            manager.store.updateLastChannelId('vsls', imChannel.id)
+            openChatWebview({
+                providerName: 'vsls', channelId: imChannel.id, user, source: EventSource.vslsContacts
+            })
         }
     };
 

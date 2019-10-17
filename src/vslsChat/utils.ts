@@ -50,3 +50,9 @@ export const REQUEST_NAME = {
 export const NOTIFICATION_NAME = {
   message: "message"
 };
+
+const LIVESHARE_PRESENCE_PROVIDER_ID = "LivesharePresence";
+
+export const isLiveshareProvider = (provider: any) => {
+  return provider.serviceId === LIVESHARE_PRESENCE_PROVIDER_ID;
+}

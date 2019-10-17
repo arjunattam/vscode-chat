@@ -1,6 +1,7 @@
 import * as vscode from "vscode";
 import * as vsls from "vsls";
-import { VSLS_CHAT_CHANNEL, getVslsChatServiceName } from "./utils";
+import { VSLS_CHAT_CHANNEL, getVslsChatServiceName, isLiveshareProvider, onPropertyChanged } from "./utils";
+import { Methods } from "vsls/vsls-contactprotocol.js";
 import { VslsHostService } from "./host";
 import { VslsGuestService } from "./guest";
 import { SelfCommands } from "../constants";
@@ -11,6 +12,7 @@ export class VslsChatProvider implements IChatProvider {
     liveshare: vsls.LiveShare | undefined;
     hostService: VslsHostService | undefined;
     guestService: VslsGuestService | undefined;
+    presenceProvider: any;
 
     async connect(): Promise<CurrentUser | undefined> {
         // This method sets up the chat provider to listen for changes in vsls session
@@ -25,7 +27,9 @@ export class VslsChatProvider implements IChatProvider {
             // We have already initialized, and we don't want to
             // attach the event listeners again.
             // (This overrides the connect() logic inside ChatProviderManager)
-            return undefined;
+            if (this.liveshare.session.user) {
+                return this.getCurrentUser(this.liveshare)
+            }
         }
 
         this.liveshare = liveshare;
@@ -62,6 +66,54 @@ export class VslsChatProvider implements IChatProvider {
                 currentUser
             });
         });
+
+        // Initialize our link to the LS presence provider to send/receive DMs
+        (<any>this.liveshare).onPresenceProviderRegistered((e: any) => {
+            if (isLiveshareProvider(e.added)) {
+                this.initializePresenceProvider(e.added)
+            };
+        })
+
+        const registeredProviders = (<any>this.liveshare).presenceProviders;
+        const provider = registeredProviders.find((p: any) => isLiveshareProvider(p));
+
+        if (provider) {
+            this.initializePresenceProvider(provider);
+        }
+    }
+
+    private initializePresenceProvider(provider: any) {
+        this.presenceProvider = provider.provider;
+
+        this.presenceProvider.onNotified(async (e: any) => {
+            if (e.type === Methods.NotifyMessageReceivedName) {
+                console.log(e);
+            }
+        })
+    }
+
+    private async sendDirectMessage(targetContactId: string, type: string, body: any = {}) {
+        const message = { type, body, targetContactId }
+
+        if (this.presenceProvider) {
+            await this.presenceProvider.requestAsync(
+                Methods.RequestSendMessageName, message
+            )
+        }
+    }
+
+    private getCurrentUser(api: vsls.LiveShare) {
+        const user = api.session.user!
+        const sessionId = api.session.id || undefined;
+        return {
+            id: user.id,
+            name: user.displayName,
+            teams: sessionId ? [{
+                id: sessionId, name: VSLS_CHAT_CHANNEL.name
+            }]: [],
+            currentTeamId: sessionId,
+            provider: Providers.vsls
+        }
     }
 
     async initializeChatService(): Promise<CurrentUser | undefined> {
@@ -98,18 +150,7 @@ export class VslsChatProvider implements IChatProvider {
             }
         }
 
-        const sessionTeam: Team = {
-            id: sessionId,
-            name: VSLS_CHAT_CHANNEL.name
-        };
-
-        return {
-            id: peerNumber.toString(),
-            name: user.displayName,
-            teams: [{ ...sessionTeam }],
-            currentTeamId: sessionTeam.id,
-            provider: Providers.vsls
-        };
+        return this.getCurrentUser(liveshare)
     }
 
     async clearSession() {
@@ -231,7 +272,13 @@ export class VslsChatProvider implements IChatProvider {
     }
 
     async createIMChannel(user: User): Promise<Channel | undefined> {
-        return undefined;
+        return {
+            id: user.id,
+            name: user.fullName,
+            type: ChannelType.im,
+            readTimestamp: undefined,
+            unreadCount: 0
+        };
     }
 
     updateSelfPresence(): any {

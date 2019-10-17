@@ -104,6 +104,11 @@ export class Store implements IStore {
     return this.users[provider] || {};
   };
 
+  getUser = (provider: string, userId: string): User | undefined => {
+    const providerUsers = this.users[provider] || {};
+    return providerUsers[userId];
+  };
+
   getChannels = (provider: string): Channel[] => {
     return this.channels[provider] || [];
   };
@@ -153,11 +158,6 @@ export class Store implements IStore {
         [userId]: { ...user }
       }
     };
-  };
-
-  getUser = (provider: string, userId: string): User | undefined => {
-    const providerUsers = this.users[provider] || {};
-    return providerUsers[userId];
   };
 
   updateChannels = (provider: string, channels: Channel[]): Thenable<void> => {
