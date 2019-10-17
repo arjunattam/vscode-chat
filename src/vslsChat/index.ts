@@ -1,6 +1,6 @@
 import * as vscode from "vscode";
 import * as vsls from "vsls";
-import { VSLS_CHAT_CHANNEL, getVslsChatServiceName, isLiveshareProvider, toBaseMessage } from "./utils";
+import { VSLS_CHAT_CHANNEL, getVslsChatServiceName, isLiveshareProvider, toBaseMessage, defaultAvatar } from "./utils";
 import { Methods } from "vsls/vsls-contactprotocol.js";
 import { VslsHostService } from "./host";
 import { VslsGuestService } from "./guest";
@@ -15,6 +15,7 @@ export class VslsChatProvider implements IChatProvider {
 
     presenceProvider: any;
     imChannels: Channel[] = [];
+    currentUser: User | undefined;
 
     async connect(): Promise<CurrentUser | undefined> {
         // This method sets up the chat provider to listen for changes in vsls session
@@ -90,18 +91,22 @@ export class VslsChatProvider implements IChatProvider {
         this.presenceProvider.onNotified(async ({ type, body }: any) => {
             if (type === Methods.NotifyMessageReceivedName) {
                 const { body: msgBody } = body;
-                let newMessages: ChannelMessages = {};
-                const { timestamp } = msgBody;
-                newMessages[timestamp] = toBaseMessage(msgBody);
-                vscode.commands.executeCommand(
-                    SelfCommands.UPDATE_MESSAGES, {
-                        channelId: msgBody.userId,
-                        messages: newMessages,
-                        provider: 'vsls'
-                    }
-                )
+                this.updateDirectMessageUI(msgBody, msgBody.userId)
             }
         })
+    }
+
+    private updateDirectMessageUI(newMessageBody: any, channelId: string) {
+        let newMessages: ChannelMessages = {};
+        const { timestamp } = newMessageBody;
+        newMessages[timestamp] = toBaseMessage(newMessageBody);
+        vscode.commands.executeCommand(
+            SelfCommands.UPDATE_MESSAGES, {
+                channelId,
+                messages: newMessages,
+                provider: 'vsls'
+            }
+        )
     }
 
     private async sendDirectMessage(targetContactId: string, type: string, body: any = {}) {
@@ -111,17 +116,34 @@ export class VslsChatProvider implements IChatProvider {
             await this.presenceProvider.requestAsync(
                 Methods.RequestSendMessageName, message
             )
+
+            // Once the message is sent, we want to also update the UI
+            this.updateDirectMessageUI(body, targetContactId);
         }
     }
 
     private getCurrentUser(api: vsls.LiveShare): CurrentUser {
         const user = api.session.user!
         const sessionId = api.session.id || undefined;
+        this.currentUser = {
+            id: user.id,
+            email: user.emailAddress!,
+            name: user.displayName,
+            fullName: user.displayName,
+            presence: UserPresence.unknown,
+            // TODO: Instead of using default avatar, we can use the
+            // avatar stored in the LS contact model. Unfortunately, the avatar
+            // is not available in the LS user model, so we would need to
+            // convert the user into the contact.
+            imageUrl: defaultAvatar(user.emailAddress!),
+            smallImageUrl: defaultAvatar(user.emailAddress!)
+        }
         return {
             id: user.id,
             name: user.displayName,
             teams: sessionId ? [{
-                id: sessionId, name: VSLS_CHAT_CHANNEL.name
+                id: sessionId,
+                name: VSLS_CHAT_CHANNEL.name
             }]: [],
             currentTeamId: sessionId,
             provider: Providers.vsls
@@ -188,19 +210,27 @@ export class VslsChatProvider implements IChatProvider {
         return false;
     }
 
-    fetchUsers(): Promise<Users> {
-        if (!!this.hostService) {
-            return this.hostService.fetchUsers();
-        } else if (!!this.guestService) {
-            return this.guestService.fetchUsers();
+    async fetchUsers(): Promise<Users> {
+        let currentUser: Users = {}
+        let serviceUsers: Users = {}
+
+        if (this.currentUser) {
+            currentUser[this.currentUser.id] = { ...this.currentUser }
         }
 
-        return Promise.resolve({});
+        if (!!this.hostService) {
+            serviceUsers = await this.hostService.fetchUsers();
+        } else if (!!this.guestService) {
+            serviceUsers = await this.guestService.fetchUsers();
+        }
+
+        return Promise.resolve({
+            ...currentUser,
+            ...serviceUsers
+        });
     }
 
     async fetchUserInfo(userId: string): Promise<User | undefined> {
-        console.log((await this.liveshare!.getContacts(['arjun.attam@microsoft.com'])).contacts)
-
         if (!!this.hostService) {
             return this.hostService.fetchUserInfo(userId);
         } else if (!!this.guestService) {
@@ -233,11 +263,15 @@ export class VslsChatProvider implements IChatProvider {
     }
 
     loadChannelHistory(channelId: string): Promise<ChannelMessages> {
-        // There is just one channel at this point
-        if (!!this.hostService) {
-            return this.hostService.fetchMessagesHistory();
-        } else if (!!this.guestService) {
-            return this.guestService.fetchMessagesHistory();
+        const isSessionChannel = channelId === VSLS_CHAT_CHANNEL.id;
+
+        if (isSessionChannel) {
+            // There is just one channel at this point
+            if (!!this.hostService) {
+                return this.hostService.fetchMessagesHistory();
+            } else if (!!this.guestService) {
+                return this.guestService.fetchMessagesHistory();
+            }
         }
 
         return Promise.resolve({});

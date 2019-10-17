@@ -20,21 +20,23 @@ export const toBaseMessage = (raw: VslsChatMessage): Message => {
   return { ...raw, content: undefined, reactions: [], replies: {} };
 };
 
-export const toBaseUser = (peerNumber: number, user: vsls.UserInfo): User => {
-  const { displayName, emailAddress } = user;
-  const avatar = gravatar.imageUrl({
-    email: emailAddress,
+export const defaultAvatar = (email: string) => {
+  return gravatar.imageUrl({
+    email: email,
     parameters: { size: "200", d: "retro" },
     secure: true
-  });
+  });  
+}
 
+export const toBaseUser = (peerNumber: number, user: vsls.UserInfo): User => {
+  const { displayName, emailAddress } = user;
   return {
     id: peerNumber.toString(),
     name: displayName,
     email: !!emailAddress ? emailAddress : undefined,
     fullName: displayName,
-    imageUrl: avatar,
-    smallImageUrl: avatar,
+    imageUrl: defaultAvatar(emailAddress!),
+    smallImageUrl: defaultAvatar(emailAddress!),
     presence: UserPresence.available
   };
 };
