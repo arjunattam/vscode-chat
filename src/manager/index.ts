@@ -120,7 +120,6 @@ export default class Manager implements IManager, vscode.Disposable {
 
     initializeToken = async (newInitialState?: InitialState) => {
         let enabledProviderStates = this.getEnabledProviders(newInitialState);
-        console.log("enabled", enabledProviderStates);
 
         if (Object.keys(enabledProviderStates).length === 0) {
             // Do this to ensure we load vsls, need to delay for vscode.getExtension
@@ -128,7 +127,6 @@ export default class Manager implements IManager, vscode.Disposable {
             const delay = (ms: number) => new Promise(res => setTimeout(res, ms));
             await delay(5 * 1000);
             enabledProviderStates = this.getEnabledProviders(newInitialState);
-            console.log("enabled 2", enabledProviderStates);
         }
 
         for (const initialState of enabledProviderStates) {
