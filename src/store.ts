@@ -250,7 +250,7 @@ export class Store implements IStore {
 
     getMessageHistoryForChannel = (channelId: string) => {
         const allMessages: Messages = this.context.globalState.get(stateKeys.MESSAGE_HISTORY) || {};
-        return allMessages[channelId];
+        return allMessages[channelId] || {};
     }
 
     async clearProviderState(provider: string): Promise<void> {

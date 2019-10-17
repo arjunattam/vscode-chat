@@ -554,36 +554,55 @@ export function activate(context: vscode.ExtensionContext) {
         }
     };
 
+    const getContactFromItem = async (item: any) => {
+        let contact: vsls.Contact | undefined;
+
+        if (!!item.space) {
+            // This is a space member, we need to convert to an LS contact
+            const { email } = item;
+            const api = (await vsls.getApi())!;
+            const { contacts } = await api.getContacts([email]);
+            contact = contacts[email]
+        } else {
+            contact = item.contactModel.contact;
+        }
+
+        return contact;
+    }
+
     const chatWithVslsContact = async (item: any) => {
-        const contact: vsls.Contact = item.contactModel.contact;
-        const user: User = {
-            id: contact.id,
-            email: contact.email,
-            name: contact.displayName!,
-            fullName: contact.displayName!,
-            // TODO: fallback to using the defaultAvatar if this is null
-            imageUrl: contact.avatarUri!,
-            smallImageUrl: contact.avatarUri!,
-            // TODO: Pick accurate presence from contact?
-            // (Not the end of the world if we don't, since the LS presence
-            //  UI is owned by the LS extension, and so this value is never used.)
-            presence: UserPresence.unknown 
-        }
-        const providerName = 'vsls';
-        let imChannel = manager.getIMChannel(providerName, user)
+        const contact = await getContactFromItem(item);
 
-        if (!imChannel) {
-            imChannel = await manager.createIMChannel(providerName, user)
-        }
+        if (contact) {
+            const user: User = {
+                id: contact.id,
+                email: contact.email,
+                name: contact.displayName!,
+                fullName: contact.displayName!,
+                // TODO: fallback to using the defaultAvatar if this is null
+                imageUrl: contact.avatarUri!,
+                smallImageUrl: contact.avatarUri!,
+                // TODO: Pick accurate presence from contact?
+                // (Not the end of the world if we don't, since the LS presence
+                //  UI is owned by the LS extension, and so this value is never used.)
+                presence: UserPresence.unknown 
+            }
+            const providerName = 'vsls';
+            let imChannel = manager.getIMChannel(providerName, user)
 
-        // Adding this user to the store so we can use in the UI
-        manager.store.updateUser(providerName, user.id, user)
+            if (!imChannel) {
+                imChannel = await manager.createIMChannel(providerName, user)
+            }
 
-        if (imChannel) {
-            manager.store.updateLastChannelId(providerName, imChannel.id)
-            openChatWebview({
-                providerName, channelId: imChannel.id, user, source: EventSource.vslsContacts
-            })
+            // Adding this user to the store so we can use in the UI
+            manager.store.updateUser(providerName, user.id, user)
+
+            if (imChannel) {
+                manager.store.updateLastChannelId(providerName, imChannel.id)
+                openChatWebview({
+                    providerName, channelId: imChannel.id, user, source: EventSource.vslsContacts
+                })
+            }
         }
     };
 
