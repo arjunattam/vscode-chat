@@ -102,6 +102,13 @@ class ViewController {
             }
         }
 
+        if (text === "/clear") {
+            return vscode.commands.executeCommand(SelfCommands.CLEAR_MESSAGES, {
+                channelId: this.currentChannelId,
+                provider: this.currentProvider
+            });
+        }
+
         if (this.isValidReverseCommand(text)) {
             return this.sendTextMessage(text);
         }
@@ -136,7 +143,7 @@ class ViewController {
             vscode.commands.executeCommand(SelfCommands.SEND_TYPING, {
                 channelId: this.currentChannelId,
                 provider: this.currentProvider
-            })
+            });
         }
     };
 
@@ -162,15 +169,15 @@ class ViewController {
 
         switch (type) {
             case "internal":
-            return this.handleInternal(message);
+                return this.handleInternal(message);
             case "link":
-            return this.dispatchCommand({ namespace: "open", subcommand: text });
+                return this.dispatchCommand({ namespace: "open", subcommand: text });
             case "command":
-            return this.handleCommand(text);
+                return this.handleCommand(text);
             case "text":
-            return text ? this.sendTextMessage(text) : null;
+                return text ? this.sendTextMessage(text) : null;
             case "thread_reply":
-            return this.sendThreadReply(text);
+                return this.sendThreadReply(text);
         }
     };
 
@@ -196,7 +203,7 @@ class ViewController {
             }
 
             handledMessages[ts] = {
-                ...messages[ts],
+                ...messages[ts]
                 // textHTML
             };
         });

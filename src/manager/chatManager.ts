@@ -136,6 +136,12 @@ export class ChatProviderManager {
         Object.keys(existingMessages).forEach((ts: string) => {
             deletedMessages[ts] = undefined;
         });
+
+        // For DM channels in vsls, we store history (and so we need to clear it)
+        if (this.providerName === 'vsls' && channelId !== VSLS_CHAT_CHANNEL.id) {
+            this.store.updateMessageHistory(channelId, {})
+        }
+
         return this.updateMessages(channelId, deletedMessages);
     };
 
