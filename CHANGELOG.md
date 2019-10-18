@@ -2,6 +2,12 @@
 
 All notable changes to the vscode-chat extension will be documented in this file. This follows the [Keep a Changelog](http://keepachangelog.com/) format.
 
+## [0.24.0] - 2019-10-17
+
+### Added
+
+- Live Share Chat now supports typing events!
+
 ## [0.23.0] - 2019-10-17
 
 ### Added
