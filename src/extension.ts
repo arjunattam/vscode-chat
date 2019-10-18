@@ -699,10 +699,11 @@ export function activate(context: vscode.ExtensionContext) {
 
                     // Auto-start the chat window for discoverability
                     const autoLaunchVslsChatConfig = ConfigHelper.getAutoLaunchLiveShareChat();
+                    const isChatVisible = controller.ui ? controller.ui.isVisible() : false;
                     const autoLaunchVslsChat =
                         autoLaunchVslsChatInSession && autoLaunchVslsChatConfig;
 
-                    if (isSessionActive && autoLaunchVslsChat) {
+                    if (isSessionActive && autoLaunchVslsChat && !isChatVisible) {
                         openChatWebview({
                             providerName: "vsls",
                             channelId: VSLS_CHAT_CHANNEL.id,
