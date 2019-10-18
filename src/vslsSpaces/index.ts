@@ -222,4 +222,6 @@ export class VslsSpacesProvider implements IChatProvider {
     }
 
     async destroy() {}
+
+    async sendTyping(currentUserId: string, channelId: string) { }
 }

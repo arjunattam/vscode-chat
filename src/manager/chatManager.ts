@@ -187,6 +187,14 @@ export class ChatProviderManager {
         }
     };
 
+    sendTyping = (channelId: string) => {
+        const currentUser = this.store.getCurrentUser(this.providerName);
+
+        if (currentUser) {
+            return this.chatProvider.sendTyping(currentUser.id, channelId)
+        }
+    };
+
     private async fillUpUsers(missingIds: Set<any>): Promise<void> {
         // missingIds are user/bot ids that we don't have in the store. We will
         // fetch their details, and then update the UI.

@@ -28,6 +28,7 @@ let store: Store;
 let manager: Manager;
 let controller: ViewController;
 let telemetry: TelemetryReporter;
+let typingTimers: {[key: string]: NodeJS.Timer | undefined} = {};
 
 // Auto-start chat window config -> persists per activation
 let autoLaunchVslsChatInSession = true;
@@ -813,6 +814,38 @@ export function activate(context: vscode.ExtensionContext) {
                         );
                     }
                 }
+            }
+        ),
+        vscode.commands.registerCommand(
+            SelfCommands.SEND_TYPING,
+            ({ provider, channelId }) => {
+                if (provider === 'vsls') {
+                    const vslsProvider = manager.chatProviders.get('vsls' as Providers)
+
+                    if (vslsProvider) {
+                        vslsProvider.sendTyping(channelId);
+                    }
+                }
+            }
+        ),
+        vscode.commands.registerCommand(
+            SelfCommands.SHOW_TYPING,
+            ({ provider, typingUserId, channelId }) => {
+                manager.updateWebviewForProvider(provider, channelId, typingUserId);
+                const key = `${channelId}:${typingUserId}`;
+
+                if (typingTimers[key]) {
+                    clearTimeout(typingTimers[key] as NodeJS.Timer);
+                    typingTimers[key] = undefined;
+                }
+
+                const newTimer = setTimeout(() => {
+                    // Remove typing status --> this timeout is dependent on what is
+                    // set in the UI
+                    manager.updateWebviewForProvider(provider, channelId, undefined);
+                }, 1500)
+
+                typingTimers[key] = newTimer;
             }
         ),
         vscode.commands.registerCommand(

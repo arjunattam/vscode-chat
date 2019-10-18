@@ -1,5 +1,4 @@
 import * as vscode from "vscode";
-import { ExtensionContext } from "vscode";
 import WebviewContainer from "../webview";
 import { SLASH_COMMANDS, REVERSE_SLASH_COMMANDS, SelfCommands } from "../constants";
 import Logger from "../logger";
@@ -26,7 +25,7 @@ class ViewController {
     currentChannelId: string | undefined;
 
     constructor(
-        private context: ExtensionContext,
+        private context: vscode.ExtensionContext,
         private onUIDispose: (provider: string | undefined, source: EventSource | undefined) => void,
         private onUIVisible: (provider: string | undefined) => void,
         private onUIFocus: (provider: string | undefined) => void
@@ -131,6 +130,13 @@ class ViewController {
                 parentTimestamp,
                 provider: this.currentProvider
             });
+        }
+
+        if (text === "is_typing") {
+            vscode.commands.executeCommand(SelfCommands.SEND_TYPING, {
+                channelId: this.currentChannelId,
+                provider: this.currentProvider
+            })
         }
     };
 

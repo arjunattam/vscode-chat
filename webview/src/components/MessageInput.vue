@@ -44,7 +44,8 @@ export default {
     data: function() {
         return {
             text: "",
-            inComposition: false
+            inComposition: false,
+            sendTypingEvents: true
         };
     },
     mounted() {
@@ -78,6 +79,19 @@ export default {
                     event.target.form.dispatchEvent(
                         new Event("submit", { cancelable: true })
                     );
+                }
+            } else {
+                // Typing indicator
+                if (this.sendTypingEvents) {
+                    this.sendTypingEvents = false;
+                    sendMessage("is_typing", "internal");
+                    setTimeout(() => {
+                        // This timeout value should be slightly lower
+                        // than the value used to timeout inside SHOW_TYPING command
+                        // so that we don't have a situation where a small gap in typing speed
+                        // causes the status text to flicker.
+                        this.sendTypingEvents = true;
+                    }, 1200);
                 }
             }
         },

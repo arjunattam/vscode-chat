@@ -150,9 +150,16 @@ export class ViewsManager implements vscode.Disposable {
         provider: string,
         users: Users,
         channel: Channel,
-        messages: ChannelMessages
+        messages: ChannelMessages,
+        typingUser?: User
     ) {
         const { fontFamily, fontSize } = vscode.workspace.getConfiguration("editor");
+        let statusText = ``;
+
+        if (typingUser) {
+            statusText = `${typingUser.name} is typing...`
+        }
+
         let uiMessage: UIMessage = {
             fontFamily,
             fontSize,
@@ -161,7 +168,7 @@ export class ViewsManager implements vscode.Disposable {
             users,
             currentUser,
             channel,
-            statusText: ""
+            statusText
             // atMentions: Object.values(users)
         };
 

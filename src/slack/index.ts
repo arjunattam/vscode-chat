@@ -283,4 +283,6 @@ export class SlackChatProvider implements IChatProvider {
 
     return Promise.resolve();
   }
+
+  async sendTyping(currentUserId: string, channelId: string) { }
 }

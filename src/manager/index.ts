@@ -283,7 +283,7 @@ export default class Manager implements IManager, vscode.Disposable {
         await this.store.updateLastChannelId(provider, undefined);
     }
 
-    async updateWebviewForProvider(provider: string, channelId: string) {
+    async updateWebviewForProvider(provider: string, channelId: string, typingUserId?: string) {
         const currentUser = this.store.getCurrentUser(provider);
         const channels = this.store.getChannels(provider);
         const channel = channels.find(channel => channel.id === channelId);
@@ -293,7 +293,13 @@ export default class Manager implements IManager, vscode.Disposable {
             const users = this.store.getUsers(provider);
             const allMessages = this.getMessages(provider);
             const messages = allMessages[channel.id] || {};
-            this.viewsManager.updateWebview(currentUser, provider, users, channel, messages);
+            let typingUser: User | undefined;
+
+            if (typingUserId) {
+                typingUser = users[typingUserId];
+            }
+
+            this.viewsManager.updateWebview(currentUser, provider, users, channel, messages, typingUser);
         }
     }
 

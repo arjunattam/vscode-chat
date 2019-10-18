@@ -163,8 +163,8 @@ ul.message-reactions li div:first-child {
 }
 
 .status-text {
-    font-size: smaller;
-    font-weight: bold;
+    font-size: x-small;
+    padding-top: 2px;
 }
 
 .status-text:empty::after {

@@ -101,20 +101,30 @@ export class VslsChatProvider implements IChatProvider {
 
         this.presenceProvider.onNotified(async ({ type, body }: any) => {
             if (type === Methods.NotifyMessageReceivedName) {
-                const { body: msgBody } = body;
-                const { id: senderId, email: senderEmail } = msgBody.user;
+                const { type, fromContactId, body: msgBody } = body;
 
-                // Check if this is a known IM channel (since we are building them on-the-fly)
-                let foundChannel = this.imChannels.find(channel => channel.id === senderId)
-                if (!foundChannel) {
-                    // This is an IM channel we haven't seen before --> we want to update it in the store
-                    // so we can get notifications etc. wired up for it.
-                    const { contacts } = await this.liveshare!.getContacts([senderEmail]);
-                    await this.createIMChannel(userFromContact(contacts[senderEmail]));
-                    this.store.updateChannels('vsls', (await this.fetchChannels({})))
+                if (type === "vsls_dm") {
+                    const { id: senderId, email: senderEmail } = msgBody.user;
+
+                    // Check if this is a known IM channel (since we are building them on-the-fly)
+                    let foundChannel = this.imChannels.find(channel => channel.id === senderId)
+                    if (!foundChannel) {
+                        // This is an IM channel we haven't seen before --> we want to update it in the store
+                        // so we can get notifications etc. wired up for it.
+                        const { contacts } = await this.liveshare!.getContacts([senderEmail]);
+                        await this.createIMChannel(userFromContact(contacts[senderEmail]));
+                        this.store.updateChannels('vsls', (await this.fetchChannels({})))
+                    }
+
+                    this.updateDirectMessageUI(msgBody, senderId)
                 }
 
-                this.updateDirectMessageUI(msgBody, senderId)
+                if (type === "vsls_typing") {
+                    vscode.commands.executeCommand(
+                        SelfCommands.SHOW_TYPING,
+                        {provider: 'vsls', typingUserId: fromContactId, channelId: fromContactId}
+                    )
+                }
             }
         })
     }
@@ -138,8 +148,11 @@ export class VslsChatProvider implements IChatProvider {
         if (this.presenceProvider) {
             await this.presenceProvider.requestAsync(Methods.RequestSendMessageName, message)
 
-            // Once the message is sent, we want to also update the UI
-            this.updateDirectMessageUI(body, targetContactId);
+            if (type === "vsls_dm") {
+                // Once the message is sent, we want to also update the UI
+                // But not for typing messages
+                this.updateDirectMessageUI(body, targetContactId);
+            }
         }
     }
 
@@ -283,6 +296,17 @@ export class VslsChatProvider implements IChatProvider {
         }
 
         return Promise.resolve();
+    }
+
+    async sendTyping(currentUserId: string, channelId: string) {
+        const isSessionChannel = channelId === VSLS_CHAT_CHANNEL.id;
+
+        if (isSessionChannel) {
+            // TODO
+        } else {
+            // This is in a DM, will only go to one contact
+            return this.sendDirectMessage(channelId, "vsls_typing")
+        }
     }
 
     async loadChannelHistory(channelId: string): Promise<ChannelMessages> {

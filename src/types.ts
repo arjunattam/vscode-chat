@@ -9,6 +9,7 @@ interface IChatProvider {
     markChannel: (channel: Channel, ts: string) => Promise<Channel | undefined>;
     fetchThreadReplies: (channelId: string, ts: string) => Promise<Message | undefined>;
     sendMessage: (text: string, currentUserId: string, channelId: string) => Promise<void>;
+    sendTyping: (currentUserId: string, channelId: string) => Promise<void>;
     sendThreadReply: (text: string, currentUserId: string, channelId: string, parentTimestamp: string) => Promise<void>;
     connect: () => Promise<CurrentUser | undefined>;
     isConnected: () => boolean;
