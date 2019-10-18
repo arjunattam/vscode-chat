@@ -91,7 +91,7 @@ export default {
                         // so that we don't have a situation where a small gap in typing speed
                         // causes the status text to flicker.
                         this.sendTypingEvents = true;
-                    }, 1200);
+                    }, 300);
                 }
             }
         },

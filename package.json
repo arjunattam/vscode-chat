@@ -219,8 +219,12 @@
                 },
                 {
                     "command": "extension.chat.startChatWithVslsContact",
-                    "when": "chat:vslsEnabled && viewItem == contacts.recentContact || viewItem == contacts.contact || viewItem =~ /^member.online/",
+                    "when": "chat:vslsEnabled && viewItem == contacts.recentContact || viewItem == contacts.recentContact.invited || viewItem == contacts.invited || viewItem == contacts.contact || viewItem =~ /^member.online/",
                     "group": "inline"
+                },
+                {
+                    "command": "extension.chat.startChatWithVslsContact",
+                    "when": "chat:vslsEnabled && viewItem == contacts.recentContact || viewItem == contacts.recentContact.invited || viewItem == contacts.invited || viewItem == contacts.contact || viewItem =~ /^member.online/"
                 },
                 {
                     "command": "extension.chat.chatWithSpace",

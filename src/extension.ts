@@ -851,7 +851,7 @@ export function activate(context: vscode.ExtensionContext) {
                     // the time period between typing events sent from the wire + the time
                     // it takes to transfer them over the wire.
                     manager.updateWebviewForProvider(provider, channelId, undefined);
-                }, 3000)
+                }, 5000)
 
                 typingTimers[key] = newTimer;
             }
