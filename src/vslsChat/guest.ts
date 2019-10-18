@@ -3,7 +3,12 @@ import { REQUEST_NAME, NOTIFICATION_NAME } from "./utils";
 import { VslsBaseService } from "./base";
 
 export class VslsGuestService extends VslsBaseService {
-    constructor(private api: vsls.LiveShare, private serviceProxy: vsls.SharedServiceProxy, private peer: vsls.Peer) {
+    constructor(
+        private api: vsls.LiveShare,
+        private serviceProxy: vsls.SharedServiceProxy,
+        private currentUser: User,
+        private peer: vsls.Peer
+    ) {
         super();
         serviceProxy.onNotify(NOTIFICATION_NAME.message, (msg: any) => this.updateMessages(msg));
 
@@ -17,9 +22,7 @@ export class VslsGuestService extends VslsBaseService {
         }
     }
 
-    async dispose() {
-        //
-    }
+    async dispose() {}
 
     registerSelf() {
         // The host is not able to identify peers, because liveshare.peers
@@ -66,7 +69,7 @@ export class VslsGuestService extends VslsBaseService {
                 return Promise.resolve();
             }
         } catch (error) {
-            console.log("sending error", error);
+            console.log("Send message error", error);
         }
     }
 }

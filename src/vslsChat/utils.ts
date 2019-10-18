@@ -32,28 +32,21 @@ export const defaultAvatar = (email: string) => {
     });
 };
 
-export const toBaseUser = (peerNumber: number, user: vsls.UserInfo): User => {
-    const { displayName, emailAddress } = user;
-    return {
-        id: peerNumber.toString(),
-        name: displayName,
-        email: !!emailAddress ? emailAddress : undefined,
-        fullName: displayName,
-        imageUrl: defaultAvatar(emailAddress!),
-        smallImageUrl: defaultAvatar(emailAddress!),
-        presence: UserPresence.available
-    };
-};
+export const usersFromPeers = async (peers: vsls.Peer[], api: vsls.LiveShare) => {
+    const emails = peers.map(p => p.user!.emailAddress!);
+    const { contacts } = await api.getContacts(emails);
+    return emails.map(email => userFromContact(contacts[email]));
+}
 
 export const userFromContact = (contact: vsls.Contact): User => {
+    const avatar = contact.avatarUri ? contact.avatarUri : defaultAvatar(contact.email);
     return {
         id: contact.id,
         email: contact.email,
         name: contact.displayName!,
         fullName: contact.displayName!,
-        // TODO: fallback to using the defaultAvatar if this is null
-        imageUrl: contact.avatarUri!,
-        smallImageUrl: contact.avatarUri!,
+        imageUrl: avatar,
+        smallImageUrl: avatar,
         // TODO: Pick accurate presence from contact?
         // (Not the end of the world if we don't, since the LS presence
         //  UI is owned by the LS extension, and so this value is never used.)

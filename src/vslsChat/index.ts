@@ -188,7 +188,7 @@ export class VslsChatProvider implements IChatProvider {
                 throw new Error("Error sharing service for Live Share Chat.");
             }
 
-            this.hostService = new VslsHostService(liveshare, sharedService, peerNumber, serviceName);
+            this.hostService = new VslsHostService(liveshare, sharedService, this.currentUser!, serviceName);
         } else if (role === vsls.Role.Guest) {
             const serviceProxy = await liveshare.getSharedService(serviceName);
 
@@ -200,7 +200,7 @@ export class VslsChatProvider implements IChatProvider {
                 vscode.window.showWarningMessage(str.NO_LIVE_SHARE_CHAT_ON_HOST);
                 return;
             } else {
-                this.guestService = new VslsGuestService(liveshare, serviceProxy, <vsls.Peer>liveshare.session);
+                this.guestService = new VslsGuestService(liveshare, serviceProxy, this.currentUser!, <vsls.Peer>liveshare.session);
             }
         }
 

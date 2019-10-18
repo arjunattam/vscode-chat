@@ -1,5 +1,5 @@
 import * as vsls from "vsls";
-import { VslsChatMessage, REQUEST_NAME, NOTIFICATION_NAME, toBaseUser, toBaseMessage } from "./utils";
+import { VslsChatMessage, REQUEST_NAME, NOTIFICATION_NAME, toBaseMessage, usersFromPeers } from "./utils";
 import { VslsBaseService } from "./base";
 import { LIVE_SHARE_INFO_MESSAGES } from "../strings";
 
@@ -14,7 +14,7 @@ export class VslsHostService extends VslsBaseService {
     constructor(
         private api: vsls.LiveShare,
         private sharedService: vsls.SharedService,
-        private peerNumber: number,
+        private currentUser: User,
         private serviceName: string
     ) {
         super();
@@ -64,77 +64,59 @@ export class VslsHostService extends VslsBaseService {
     }
 
     sendStartedMessage() {
-        return this.broadcastMessage(this.peerNumber.toString(), LIVE_SHARE_INFO_MESSAGES.started);
+        return this.broadcastMessage(this.currentUser.id, LIVE_SHARE_INFO_MESSAGES.started);
     }
 
     sendEndedMessage() {
-        return this.broadcastMessage(this.peerNumber.toString(), LIVE_SHARE_INFO_MESSAGES.ended);
+        return this.broadcastMessage(this.currentUser.id, LIVE_SHARE_INFO_MESSAGES.ended);
     }
 
-    sendJoinedMessages(peers: vsls.Peer[]) {
-        peers.forEach(({ peerNumber }) => {
-            this.broadcastMessage(peerNumber.toString(), LIVE_SHARE_INFO_MESSAGES.joined);
-        });
+    async sendJoinedMessages(peers: vsls.Peer[]) {
+        (await usersFromPeers(peers, this.api)).forEach(user => {
+            this.broadcastMessage(user.id, LIVE_SHARE_INFO_MESSAGES.joined)
+        })
     }
 
-    sendLeavingMessages(peers: vsls.Peer[]) {
-        peers.forEach(({ peerNumber }) => {
-            this.broadcastMessage(peerNumber.toString(), LIVE_SHARE_INFO_MESSAGES.left);
-        });
+    async sendLeavingMessages(peers: vsls.Peer[]) {
+        (await usersFromPeers(peers, this.api)).forEach(user => {
+            this.broadcastMessage(user.id, LIVE_SHARE_INFO_MESSAGES.left)
+        })
     }
 
     async fetchUsers(): Promise<Users> {
         const users: Users = {};
-        const liveshare = <vsls.LiveShare>await vsls.getApi();
-        const { peerNumber: userId, user } = liveshare.session;
+        users[this.currentUser.id] = this.currentUser;
 
-        if (!!user) {
-            const currentUser = toBaseUser(userId, user);
-            users[currentUser.id] = currentUser;
-        }
-
-        liveshare.peers.map(peer => {
-            const { peerNumber: peerId, user: peerUser } = peer;
-
-            if (!!peerUser) {
-                const user: User = toBaseUser(peerId, peerUser);
-                users[user.id] = user;
-            }
-        });
-
+        const peersAsUsers = await usersFromPeers(this.api.peers, this.api);
+        peersAsUsers.forEach(user => {
+            users[user.id] = user;
+        })
         return users;
     }
 
     async fetchUserInfo(userId: string): Promise<User | undefined> {
         // userId could be current user or one of the peers
-        const liveshare = <vsls.LiveShare>await vsls.getApi();
-        const { peerNumber, user } = liveshare.session;
+        let userFound: User | undefined;
 
-        if (peerNumber.toString() === userId && !!user) {
-            return Promise.resolve(toBaseUser(peerNumber, user));
+        if (this.currentUser.id === userId) {
+            return this.currentUser;
         }
 
-        const peer = liveshare.peers.find(peer => peer.peerNumber.toString() === userId);
+        const users = await usersFromPeers(this.api.peers, this.api);
+        userFound = users.find(user => user.id === userId)
 
-        if (!!peer) {
-            const { peerNumber: peerId, user: peerUser } = peer;
-
-            if (!!peerUser) {
-                return Promise.resolve(toBaseUser(peerId, peerUser));
-            }
+        if (userFound) {
+            return userFound;
         }
 
         // Finally, let's check cached peers
         // In some cases, vsls seems to be returning stale data, and
         // so we cache whatever we know locally.
-        const cachedPeer = this.cachedPeers.find(peer => peer.peerNumber.toString() === userId);
+        const cachedUsers = await usersFromPeers(this.cachedPeers, this.api);
+        userFound = cachedUsers.find(user => user.id === userId);
 
-        if (!!cachedPeer) {
-            const { peerNumber: peerId, user: peerUser } = cachedPeer;
-
-            if (!!peerUser) {
-                return Promise.resolve(toBaseUser(peerId, peerUser));
-            }
+        if (userFound) {
+            return userFound;
         }
     }
 
