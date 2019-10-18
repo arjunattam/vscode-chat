@@ -847,10 +847,11 @@ export function activate(context: vscode.ExtensionContext) {
                 }
 
                 const newTimer = setTimeout(() => {
-                    // Remove typing status --> this timeout is dependent on what is
-                    // set in the UI
+                    // This removes typing status --> this timeout should be larger than
+                    // the time period between typing events sent from the wire + the time
+                    // it takes to transfer them over the wire.
                     manager.updateWebviewForProvider(provider, channelId, undefined);
-                }, 1500)
+                }, 3000)
 
                 typingTimers[key] = newTimer;
             }
