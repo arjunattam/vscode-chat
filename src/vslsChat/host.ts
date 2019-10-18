@@ -14,11 +14,10 @@ export class VslsHostService extends VslsBaseService {
     constructor(
         private api: vsls.LiveShare,
         private sharedService: vsls.SharedService,
-        private currentUser: User,
+        protected currentUser: User,
         private serviceName: string
     ) {
-        super();
-
+        super(currentUser);
         sharedService.onDidChangeIsServiceAvailable((available: boolean) => {
             // Service availability changed
             // TODO
@@ -29,6 +28,14 @@ export class VslsHostService extends VslsBaseService {
                 const message = payload[0];
                 const { userId, text } = message;
                 return this.broadcastMessage(userId, text);
+            }
+        });
+
+        sharedService.onRequest(REQUEST_NAME.typing, payload => {
+            if (!!payload) {
+                const message = payload[0];
+                const { userId } = message;
+                return this.sendTyping(userId);
             }
         });
 
@@ -143,6 +150,11 @@ export class VslsHostService extends VslsBaseService {
     sendMessage(text: string, userId: string, channelId: string) {
         this.broadcastMessage(userId, text);
         return Promise.resolve();
+    }
+
+    sendTyping(userId: string) {
+        this.sharedService.notify(NOTIFICATION_NAME.typing, { userId });
+        this.showTyping(userId);
     }
 
     updateCachedPeers(addedPeers: vsls.Peer[], removedPeers: vsls.Peer[]) {

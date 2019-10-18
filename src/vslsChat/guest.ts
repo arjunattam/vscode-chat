@@ -6,11 +6,13 @@ export class VslsGuestService extends VslsBaseService {
     constructor(
         private api: vsls.LiveShare,
         private serviceProxy: vsls.SharedServiceProxy,
-        private currentUser: User,
+        protected currentUser: User,
         private peer: vsls.Peer
     ) {
-        super();
+        super(currentUser);
         serviceProxy.onNotify(NOTIFICATION_NAME.message, (msg: any) => this.updateMessages(msg));
+
+        serviceProxy.onNotify(NOTIFICATION_NAME.typing, ({ userId }: any) => this.showTyping(userId));
 
         serviceProxy.onDidChangeIsServiceAvailable((available: boolean) => {
             // Service availability changed
@@ -66,6 +68,19 @@ export class VslsGuestService extends VslsBaseService {
         try {
             if (this.serviceProxy.isServiceAvailable) {
                 await this.serviceProxy.request(REQUEST_NAME.message, [payload]);
+                return Promise.resolve();
+            }
+        } catch (error) {
+            console.log("Send message error", error);
+        }
+    }
+
+    async sendTyping(userId: string) {
+        const payload = { userId };
+
+        try {
+            if (this.serviceProxy.isServiceAvailable) {
+                await this.serviceProxy.request(REQUEST_NAME.typing, [payload]);
                 return Promise.resolve();
             }
         } catch (error) {

@@ -3,6 +3,8 @@ import { SelfCommands } from "../constants";
 import { VslsChatMessage, VSLS_CHAT_CHANNEL, toBaseMessage } from "./utils";
 
 export abstract class VslsBaseService {
+    constructor(protected currentUser: User) { }
+
     abstract sendMessage(text: string, userId: string, channelId: string): Promise<void>;
 
     abstract isConnected(): boolean;
@@ -19,9 +21,19 @@ export abstract class VslsBaseService {
         newMessages[timestamp] = toBaseMessage(message);
 
         vscode.commands.executeCommand(SelfCommands.UPDATE_MESSAGES, {
+            provider: "vsls",
             channelId: VSLS_CHAT_CHANNEL.id,
-            messages: newMessages,
-            provider: "vsls"
+            messages: newMessages
         });
+    }
+
+    showTyping(userId: string) {
+        if (userId !== this.currentUser.id) {
+            vscode.commands.executeCommand(SelfCommands.SHOW_TYPING, {
+                provider: "vsls",
+                channelId: VSLS_CHAT_CHANNEL.id,
+                typingUserId: userId
+            })
+        }
     }
 }

@@ -56,6 +56,7 @@ export const userFromContact = (contact: vsls.Contact): User => {
 
 export const REQUEST_NAME = {
     message: "message",
+    typing: "typing",
     fetchUsers: "fetch_users",
     fetchUserInfo: "fetch_user_info",
     fetchMessages: "fetch_messages",
@@ -63,7 +64,8 @@ export const REQUEST_NAME = {
 };
 
 export const NOTIFICATION_NAME = {
-    message: "message"
+    message: "message",
+    typing: "typing"
 };
 
 const LIVESHARE_PRESENCE_PROVIDER_ID = "LivesharePresence";

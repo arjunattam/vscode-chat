@@ -302,7 +302,11 @@ export class VslsChatProvider implements IChatProvider {
         const isSessionChannel = channelId === VSLS_CHAT_CHANNEL.id;
 
         if (isSessionChannel) {
-            // TODO
+            if (this.hostService) {
+                this.hostService.sendTyping(this.currentUser!.id)
+            } else if (this.guestService) {
+                this.guestService.sendTyping(this.currentUser!.id)
+            }
         } else {
             // This is in a DM, will only go to one contact
             return this.sendDirectMessage(channelId, "vsls_typing")
