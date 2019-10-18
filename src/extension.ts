@@ -171,8 +171,10 @@ export function activate(context: vscode.ExtensionContext) {
                 }
             }
         );
+        const finalList = providerName === 'vsls' ?
+            quickpickItems : [...quickpickItems, { label: str.RELOAD_CHANNELS }];
         const selected = await vscode.window.showQuickPick(
-            [...quickpickItems, { label: str.RELOAD_CHANNELS }],
+            finalList,
             {
                 placeHolder: str.CHANGE_CHANNEL_TITLE,
                 matchOnDetail: true,
@@ -677,7 +679,7 @@ export function activate(context: vscode.ExtensionContext) {
         ),
         vscode.commands.registerCommand(
             SelfCommands.LIVE_SHARE_SESSION_CHANGED,
-            ({ isSessionActive, currentUser }) => {
+            async ({ isSessionActive, currentUser }) => {
                 if (!currentUser) {
                     // If the currentUser is undefined, don't launch the window
                     return;
@@ -694,6 +696,11 @@ export function activate(context: vscode.ExtensionContext) {
 
                 if (enabledProviders.indexOf("vsls") >= 0) {
                     manager.store.updateCurrentUser("vsls", currentUser);
+
+                    // Re-fetch channels so that we can add/remove the session channel
+                    const vslsProvider = manager.chatProviders.get('vsls' as Providers);
+                    await vslsProvider!.fetchChannels()
+
                     // Now that we have teams for vsls chat -> we initialize status item
                     manager.initializeViewsManager();
                     manager.updateAllUI();

@@ -52,10 +52,9 @@ export class VslsChatProvider implements IChatProvider {
         this.liveshare.onDidChangeSession(async ({ session }) => {
             const { id: sessionId, role } = session;
             const isSessionActive = !!sessionId;
-            let currentUser;
 
             if (isSessionActive) {
-                currentUser = await this.initializeChatService();
+                await this.initializeChatService();
 
                 if (!!this.hostService) {
                     this.hostService.sendStartedMessage();
@@ -70,7 +69,7 @@ export class VslsChatProvider implements IChatProvider {
 
             vscode.commands.executeCommand(SelfCommands.LIVE_SHARE_SESSION_CHANGED, {
                 isSessionActive,
-                currentUser
+                currentUser: this.getCurrentUser(this.liveshare!)
             });
         });
 
@@ -340,14 +339,18 @@ export class VslsChatProvider implements IChatProvider {
     }
 
     async fetchChannels(users: Users): Promise<Channel[]> {
-        const defaultChannel: Channel = {
-            id: VSLS_CHAT_CHANNEL.id,
-            name: VSLS_CHAT_CHANNEL.name,
-            type: ChannelType.channel,
-            readTimestamp: (+new Date() / 1000.0).toString(),
-            unreadCount: 0
-        };
-        return [defaultChannel, ...this.imChannels];
+        if (this.liveshare && this.liveshare.session.id) {
+            const defaultChannel: Channel = {
+                id: VSLS_CHAT_CHANNEL.id,
+                name: VSLS_CHAT_CHANNEL.name,
+                type: ChannelType.channel,
+                readTimestamp: (+new Date() / 1000.0).toString(),
+                unreadCount: 0
+            };
+            return [defaultChannel, ...this.imChannels];
+        } else {
+            return [...this.imChannels];
+        }
     }
 
     fetchChannelInfo(channel: Channel): Promise<Channel> {
