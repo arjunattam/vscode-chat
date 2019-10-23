@@ -228,7 +228,8 @@
                 },
                 {
                     "command": "extension.chat.chatWithSpace",
-                    "when": "view == liveshare.spaces && viewItem =~ /^space/"
+                    "when": "view == liveshare.spaces && viewItem =~ /^space/",
+                    "group": "chat@1"
                 },
                 {
                     "command": "extension.chat.chatWithSpace",
