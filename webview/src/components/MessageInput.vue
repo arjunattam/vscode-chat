@@ -36,32 +36,31 @@ export default {
                 this.text = "";
             }
             this.resizeInput();
+        },
+        users: function(newUsers, oldUsers) {
+            if (Object.keys(newUsers).length !== Object.keys(oldUsers).length) {
+                setTimeout(() => {
+                    // We need an async update here to avoid an error
+                    // https://github.com/syropian/vue-tribute/blob/0f98b64386452b6ecd87898143197f38dd72ac43/dist/vue-tribute.js#L189
+                    // I don't know why.
+                    this.tributeOptions.values = Object.values(newUsers).map(user => {
+                        // {key: 'Gordon Ramsey', value: 'gramsey'}
+                        return { key: user.name, value: user.name }
+                    })
+                }, 200)
+            }
+
         }
     },
     data: function() {
         return {
             text: "",
             inComposition: false,
-            sendTypingEvents: true
-        };
-    },
-    computed: {
-        tributeOptions: function() {
-            let values = [
-                {key: 'Phil Heartman', value: 'pheartman'},
-                {key: 'Gordon Ramsey', value: 'gramsey'}
-            ]
-
-            if (this.users && Object.keys(this.users).length > 0) {
-                values = Object.values(this.users).map(user => {
-                    return { key: user.name, value: user.name }
-                })
+            sendTypingEvents: true,
+            tributeOptions: {
+                values: []
             }
-
-            console.log(values)
-            // TODO: wonder why tribute options is not updating?
-            return { values }
-        }
+        };
     },
     mounted() {
         this.$refs.messageInput.addEventListener("compositionstart", event => {
