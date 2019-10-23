@@ -74,12 +74,12 @@
             {
                 "command": "extension.chat.openChatPanel",
                 "title": "Open",
-                "category": "Chat"
+                "category": "Live Share Chat"
             },
             {
                 "command": "extension.chat.changeChannel",
                 "title": "Change Channel",
-                "category": "Chat",
+                "category": "Live Share Chat",
                 "icon": {
                     "light": "public/icons/light/search.svg",
                     "dark": "public/icons/dark/search.svg"
@@ -88,32 +88,32 @@
             {
                 "command": "extension.chat.changeWorkspace",
                 "title": "Change Workspace",
-                "category": "Chat"
+                "category": "Live Share Chat"
             },
             {
                 "command": "extension.chat.authenticate",
                 "title": "Sign In with Slack",
-                "category": "Chat"
+                "category": "Live Share Chat"
             },
             {
                 "command": "extension.chat.signout",
                 "title": "Sign Out",
-                "category": "Chat"
+                "category": "Live Share Chat"
             },
             {
                 "command": "extension.chat.configureToken",
                 "title": "Configure Access Token",
-                "category": "Chat"
+                "category": "Live Share Chat"
             },
             {
                 "command": "extension.chat.updateSelfPresence",
                 "title": "Update your presence status",
-                "category": "Chat"
+                "category": "Live Share Chat"
             },
             {
                 "command": "extension.chat.startLiveShare",
                 "title": "Invite to Live Share",
-                "category": "Chat",
+                "category": "Live Share Chat",
                 "icon": {
                     "light": "public/icons/light/share.svg",
                     "dark": "public/icons/dark/share.svg"
@@ -122,7 +122,7 @@
             {
                 "command": "extension.chat.startChatWithVslsContact",
                 "title": "Chat with this user",
-                "category": "Chat",
+                "category": "Live Share Chat",
                 "icon": {
                     "light": "public/icons/light/chat.svg",
                     "dark": "public/icons/dark/chat.svg"
@@ -130,8 +130,8 @@
             },
             {
                 "command": "extension.chat.chatWithSpace",
-                "title": "Chat with Space",
-                "category": "Chat",
+                "title": "Open Chat",
+                "category": "Live Share Chat",
                 "icon": {
                     "light": "public/icons/light/chat.svg",
                     "dark": "public/icons/dark/chat.svg"
