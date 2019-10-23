@@ -468,4 +468,6 @@ export class DiscordChatProvider implements IChatProvider {
     // do not have corresponding DM channels
     return Promise.resolve(undefined);
   }
+
+  async sendTyping(currentUserId: string, channelId: string) { }
 }

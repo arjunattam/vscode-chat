@@ -2,6 +2,24 @@
 
 All notable changes to the vscode-chat extension will be documented in this file. This follows the [Keep a Changelog](http://keepachangelog.com/) format.
 
+## [0.25.0] - 2019-10-18
+
+### Added
+
+- Support for a `/clear` command that clears the message history in the current chat window.
+
+## [0.24.0] - 2019-10-17
+
+### Added
+
+- Live Share Chat now supports typing events!
+
+## [0.23.0] - 2019-10-17
+
+### Added
+
+- Live Share Chat now supports Direct Messages! You can DM your Live Share contacts—even outside Live Share sessions!
+
 ## [0.22.1] - 2019-09-15
 
 ### Fixed

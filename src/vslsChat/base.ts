@@ -3,29 +3,37 @@ import { SelfCommands } from "../constants";
 import { VslsChatMessage, VSLS_CHAT_CHANNEL, toBaseMessage } from "./utils";
 
 export abstract class VslsBaseService {
-  abstract sendMessage(
-    text: string,
-    userId: string,
-    channelId: string
-  ): Promise<void>;
+    constructor(protected currentUser: User) { }
 
-  abstract isConnected(): boolean;
+    abstract sendMessage(text: string, userId: string, channelId: string): Promise<void>;
 
-  abstract fetchUsers(): Promise<Users>;
+    abstract isConnected(): boolean;
 
-  abstract fetchUserInfo(userId: string): Promise<User | undefined>;
+    abstract fetchUsers(): Promise<Users>;
 
-  abstract fetchMessagesHistory(): Promise<ChannelMessages>;
+    abstract fetchUserInfo(userId: string): Promise<User | undefined>;
 
-  updateMessages(message: VslsChatMessage) {
-    const { timestamp } = message;
-    let newMessages: ChannelMessages = {};
-    newMessages[timestamp] = toBaseMessage(message);
+    abstract fetchMessagesHistory(): Promise<ChannelMessages>;
 
-    vscode.commands.executeCommand(SelfCommands.UPDATE_MESSAGES, {
-      channelId: VSLS_CHAT_CHANNEL.id,
-      messages: newMessages,
-      provider: "vsls"
-    });
-  }
+    updateMessages(message: VslsChatMessage) {
+        const { timestamp } = message;
+        let newMessages: ChannelMessages = {};
+        newMessages[timestamp] = toBaseMessage(message);
+
+        vscode.commands.executeCommand(SelfCommands.UPDATE_MESSAGES, {
+            provider: "vsls",
+            channelId: VSLS_CHAT_CHANNEL.id,
+            messages: newMessages
+        });
+    }
+
+    showTyping(userId: string) {
+        if (userId !== this.currentUser.id) {
+            vscode.commands.executeCommand(SelfCommands.SHOW_TYPING, {
+                provider: "vsls",
+                channelId: VSLS_CHAT_CHANNEL.id,
+                typingUserId: userId
+            })
+        }
+    }
 }

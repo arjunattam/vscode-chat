@@ -44,6 +44,8 @@ export const SelfCommands = {
   REMOVE_MESSAGE_REACTION: "extension.chat.removeMessageReaction",
   SEND_MESSAGE: "extension.chat.sendMessage",
   SEND_THREAD_REPLY: "extension.chat.sendThreadReply",
+  SEND_TYPING: "extension.chat.sendTypingMessage",
+  SHOW_TYPING: "extension.chat.showTypingMessage",
   CHANNEL_MARKED: "extension.chat.updateChannelMark",
   HANDLE_INCOMING_LINKS: "extension.chat.handleIncomingLinks",
   SEND_TO_WEBVIEW: "extension.chat.sendToWebview",

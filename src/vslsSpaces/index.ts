@@ -74,6 +74,7 @@ export class VslsSpacesProvider implements IChatProvider {
 
         if (api) {
             const { name, email } = api.getUserInfo();
+            // TODO: this is erroring out since getUserInfo returns undefined
             return {
                 id: email,
                 name,
@@ -221,4 +222,6 @@ export class VslsSpacesProvider implements IChatProvider {
     }
 
     async destroy() {}
+
+    async sendTyping(currentUserId: string, channelId: string) { }
 }

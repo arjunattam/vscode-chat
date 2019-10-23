@@ -1,8 +1,6 @@
 import * as vscode from "vscode";
-import { ExtensionContext } from "vscode";
 import WebviewContainer from "../webview";
 import { SLASH_COMMANDS, REVERSE_SLASH_COMMANDS, SelfCommands } from "../constants";
-import * as str from "../strings";
 import Logger from "../logger";
 import CommandDispatch, { MessageCommand } from "./commands";
 import markdownTransform from "./markdowner";
@@ -27,7 +25,7 @@ class ViewController {
     currentChannelId: string | undefined;
 
     constructor(
-        private context: ExtensionContext,
+        private context: vscode.ExtensionContext,
         private onUIDispose: (provider: string | undefined, source: EventSource | undefined) => void,
         private onUIVisible: (provider: string | undefined) => void,
         private onUIFocus: (provider: string | undefined) => void
@@ -104,6 +102,13 @@ class ViewController {
             }
         }
 
+        if (text === "/clear") {
+            return vscode.commands.executeCommand(SelfCommands.CLEAR_MESSAGES, {
+                channelId: this.currentChannelId,
+                provider: this.currentProvider
+            });
+        }
+
         if (this.isValidReverseCommand(text)) {
             return this.sendTextMessage(text);
         }
@@ -133,6 +138,13 @@ class ViewController {
                 provider: this.currentProvider
             });
         }
+
+        if (text === "is_typing") {
+            vscode.commands.executeCommand(SelfCommands.SEND_TYPING, {
+                channelId: this.currentChannelId,
+                provider: this.currentProvider
+            });
+        }
     };
 
     sendTextMessage = (text: string) => {
@@ -157,15 +169,15 @@ class ViewController {
 
         switch (type) {
             case "internal":
-            return this.handleInternal(message);
+                return this.handleInternal(message);
             case "link":
-            return this.dispatchCommand({ namespace: "open", subcommand: text });
+                return this.dispatchCommand({ namespace: "open", subcommand: text });
             case "command":
-            return this.handleCommand(text);
+                return this.handleCommand(text);
             case "text":
-            return text ? this.sendTextMessage(text) : null;
+                return text ? this.sendTextMessage(text) : null;
             case "thread_reply":
-            return this.sendThreadReply(text);
+                return this.sendThreadReply(text);
         }
     };
 
@@ -191,7 +203,7 @@ class ViewController {
             }
 
             handledMessages[ts] = {
-                ...messages[ts],
+                ...messages[ts]
                 // textHTML
             };
         });

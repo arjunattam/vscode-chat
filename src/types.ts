@@ -9,10 +9,13 @@ interface IChatProvider {
     markChannel: (channel: Channel, ts: string) => Promise<Channel | undefined>;
     fetchThreadReplies: (channelId: string, ts: string) => Promise<Message | undefined>;
     sendMessage: (text: string, currentUserId: string, channelId: string) => Promise<void>;
+    sendTyping: (currentUserId: string, channelId: string) => Promise<void>;
     sendThreadReply: (text: string, currentUserId: string, channelId: string, parentTimestamp: string) => Promise<void>;
     connect: () => Promise<CurrentUser | undefined>;
     isConnected: () => boolean;
-    updateSelfPresence: (presence: UserPresence, durationInMinutes: number) => Promise<UserPresence | undefined>;subscribePresence: (users: Users) => void; createIMChannel: (user: User) => Promise<Channel | undefined>;
+    updateSelfPresence: (presence: UserPresence, durationInMinutes: number) => Promise<UserPresence | undefined>;
+    subscribePresence: (users: Users) => void;
+    createIMChannel: (user: User) => Promise<Channel | undefined>;
     destroy: () => Promise<void>;
 }
 
@@ -205,6 +208,8 @@ interface IStore {
     updateLastChannelId: (provider: string, channelId: string | undefined) => Thenable<void>;
     clearProviderState: (provider: string) => Promise<void>;
     updateExtensionVersion: (version: string) => Thenable<void>;
+    getMessageHistoryForChannel: (channelId: string) => ChannelMessages;
+    updateMessageHistory: (channelId: string, messages: ChannelMessages) => Thenable<void>;
 }
 
 interface IManager {

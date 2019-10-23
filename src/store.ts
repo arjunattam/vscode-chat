@@ -5,261 +5,286 @@ import { uuidv4, getExtensionVersion } from "./utils";
 // Large discord communities can have lots of users/channels
 // More than the quota of context.globalState
 const VALUE_LENGTH_LIMIT = 100;
+const MESSAGE_HISTORY_LIMIT = 50;
 
 const stateKeys = {
-  EXTENSION_VERSION: "extensionVersion",
-  INSTALLATION_ID: "installationId",
-  LAST_CHANNEL_ID: "lastChannelId",
-  CHANNELS: "channels",
-  USER_INFO: "userInfo",
-  USERS: "users"
+    EXTENSION_VERSION: "extensionVersion",
+    INSTALLATION_ID: "installationId",
+    LAST_CHANNEL_ID: "lastChannelId",
+    CHANNELS: "channels",
+    USER_INFO: "userInfo",
+    USERS: "users",
+    MESSAGE_HISTORY: "messagesHistory"
 };
 
 export class Store implements IStore {
-  public installationId: string | undefined;
-  public existingVersion: string | undefined;
-  private currentUserInfo: { [provider: string]: CurrentUser };
-  private channels: { [provider: string]: Channel[] };
-  private users: { [provider: string]: Users };
-  private lastChannelId: { [provider: string]: string };
+    public installationId: string | undefined;
+    public existingVersion: string | undefined;
+    private currentUserInfo: { [provider: string]: CurrentUser };
+    private channels: { [provider: string]: Channel[] };
+    private users: { [provider: string]: Users };
+    private lastChannelId: { [provider: string]: string };
 
-  constructor(private context: vscode.ExtensionContext) {
-    this.loadInitialState();
-  }
+    constructor(private context: vscode.ExtensionContext) {
+        this.loadInitialState();
+    }
 
-  loadInitialState() {
-    const { globalState } = this.context;
-    this.installationId = globalState.get(stateKeys.INSTALLATION_ID);
-    this.existingVersion = globalState.get(stateKeys.EXTENSION_VERSION);
-    this.channels = globalState.get(stateKeys.CHANNELS) || {};
-    this.currentUserInfo = globalState.get(stateKeys.USER_INFO) || {};
-    this.users = globalState.get(stateKeys.USERS) || {};
-    this.lastChannelId = globalState.get(stateKeys.LAST_CHANNEL_ID) || {};
-  }
+    loadInitialState() {
+        const { globalState } = this.context;
+        this.installationId = globalState.get(stateKeys.INSTALLATION_ID);
+        this.existingVersion = globalState.get(stateKeys.EXTENSION_VERSION);
+        this.channels = globalState.get(stateKeys.CHANNELS) || {};
+        this.currentUserInfo = globalState.get(stateKeys.USER_INFO) || {};
+        this.users = globalState.get(stateKeys.USERS) || {};
+        this.lastChannelId = globalState.get(stateKeys.LAST_CHANNEL_ID) || {};
+    }
 
-  async runStateMigrations() {
-    const currentVersion = getExtensionVersion();
+    async runStateMigrations() {
+        const currentVersion = getExtensionVersion();
 
-    if (!!currentVersion && this.existingVersion !== currentVersion) {
-      if (!!this.existingVersion) {
-        if (semver.lt(this.existingVersion, "0.9.0")) {
-          await this.migrateFor09x();
+        if (!!currentVersion && this.existingVersion !== currentVersion) {
+            if (!!this.existingVersion) {
+                if (semver.lt(this.existingVersion, "0.9.0")) {
+                    await this.migrateFor09x();
+                }
+            }
+
+            this.updateExtensionVersion(currentVersion);
+            this.loadInitialState();
         }
-      }
-
-      this.updateExtensionVersion(currentVersion);
-      this.loadInitialState();
     }
-  }
 
-  async migrateFor09x() {
-    // Run migrations for 0.9.x
-    const { globalState } = this.context;
-    const currentUser: any = globalState.get(stateKeys.USER_INFO);
+    async migrateFor09x() {
+        // Run migrations for 0.9.x
+        const { globalState } = this.context;
+        const currentUser: any = globalState.get(stateKeys.USER_INFO);
 
-    if (!!currentUser) {
-      const { provider } = currentUser;
+        if (!!currentUser) {
+            const { provider } = currentUser;
 
-      if (!!provider) {
-        const channels = globalState.get(stateKeys.CHANNELS);
-        const users = globalState.get(stateKeys.USERS);
-        const lastChannelId = globalState.get(stateKeys.LAST_CHANNEL_ID);
-        await globalState.update(stateKeys.USER_INFO, {
-          [provider]: currentUser
-        });
-        await globalState.update(stateKeys.CHANNELS, {
-          [provider]: channels
-        });
-        await globalState.update(stateKeys.USERS, { [provider]: users });
-        await globalState.update(stateKeys.LAST_CHANNEL_ID, {
-          [provider]: lastChannelId
-        });
-      }
+            if (!!provider) {
+                const channels = globalState.get(stateKeys.CHANNELS);
+                const users = globalState.get(stateKeys.USERS);
+                const lastChannelId = globalState.get(stateKeys.LAST_CHANNEL_ID);
+                await globalState.update(stateKeys.USER_INFO, {
+                    [provider]: currentUser
+                });
+                await globalState.update(stateKeys.CHANNELS, {
+                    [provider]: channels
+                });
+                await globalState.update(stateKeys.USERS, { [provider]: users });
+                await globalState.update(stateKeys.LAST_CHANNEL_ID, {
+                    [provider]: lastChannelId
+                });
+            }
+        }
     }
-  }
 
-  generateInstallationId(): string {
-    const uuidStr = uuidv4();
-    const { globalState } = this.context;
-    globalState.update(stateKeys.INSTALLATION_ID, uuidStr);
-    this.installationId = uuidStr;
-    return uuidStr;
-  }
+    generateInstallationId(): string {
+        const uuidStr = uuidv4();
+        const { globalState } = this.context;
+        globalState.update(stateKeys.INSTALLATION_ID, uuidStr);
+        this.installationId = uuidStr;
+        return uuidStr;
+    }
 
-  updateExtensionVersion(version: string) {
-    const { globalState } = this.context;
-    return globalState.update(stateKeys.EXTENSION_VERSION, version);
-  }
+    updateExtensionVersion(version: string) {
+        const { globalState } = this.context;
+        return globalState.update(stateKeys.EXTENSION_VERSION, version);
+    }
 
-  getCurrentUser = (provider: string): CurrentUser | undefined => {
-    return this.currentUserInfo[provider];
-  };
-
-  getCurrentUserForAll = (): CurrentUser[] => {
-    const providers = Object.keys(this.currentUserInfo);
-    return providers.map(provider => this.currentUserInfo[provider]);
-  };
-
-  getUsers = (provider: string): Users => {
-    return this.users[provider] || {};
-  };
-
-  getChannels = (provider: string): Channel[] => {
-    return this.channels[provider] || [];
-  };
-
-  getLastChannelId = (provider: string): string | undefined => {
-    return this.lastChannelId[provider];
-  };
-
-  updateLastChannelId = (
-    provider: string,
-    channelId: string | undefined
-  ): Thenable<void> => {
-    const lastChannels = {
-      ...this.lastChannelId,
-      [provider]: channelId
+    getCurrentUser = (provider: string): CurrentUser | undefined => {
+        return this.currentUserInfo[provider];
     };
-    this.lastChannelId = this.getObjectWithoutUndefined(lastChannels);
-    return this.context.globalState.update(
-      stateKeys.LAST_CHANNEL_ID,
-      this.lastChannelId
-    );
-  };
 
-  updateUsers = (provider: string, users: Users): Thenable<void> => {
-    this.users = {
-      ...this.users,
-      [provider]: users
+    getCurrentUserForAll = (): CurrentUser[] => {
+        const providers = Object.keys(this.currentUserInfo);
+        return providers.map(provider => this.currentUserInfo[provider]);
     };
-    const totalUserCount = Object.values(this.users)
-      .map(usersObject => Object.keys(usersObject).length)
-      .reduce((acc, curr) => acc + curr);
 
-    if (totalUserCount <= VALUE_LENGTH_LIMIT) {
-      return this.context.globalState.update(stateKeys.USERS, this.users);
-    }
-
-    return Promise.resolve();
-  };
-
-  updateUser = (provider: string, userId: string, user: User) => {
-    // NOTE: This does not store to the local storage
-    const providerUsers = this.users[provider] || {};
-    this.users = {
-      ...this.users,
-      [provider]: {
-        ...providerUsers,
-        [userId]: { ...user }
-      }
+    getUsers = (provider: string): Users => {
+        return this.users[provider] || {};
     };
-  };
 
-  getUser = (provider: string, userId: string): User | undefined => {
-    const providerUsers = this.users[provider] || {};
-    return providerUsers[userId];
-  };
+    getUser = (provider: string, userId: string): User | undefined => {
+        const providerUsers = this.users[provider] || {};
+        return providerUsers[userId];
+    };
 
-  updateChannels = (provider: string, channels: Channel[]): Thenable<void> => {
-    this.channels = { ...this.channels, [provider]: channels };
-    const totalChannelCount = Object.values(this.channels)
-      .map(channels => channels.length)
-      .reduce((acc, curr) => acc + curr);
+    getChannels = (provider: string): Channel[] => {
+        return this.channels[provider] || [];
+    };
 
-    if (totalChannelCount <= VALUE_LENGTH_LIMIT) {
-      return this.context.globalState.update(stateKeys.CHANNELS, this.channels);
-    }
+    getLastChannelId = (provider: string): string | undefined => {
+        return this.lastChannelId[provider];
+    };
 
-    return Promise.resolve();
-  };
-
-  updateCurrentUser = (
-    provider: string,
-    userInfo: CurrentUser | undefined
-  ): Thenable<void> => {
-    const cachedCurrentUser = this.currentUserInfo[provider];
-    let newCurrentUser: CurrentUser | undefined;
-
-    if (!userInfo) {
-      newCurrentUser = userInfo; // Resetting userInfo
-    } else {
-      // Copy cover the currentTeamId from existing state, if available
-      let currentTeamId = !!cachedCurrentUser
-        ? cachedCurrentUser.currentTeamId
-        : undefined;
-
-      if (!!userInfo.currentTeamId) {
-        currentTeamId = userInfo.currentTeamId;
-      }
-
-      newCurrentUser = { ...userInfo, currentTeamId };
-
-      // If this is Slack, our local state might know of more workspaces
-      if (provider === "slack" && !!cachedCurrentUser) {
-        let mergedTeams: any = {};
-        const { teams: newTeams } = userInfo;
-        const { teams: existingTeams } = cachedCurrentUser;
-        existingTeams.forEach(team => (mergedTeams[team.id] = team));
-        newTeams.forEach(team => (mergedTeams[team.id] = team));
-        const teams = Object.keys(mergedTeams).map(key => mergedTeams[key]);
-        newCurrentUser = {
-          ...newCurrentUser,
-          teams
+    updateLastChannelId = (provider: string, channelId: string | undefined): Thenable<void> => {
+        const lastChannels = {
+            ...this.lastChannelId,
+            [provider]: channelId
         };
-      }
+        this.lastChannelId = this.getObjectWithoutUndefined(lastChannels);
+        return this.context.globalState.update(stateKeys.LAST_CHANNEL_ID, this.lastChannelId);
+    };
+
+    updateUsers = (provider: string, users: Users): Thenable<void> => {
+        let newUsers = users;
+
+        if (provider === 'vsls') {
+            // For vsls provider, we want to append the users, not replace them
+            // This is because the chat provider does not have the knowledge of all contacts
+            // Contacts are known when the user clicks on the "chat with vsls contact" action
+            // And are updated via extension.ts -- which is a layer above the vsls chat provider
+
+            // Because the vsls chat provider does not know about these contacts,
+            // doing a fetchUsers() replaces the info we have, and we end up with unknown users in the
+            // chat UI, which is a problem.
+            const existingUsers = this.users[provider];
+            newUsers = {...users, ...existingUsers}
+        }
+
+        this.users = {
+            ...this.users,
+            [provider]: newUsers
+        };
+        const totalUserCount = Object.values(this.users)
+            .map(usersObject => Object.keys(usersObject).length)
+            .reduce((acc, curr) => acc + curr);
+        const isUnderCacheSizeLimit = totalUserCount <= VALUE_LENGTH_LIMIT;
+        const isNotVslsProvider = provider !== 'vsls'; // Disable caching for vsls
+
+        if (isUnderCacheSizeLimit && isNotVslsProvider) {
+            return this.context.globalState.update(stateKeys.USERS, this.users);
+        }
+
+        return Promise.resolve();
+    };
+
+    updateUser = (provider: string, userId: string, user: User) => {
+        // NOTE: This does not store to the local storage
+        const providerUsers = this.users[provider] || {};
+        this.users = {
+            ...this.users,
+            [provider]: {
+                ...providerUsers,
+                [userId]: { ...user }
+            }
+        };
+    };
+
+    updateChannels = (provider: string, channels: Channel[]): Thenable<void> => {
+        this.channels = { ...this.channels, [provider]: channels };
+        const totalChannelCount = Object.values(this.channels)
+            .map(channels => channels.length)
+            .reduce((acc, curr) => acc + curr);
+        const isUnderCacheSizeLimit = totalChannelCount <= VALUE_LENGTH_LIMIT;
+        const isNotVslsProvider = provider !== 'vsls'; // Disable caching for vsls
+
+        if (isUnderCacheSizeLimit && isNotVslsProvider) {
+            return this.context.globalState.update(stateKeys.CHANNELS, this.channels);
+        }
+
+        return Promise.resolve();
+    };
+
+    updateCurrentUser = (provider: string, userInfo: CurrentUser | undefined): Thenable<void> => {
+        const cachedCurrentUser = this.currentUserInfo[provider];
+        let newCurrentUser: CurrentUser | undefined;
+
+        if (!userInfo) {
+            newCurrentUser = userInfo; // Resetting userInfo
+        } else {
+            // Copy cover the currentTeamId from existing state, if available
+            let currentTeamId = !!cachedCurrentUser ? cachedCurrentUser.currentTeamId : undefined;
+
+            if (!!userInfo.currentTeamId) {
+                currentTeamId = userInfo.currentTeamId;
+            }
+
+            newCurrentUser = { ...userInfo, currentTeamId };
+
+            // If this is Slack, our local state might know of more workspaces
+            if (provider === "slack" && !!cachedCurrentUser) {
+                let mergedTeams: any = {};
+                const { teams: newTeams } = userInfo;
+                const { teams: existingTeams } = cachedCurrentUser;
+                existingTeams.forEach(team => (mergedTeams[team.id] = team));
+                newTeams.forEach(team => (mergedTeams[team.id] = team));
+                const teams = Object.keys(mergedTeams).map(key => mergedTeams[key]);
+                newCurrentUser = {
+                    ...newCurrentUser,
+                    teams
+                };
+            }
+        }
+
+        const updatedCurrentUserInfo = {
+            ...this.currentUserInfo,
+            [provider]: !!newCurrentUser ? { ...newCurrentUser } : undefined
+        };
+        this.currentUserInfo = this.getObjectWithoutUndefined(updatedCurrentUserInfo);
+        return this.context.globalState.update(stateKeys.USER_INFO, this.currentUserInfo);
+    };
+
+    updateMessageHistory = (channelId: string, messages: ChannelMessages) => {
+        const existingMessages = this.context.globalState.get(stateKeys.MESSAGE_HISTORY) || {};
+        const timestamps = Object.keys(messages).map(t => +t);
+        let filteredTimestamps = timestamps;
+
+        if (timestamps.length > MESSAGE_HISTORY_LIMIT) {
+            const sortedTimestamps = timestamps.sort((a, b) => (b - a))
+            filteredTimestamps = sortedTimestamps.slice(0, MESSAGE_HISTORY_LIMIT);
+        }
+
+        let filteredMessages: ChannelMessages = {};
+        filteredTimestamps.forEach(ts => {
+            filteredMessages[`${ts}`] = messages[`${ts}`]
+        })
+
+        return this.context.globalState.update(stateKeys.MESSAGE_HISTORY, {
+            ...existingMessages,
+            [channelId]: filteredMessages
+        });
     }
 
-    const updatedCurrentUserInfo = {
-      ...this.currentUserInfo,
-      [provider]: !!newCurrentUser ? { ...newCurrentUser } : undefined
+    getMessageHistoryForChannel = (channelId: string) => {
+        const allMessages: Messages = this.context.globalState.get(stateKeys.MESSAGE_HISTORY) || {};
+        return allMessages[channelId] || {};
+    }
+
+    async clearProviderState(provider: string): Promise<void> {
+        this.currentUserInfo = this.getObjectWithoutUndefined({
+            ...this.currentUserInfo,
+            [provider]: undefined
+        });
+        this.users = this.getObjectWithoutUndefined({
+            ...this.users,
+            [provider]: undefined
+        });
+        this.channels = this.getObjectWithoutUndefined({
+            ...this.channels,
+            [provider]: undefined
+        });
+        this.lastChannelId = this.getObjectWithoutUndefined({
+            ...this.lastChannelId,
+            [provider]: undefined
+        });
+        await this.context.globalState.update(stateKeys.USER_INFO, this.currentUserInfo);
+        await this.context.globalState.update(stateKeys.USERS, this.users);
+        await this.context.globalState.update(stateKeys.CHANNELS, this.channels);
+        return this.context.globalState.update(stateKeys.LAST_CHANNEL_ID, this.lastChannelId);
+    }
+
+    private getObjectWithoutUndefined = (input: any) => {
+        // Remove undefined values from the input object
+        let withoutUndefined: any = {};
+        Object.keys(input).forEach(key => {
+            const value = input[key];
+            if (!!value) {
+                withoutUndefined[key] = value;
+            }
+        });
+        return withoutUndefined;
     };
-    this.currentUserInfo = this.getObjectWithoutUndefined(
-      updatedCurrentUserInfo
-    );
-    return this.context.globalState.update(
-      stateKeys.USER_INFO,
-      this.currentUserInfo
-    );
-  };
-
-  async clearProviderState(provider: string): Promise<void> {
-    this.currentUserInfo = this.getObjectWithoutUndefined({
-      ...this.currentUserInfo,
-      [provider]: undefined
-    });
-    this.users = this.getObjectWithoutUndefined({
-      ...this.users,
-      [provider]: undefined
-    });
-    this.channels = this.getObjectWithoutUndefined({
-      ...this.channels,
-      [provider]: undefined
-    });
-    this.lastChannelId = this.getObjectWithoutUndefined({
-      ...this.lastChannelId,
-      [provider]: undefined
-    });
-    await this.context.globalState.update(
-      stateKeys.USER_INFO,
-      this.currentUserInfo
-    );
-    await this.context.globalState.update(stateKeys.USERS, this.users);
-    await this.context.globalState.update(stateKeys.CHANNELS, this.channels);
-    return this.context.globalState.update(
-      stateKeys.LAST_CHANNEL_ID,
-      this.lastChannelId
-    );
-  };
-
-  private getObjectWithoutUndefined = (input: any) => {
-    // Remove undefined values from the input object
-    let withoutUndefined: any = {};
-    Object.keys(input).forEach(key => {
-      const value = input[key];
-      if (!!value) {
-        withoutUndefined[key] = value;
-      }
-    });
-    return withoutUndefined;
-  };
 }
