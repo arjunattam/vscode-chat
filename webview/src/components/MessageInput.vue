@@ -9,6 +9,7 @@
                 v-on:keydown.meta.65="onSelectAll"
                 v-on:focus="onFocus"
                 v-focus
+                @tribute-replaced="onTributeReplaced"
                 rows="1">
             </textarea>
         </vue-tribute>
@@ -58,7 +59,10 @@ export default {
             inComposition: false,
             sendTypingEvents: true,
             tributeOptions: {
-                values: []
+                values: [],
+                // selectTemplate: function(item) {
+                //     return '@@@@' + item.original.value;
+                // }
             }
         };
     },
@@ -115,6 +119,10 @@ export default {
             if (input && expectedRows !== input.rows) {
                 input.rows = expectedRows;
             }
+        },
+        onTributeReplaced: function(event) {
+            // Called when
+            console.log('replaced', event.detail)
         }
     }
 }
@@ -126,3 +134,22 @@ Vue.directive("focus", {
     }
 });
 </script>
+
+<style>
+.tribute-container { }
+
+.tribute-container ul {
+    list-style: none;
+    padding-left: 0;
+    color: var(--vscode-input-foreground);
+    background-color: var(--vscode-input-background);
+}
+
+.tribute-container ul li {
+    padding: 5px;
+}
+
+.tribute-container ul li.highlight {
+    background: red;
+}
+</style>
