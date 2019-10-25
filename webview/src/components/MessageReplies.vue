@@ -9,7 +9,7 @@
             <message-reply-item
                 v-for="reply in message.replies"
                 v-bind:key="reply.timestamp"
-                v-bind:allUsers="allUsers"
+                v-bind:users="users"
                 v-bind:userId="reply.userId"
                 v-bind:timestamp="reply.timestamp"
                 v-bind:text="reply.text">
@@ -18,6 +18,7 @@
         <message-input
             v-if="isExpanded"
             v-bind:placeholder="placeholder"
+            v-bind:users="users"
             v-bind:onSubmit="onSubmit"
             ref="threadFormSection">
         </message-input>
@@ -32,7 +33,7 @@ import MessageReplyItem from './MessageReplyItem.vue'
 
 export default {
     name: 'message-replies',
-    props: ['message', 'allUsers'],
+    props: ['message', 'users'],
     components: {
         MessageRepliesImages,
         MessageReplyItem,
@@ -74,9 +75,9 @@ export default {
                 (item, pos) => userIds.indexOf(item) == pos
             );
             return uniques
-            .filter(userId => userId in this.allUsers)
-            .filter(userId => this.allUsers[userId].smallImageUrl)
-            .map(userId => this.allUsers[userId].smallImageUrl);
+            .filter(userId => userId in this.users)
+            .filter(userId => this.users[userId].smallImageUrl)
+            .map(userId => this.users[userId].smallImageUrl);
         },
         placeholder: function() {
             return "Reply to thread";
@@ -90,3 +91,10 @@ export default {
     },
 }
 </script>
+
+<style>
+.replies-container p.editable {
+    margin: 5px 0;
+    padding-left: 40px;
+}
+</style>
