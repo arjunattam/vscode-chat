@@ -120,6 +120,8 @@ Vue.directive("focus", {
     padding-left: 0;
     color: var(--vscode-input-foreground);
     background-color: var(--vscode-input-background);
+    max-height: 200px;
+    overflow: auto;
 }
 
 .tribute-container ul li {
