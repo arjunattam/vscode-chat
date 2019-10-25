@@ -1,6 +1,12 @@
 # Changelog
 
-All notable changes to the vscode-chat extension will be documented in this file. This follows the [Keep a Changelog](http://keepachangelog.com/) format.
+All notable changes to the Live Share Chat extension will be documented in this file. This follows the [Keep a Changelog](http://keepachangelog.com/) format.
+
+## [0.26.0] - 2019-10-25
+
+### Added
+
+- Support for at-mentions: type `@` to get a list of suggestions to tag. Tagging a user does not notify them in this release—that's coming up soon!
 
 ## [0.25.0] - 2019-10-18
 
