@@ -1,20 +1,17 @@
 <template>
-    <form class="message-input-form" v-on:submit="onSubmitFunc">
-        <vue-tribute :options="tributeOptions">
-            <textarea
-                ref="messageInput"
-                v-model="text"
-                v-bind:placeholder="placeholder"
-                v-on:keydown.exact="onKeydown"
-                v-on:keydown.meta.65="onSelectAll"
-                v-on:focus="onFocus"
-                v-focus
-                @tribute-replaced="onTributeReplaced"
-                rows="1">
-            </textarea>
-        </vue-tribute>
-        <input type="submit" />
-    </form>
+    <vue-tribute :options="tributeOptions">
+        <p
+            ref="messageInput"
+            class="editable"
+            contenteditable
+            v-bind:data-ph="placeholderText"
+            v-on:keydown.exact="onKeydown"
+            v-on:focus="onFocus"
+            v-focus
+            @input="onInput"
+            @tribute-replaced="onTributeReplaced">
+        </p>
+    </vue-tribute>
 </template>
 
 <script>
@@ -24,33 +21,22 @@ import { sendMessage } from '../utils';
 
 export default {
     name: 'message-input',
-    props: ['placeholder', 'users', 'onSubmit'],
+    props: ['placeholderText', 'users', 'onSubmit'],
     components: {
         VueTribute
     },
     watch: {
-        text: function(newText, oldText) {
-            if (newText && !newText.trim()) {
-                // This is a bit of a hack: using the command palette to change
-                // the channel triggers a newline character in the textarea. In this
-                // case, the keydown event is not triggered, and so we handle it here.
-                this.text = "";
-            }
-            this.resizeInput();
-        },
         users: function(newUsers, oldUsers) {
             if (Object.keys(newUsers).length !== Object.keys(oldUsers).length) {
                 setTimeout(() => {
-                    // We need an async update here to avoid an error
+                    // We need an async update here to avoid an error, and I don't know why.
                     // https://github.com/syropian/vue-tribute/blob/0f98b64386452b6ecd87898143197f38dd72ac43/dist/vue-tribute.js#L189
-                    // I don't know why.
                     this.tributeOptions.values = Object.values(newUsers).map(user => {
                         // {key: 'Gordon Ramsey', value: 'gramsey'}
                         return { key: user.name, value: user.name }
                     })
                 }, 200)
             }
-
         }
     },
     data: function() {
@@ -60,9 +46,9 @@ export default {
             sendTypingEvents: true,
             tributeOptions: {
                 values: [],
-                // selectTemplate: function(item) {
-                //     return '@@@@' + item.original.value;
-                // }
+                selectTemplate: function(item) {
+                    return `<span class="at-mention" contenteditable="false">@${item.original.value}</span>`;
+                }
             }
         };
     },
@@ -77,32 +63,22 @@ export default {
     methods: {
         onSubmitFunc: function(event) {
             this.onSubmit(this.text);
-            this.text = "";
+            this.clearInput();
         },
         onFocus: function(event) {
             return sendMessage("is_focused", "internal");
         },
-        onSelectAll: function(event) {
-            // Should we check for keydown.ctrl.65 on Windows?
-            this.$refs.messageInput.select();
-        },
         onKeydown: function(event) {
-            // Usability fixes
-            // 1. Multiline support: only when shift + enter are pressed
-            // 2. Submit on enter (without shift)
             if (event.code === "Enter" && !event.shiftKey && !this.inComposition) {
-                event.preventDefault();
+                event.preventDefault(); // Don't create a new line
 
                 if (this.text) {
-                    event.target.form.dispatchEvent(
-                        new Event("submit", { cancelable: true })
-                    );
+                    this.onSubmitFunc();
                 }
             } else {
-                // Typing indicator
                 if (this.sendTypingEvents) {
                     this.sendTypingEvents = false;
-                    sendMessage("is_typing", "internal");
+                    sendMessage("is_typing", "internal"); // Typing indicator
                     setTimeout(() => {
                         // This timeout value should be slightly lower
                         // than the value used to timeout inside SHOW_TYPING command
@@ -113,15 +89,18 @@ export default {
                 }
             }
         },
-        resizeInput: function() {
-            const expectedRows = this.text.split("\n").length;
-            const input = this.$refs.messageInput;
-            if (input && expectedRows !== input.rows) {
-                input.rows = expectedRows;
-            }
+        clearInput: function() {
+            this.text = '';
+            this.$refs.messageInput.innerHTML = '';
+        },
+        onInput: function(event) {
+            this.text = event.target.innerText;
+            // TODO: To support at-mentions completely, we should use innerHTML
+            // instead of innerText. To be able to support that, the "message" text
+            // field needs to support HTML.
         },
         onTributeReplaced: function(event) {
-            // Called when
+            // Called when something is selected from the at-mentions list
             console.log('replaced', event.detail)
         }
     }
@@ -136,8 +115,6 @@ Vue.directive("focus", {
 </script>
 
 <style>
-.tribute-container { }
-
 .tribute-container ul {
     list-style: none;
     padding-left: 0;
@@ -150,6 +127,36 @@ Vue.directive("focus", {
 }
 
 .tribute-container ul li.highlight {
-    background: red;
+    background-color: var(--vscode-button-background);
+    color: var(--vscode-button-foreground);
+}
+
+span.at-mention {
+    color: var(--vscode-textLink-foreground);
+}
+
+p.editable {
+    width: 100%;
+    padding: 7px;
+    font-size: inherit;
+    font-family: inherit;
+    border-radius: 0;
+    box-sizing: border-box;
+    resize: none;
+    color: var(--vscode-input-foreground);
+    background-color: var(--vscode-input-background);
+    border: 1px solid var(--vscode-sideBar-background);
+}
+
+/* Disable blue border around the contenteditable field */
+p.editable:focus {
+    outline: 0px solid transparent;
+    border: 1px solid var(--vscode-focusBorder);
+}
+
+/* Enable placeholder on contenteditable */
+p.editable:empty:not(:focus):before{
+  content:attr(data-ph);
+  color: var(--vscode-descriptionForeground);
 }
 </style>

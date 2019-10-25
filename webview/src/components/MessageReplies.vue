@@ -91,3 +91,10 @@ export default {
     },
 }
 </script>
+
+<style>
+.replies-container p.editable {
+    margin: 5px 0;
+    padding-left: 40px;
+}
+</style>

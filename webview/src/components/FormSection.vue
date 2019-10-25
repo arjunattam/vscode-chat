@@ -4,7 +4,7 @@
             <message-input
                 v-bind:onSubmit="onSubmit"
                 v-bind:users="users"
-                v-bind:placeholder="placeholder">
+                v-bind:placeholderText="placeholder">
             </message-input>
             <status-text v-bind:status="status"></status-text>
         </div>

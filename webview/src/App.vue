@@ -140,29 +140,6 @@ ul.message-reactions li div:first-child {
     margin-bottom: 10px;
 }
 
-.message-input-form textarea {
-    width: 100%;
-    padding: 7px;
-    font-size: inherit;
-    font-family: inherit;
-    border-radius: 0;
-    box-sizing: border-box;
-    resize: none;
-    color: var(--vscode-input-foreground);
-    background-color: var(--vscode-input-background);
-    border: 1px solid var(--vscode-sideBar-background);
-    outline-color: var(--vscode-inputOption-activeBorder);
-}
-
-.message-input-form input[type="submit"] {
-    display: none;
-}
-
-.replies-container .message-input-form {
-    margin: 5px 0;
-    padding-left: 40px;
-}
-
 .status-text {
     font-size: x-small;
     padding-top: 2px;
