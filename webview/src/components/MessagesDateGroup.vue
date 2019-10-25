@@ -5,7 +5,7 @@
             v-for="group in groups"
             v-bind:key="group.key"
             v-bind:messages="group.messages"
-            v-bind:allUsers="users"
+            v-bind:users="users"
             v-bind:userId="group.userId"
             v-bind:user="group.user"
             v-bind:timestamp="group.minTimestamp">

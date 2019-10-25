@@ -20,13 +20,13 @@ import { formattedTime } from '../utils';
 
 export default {
     name: 'message-reply-item',
-    props: ["userId", "timestamp", "text", "allUsers"],
+    props: ['userId', 'timestamp', 'text', 'users'],
     components: {
         MarkdownElement
     },
     computed: {
         username: function() {
-            const user = this.allUsers[this.userId];
+            const user = this.users[this.userId];
             return user ? user.name : this.userId;
         },
         readableTimestamp: function() {

@@ -15,7 +15,7 @@
                     v-for="message in messages"
                     v-bind:key="message.timestamp"
                     v-bind:message="message"
-                    v-bind:allUsers="allUsers">
+                    v-bind:users="users">
                 </message-item>
             </ul>
         </div>
@@ -28,7 +28,7 @@ import { formattedTime } from '../utils';
 
 export default {
     name: 'message-group',
-    props: ["messages", "allUsers", "userId", "user", "timestamp"],
+    props: ["messages", "users", "userId", "user", "timestamp"],
     computed: {
         readableTimestamp: function() {
             return formattedTime(this.timestamp);

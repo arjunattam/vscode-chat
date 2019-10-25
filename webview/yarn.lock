@@ -7677,6 +7677,11 @@ tough-cookie@~2.4.3:
     psl "^1.1.24"
     punycode "^1.4.1"
 
+tributejs@^3.7.3:
+  version "3.7.3"
+  resolved "https://registry.yarnpkg.com/tributejs/-/tributejs-3.7.3.tgz#24f0405aff6383db5e1dc76b9dc1e503e71db9b9"
+  integrity sha512-0al6SLgRjSEvdy4/DCz44Zgq6PzXFsOoYuwyg9obuUnneu5xDfASw2xU0Ww4KKCWH1Fb25gVGQz+B6VZmaNcEQ==
+
 trim-right@^1.0.1:
   version "1.0.1"
   resolved "https://registry.yarnpkg.com/trim-right/-/trim-right-1.0.1.tgz#cb2e1203067e0c8de1f614094b9fe45704ea6003"
@@ -8013,6 +8018,11 @@ vue-template-es2015-compiler@^1.9.0:
   version "1.9.1"
   resolved "https://registry.yarnpkg.com/vue-template-es2015-compiler/-/vue-template-es2015-compiler-1.9.1.tgz#1ee3bc9a16ecbf5118be334bb15f9c46f82f5825"
   integrity sha512-4gDntzrifFnCEvyoO8PqyJDmguXgVPxKiIxrBKjIowvL9l+N66196+72XVYR8BBf1Uv1Fgt3bGevJ+sEmxfZzw==
+
+vue-tribute@^1.0.3:
+  version "1.0.3"
+  resolved "https://registry.yarnpkg.com/vue-tribute/-/vue-tribute-1.0.3.tgz#dac3e4fc9f0534c468c06b6da5007e5a184e63b7"
+  integrity sha512-meRzteQYjgTCR65BTxyO4F1kw7I1S56rvrGyuZHajnymNyB8CXPOpbbIYHpsAVW/ZMsVbnC1cr15RBSrgxzQjA==
 
 vue@^2.6.10:
   version "2.6.10"
