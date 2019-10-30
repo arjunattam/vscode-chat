@@ -1,32 +1,28 @@
 <h1 align="center">Live Share Chat</h1>
 
-<h3 align="center">Collaborate with your team and chat bots without context switches. Supports VS Live Share, Slack, and Discord<sup>1</sup>.</h3>
+<h3 align="center">Chat with your team while you collaborate over code using VS Live Share</h3>
 
 <p align="center"><img src="https://raw.githubusercontent.com/karigari/vscode-chat/master/readme/Live Share Chat.gif" alt="Screenshot" width="800" /></p>
 
 <p align="center">
-    <a href="https://travis-ci.org/karigari/vscode-chat"><img src="https://travis-ci.org/karigari/vscode-chat.svg?branch=master" alt="Build status" /></a>
-    <a href="https://marketplace.visualstudio.com/items?itemName=karigari.chat"><img src="https://vsmarketplacebadge.apphb.com/installs-short/karigari.chat.svg" alt="Installs" /></a>
-    <a href="https://marketplace.visualstudio.com/items?itemName=karigari.chat"><img src="https://vsmarketplacebadge.apphb.com/rating-short/karigari.chat.svg" alt="Rating" /></a>
+    <a href="https://marketplace.visualstudio.com/items?itemName=karigari.chat"><img alt="Visual Studio Marketplace Downloads" src="https://img.shields.io/visual-studio-marketplace/d/karigari.chat"></a>
+    <a href="https://marketplace.visualstudio.com/items?itemName=karigari.chat"><img alt="Visual Studio Marketplace Rating" src="https://img.shields.io/visual-studio-marketplace/r/karigari.chat"></a>
     <a href="https://aka.ms/vsls"><img src="https://aka.ms/vsls-badge" alt="Live Share enabled" /></a>
 </p>
 
-<sup>1</sup> Discord support is experimental. Please see [this doc](docs/DISCORD.md) for more details.
+# Get started
 
-# Setup
+Live Share Chat is a companion extension for [Visual Studio Live Share](https://aka.ms/vsls), which enables you to collaboratively edit and debug code with others, in real time.
 
-1.  Install the extension from the [VS Marketplace](https://marketplace.visualstudio.com/items?itemName=karigari.chat)
-2.  **For Slack**, run "Sign In with Slack" from the VS Code command palette
-3.  **For Discord**, configure your token with instructions [given here](docs/DISCORD.md)
-4.  To chat with **VS Live Share participants**, start a collaboration session and click the `Chat` status bar item. [See more](#vs-live-share).
-
-Are you a Slack workspace admin? [Approve this app](https://slack.com/apps/ACB4LQKN1-slack-chat-for-vs-code) for your team.
+1. Install the [Live Share Extension Pack](https://marketplace.visualstudio.com/items?itemName=MS-vsliveshare.vsliveshare-pack), which packages VS Live Share with support for **audio and text chat**.
+1. **Direct Messages**: DM your Live Share contacts, within or outside Live Share sessions.
+1. **Session Messages**: Chat with participants, within a Live Share session
 
 # Features
 
-- **Quiet notifications**: System notifications for chat can be painful, and this extension implements a subtle unread count instead.
-- **Rich formatting**: Support for markdown code snippets, emojis, message reactions, and threads.
-- **Native look-and-feel**: Use your dark theme and grid editor layout preferences with chat.
+- **Quiet notifications**: Chat apps can be painfully distracting. This extension emphasizes on making chat useful, contextual, and without distracting notifications.
+- **Rich formatting**: Share markdown code snippets, and add emojis to your chat messages.
+- **Native look-and-feel**: Use chat in your preferred theme and grid editor layout.
 
 <p align="center">
     <img src="https://raw.githubusercontent.com/karigari/vscode-chat/master/readme/feature-1-magnifier.png" alt="Quiet notifications" width="290" />
@@ -34,23 +30,23 @@ Are you a Slack workspace admin? [Approve this app](https://slack.com/apps/ACB4L
     <img src="https://raw.githubusercontent.com/karigari/vscode-chat/master/readme/feature-3.png" alt="Theme and grid layout" width="290" />
 </p>
 
-# VS Live Share
+# Integrations for chat apps
 
-## Companion chat
+Optionally, you can integrate Live Share Chat with your existing team chat apps, so your team communication is not fragmented.
 
-Team Chat is a light-weight companion chat for [VS Live Share](https://aka.ms/vsls), without any dependency on an existing backend like Slack or Discord.
+## Slack
 
-To chat with your session peers, start a new session, and click the `Chat` status bar item. Optionally, you can also run the `Chat with VS Live Share participants` command.
+To configure your Slack workspace, run the **Sign In with Slack** command in VS Code. Are you a Slack workspace admin? [Approve this app](https://slack.com/apps/ACB4LQKN1-slack-chat-for-vs-code) for your team.
 
-The [VS Live Share Extension Pack](https://marketplace.visualstudio.com/items?itemName=MS-vsliveshare.vsliveshare-pack) includes the VS Live Share and Team Chat extensions for an easy one-click installation.
+Start a new VS Live Share session within a Slack channel: Use the slash commands `/live share` and `/live end` to start and end a session.
 
-## With Slack and Discord
+## Discord
 
-Optionally, you can also set up your Slack or Discord account to continuing using the same chat provider during a Live Share session.
+Discord support is experimental. Please see [this doc](docs/DISCORD.md) to set it up.
 
-With Slack/Discord, you can also start a new session with online team members easily. You can also use the slash commands `/live share` and `/live end` to start or end sessions in a chat window.
+## Live Share Spaces
 
-<p align="center"><img src="https://raw.githubusercontent.com/karigari/vscode-chat/master/readme/vsls-magnifier.png" alt="VS Live Share" width="800" /></p>
+To explore richer ways to connect and collaborate with developers across your teams, classrooms and communities, check out [Live Share Spaces](https://marketplace.visualstudio.com/items?itemName=vsls-contrib.spaces).
 
 # Support
 
@@ -60,5 +56,5 @@ With Slack/Discord, you can also start a new session with online team members ea
 # Developer docs
 
 - **Get started with contribution**: See [CONTRIBUTING](docs/CONTRIBUTING.md) to understand repo structure, building and testing.
-- **New chat providers**: The implementation can be extended to support any chat provider, see [PROVIDERS](docs/PROVIDERS.md).
+- **New chat integrations**: The implementation can be extended to support any chat provider, see [PROVIDERS](docs/PROVIDERS.md).
 - **Vision**: Read the [VISION](VISION.md) doc to understand the motivation behind this extension and the roadmap ahead.
