@@ -265,7 +265,7 @@ const enum EventType {
     channelChanged = "channel_changed",
     authStarted = "auth_started",
     activationStarted = "activation_started",
-    activationEnded = "activation_ended",
+    activationEnded = "activation_ended"
 }
 
 interface EventProperties {

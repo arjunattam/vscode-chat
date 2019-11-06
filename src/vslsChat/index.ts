@@ -1,6 +1,15 @@
 import * as vscode from "vscode";
 import * as vsls from "vsls";
-import { VSLS_CHAT_CHANNEL, getVslsChatServiceName, isLiveshareProvider, toBaseMessage, userFromContact, defaultAvatar, onPropertyChanged, toDirectMessage } from "./utils";
+import {
+    VSLS_CHAT_CHANNEL,
+    getVslsChatServiceName,
+    isLiveshareProvider,
+    toBaseMessage,
+    userFromContact,
+    defaultAvatar,
+    onPropertyChanged,
+    toDirectMessage
+} from "./utils";
 import { Methods } from "vsls/vsls-contactprotocol.js";
 import { VslsHostService } from "./host";
 import { VslsGuestService } from "./guest";
@@ -17,7 +26,7 @@ export class VslsChatProvider implements IChatProvider {
     imChannels: Channel[] = [];
     currentUser: User | undefined;
 
-    constructor(private store: IStore) { 
+    constructor(private store: IStore) {
         // We are passing the store in here to be able to store message history
     }
 
@@ -35,7 +44,7 @@ export class VslsChatProvider implements IChatProvider {
             // attach the event listeners again.
             // (This overrides the connect() logic inside ChatProviderManager)
             if (this.liveshare.session.user) {
-                return this.getCurrentUser(this.liveshare)
+                return this.getCurrentUser(this.liveshare);
             }
         }
 
@@ -76,9 +85,9 @@ export class VslsChatProvider implements IChatProvider {
         // Initialize our link to the LS presence provider to send/receive DMs
         (<any>this.liveshare).onPresenceProviderRegistered((e: any) => {
             if (isLiveshareProvider(e.added)) {
-                this.initializePresenceProvider(e.added)
-            };
-        })
+                this.initializePresenceProvider(e.added);
+            }
+        });
 
         const registeredProviders = (<any>this.liveshare).presenceProviders;
         const provider = registeredProviders.find((p: any) => isLiveshareProvider(p));
@@ -90,9 +99,9 @@ export class VslsChatProvider implements IChatProvider {
         return new Promise((resolve, reject) => {
             // @ts-ignore (session is a readonly property)
             liveshare.session = onPropertyChanged(liveshare.session, "user", () => {
-                resolve(this.getCurrentUser(liveshare))
+                resolve(this.getCurrentUser(liveshare));
             });
-        })
+        });
     }
 
     private initializePresenceProvider(presenceProvider: any) {
@@ -106,46 +115,45 @@ export class VslsChatProvider implements IChatProvider {
                     const { id: senderId, email: senderEmail } = msgBody.user;
 
                     // Check if this is a known IM channel (since we are building them on-the-fly)
-                    let foundChannel = this.imChannels.find(channel => channel.id === senderId)
+                    let foundChannel = this.imChannels.find(channel => channel.id === senderId);
                     if (!foundChannel) {
                         // This is an IM channel we haven't seen before --> we want to update it in the store
                         // so we can get notifications etc. wired up for it.
                         const { contacts } = await this.liveshare!.getContacts([senderEmail]);
                         await this.createIMChannel(userFromContact(contacts[senderEmail]));
-                        this.store.updateChannels('vsls', (await this.fetchChannels({})))
+                        this.store.updateChannels("vsls", await this.fetchChannels({}));
                     }
 
-                    this.updateDirectMessageUI(msgBody, senderId)
+                    this.updateDirectMessageUI(msgBody, senderId);
                 }
 
                 if (type === "vsls_typing") {
-                    vscode.commands.executeCommand(
-                        SelfCommands.SHOW_TYPING,
-                        {provider: 'vsls', typingUserId: fromContactId, channelId: fromContactId}
-                    )
+                    vscode.commands.executeCommand(SelfCommands.SHOW_TYPING, {
+                        provider: "vsls",
+                        typingUserId: fromContactId,
+                        channelId: fromContactId
+                    });
                 }
             }
-        })
+        });
     }
 
     private updateDirectMessageUI(newMessageBody: any, channelId: string) {
         let newMessages: ChannelMessages = {};
         const { timestamp } = newMessageBody;
         newMessages[timestamp] = toDirectMessage(newMessageBody);
-        vscode.commands.executeCommand(
-            SelfCommands.UPDATE_MESSAGES, {
-                channelId,
-                messages: newMessages,
-                provider: 'vsls'
-            }
-        )
+        vscode.commands.executeCommand(SelfCommands.UPDATE_MESSAGES, {
+            channelId,
+            messages: newMessages,
+            provider: "vsls"
+        });
     }
 
     private async sendDirectMessage(targetContactId: string, type: string, body: any = {}) {
-        const message = { type, body, targetContactId }
+        const message = { type, body, targetContactId };
 
         if (this.presenceProvider) {
-            await this.presenceProvider.requestAsync(Methods.RequestSendMessageName, message)
+            await this.presenceProvider.requestAsync(Methods.RequestSendMessageName, message);
 
             if (type === "vsls_dm") {
                 // Once the message is sent, we want to also update the UI
@@ -156,7 +164,7 @@ export class VslsChatProvider implements IChatProvider {
     }
 
     private getCurrentUser(api: vsls.LiveShare): CurrentUser {
-        const user = api.session.user!
+        const user = api.session.user!;
         this.currentUser = {
             id: user.id,
             email: user.emailAddress!,
@@ -169,17 +177,19 @@ export class VslsChatProvider implements IChatProvider {
             // convert the user into the contact.
             imageUrl: defaultAvatar(user.emailAddress!),
             smallImageUrl: defaultAvatar(user.emailAddress!)
-        }
+        };
         return {
             id: user.id,
             name: user.displayName,
-            teams: [{
-                id: VSLS_CHAT_CHANNEL.id,
-                name: VSLS_CHAT_CHANNEL.name
-            }],
+            teams: [
+                {
+                    id: VSLS_CHAT_CHANNEL.id,
+                    name: VSLS_CHAT_CHANNEL.name
+                }
+            ],
             currentTeamId: VSLS_CHAT_CHANNEL.id,
             provider: Providers.vsls
-        }
+        };
     }
 
     async initializeChatService(): Promise<CurrentUser | undefined> {
@@ -212,11 +222,13 @@ export class VslsChatProvider implements IChatProvider {
                 vscode.window.showWarningMessage(str.NO_LIVE_SHARE_CHAT_ON_HOST);
                 return;
             } else {
-                this.guestService = new VslsGuestService(liveshare, serviceProxy, this.currentUser!, <vsls.Peer>liveshare.session);
+                this.guestService = new VslsGuestService(liveshare, serviceProxy, this.currentUser!, <vsls.Peer>(
+                    liveshare.session
+                ));
             }
         }
 
-        return this.getCurrentUser(liveshare)
+        return this.getCurrentUser(liveshare);
     }
 
     async clearSession() {
@@ -243,11 +255,11 @@ export class VslsChatProvider implements IChatProvider {
     }
 
     async fetchUsers(): Promise<Users> {
-        let currentUser: Users = {}
-        let serviceUsers: Users = {}
+        let currentUser: Users = {};
+        let serviceUsers: Users = {};
 
         if (this.currentUser) {
-            currentUser[this.currentUser.id] = { ...this.currentUser }
+            currentUser[this.currentUser.id] = { ...this.currentUser };
         }
 
         if (!!this.hostService) {
@@ -284,7 +296,7 @@ export class VslsChatProvider implements IChatProvider {
                 text,
                 timestamp: (+new Date() / 1000.0).toString()
             };
-            return this.sendDirectMessage(channelId, "vsls_dm", body)
+            return this.sendDirectMessage(channelId, "vsls_dm", body);
         } else {
             // This is a channel message -> sent via host/guest services
             if (!!this.hostService) {
@@ -302,13 +314,13 @@ export class VslsChatProvider implements IChatProvider {
 
         if (isSessionChannel) {
             if (this.hostService) {
-                this.hostService.sendTyping(this.currentUser!.id)
+                this.hostService.sendTyping(this.currentUser!.id);
             } else if (this.guestService) {
-                this.guestService.sendTyping(this.currentUser!.id)
+                this.guestService.sendTyping(this.currentUser!.id);
             }
         } else {
             // This is in a DM, will only go to one contact
-            return this.sendDirectMessage(channelId, "vsls_typing")
+            return this.sendDirectMessage(channelId, "vsls_typing");
         }
     }
 
@@ -388,21 +400,21 @@ export class VslsChatProvider implements IChatProvider {
     }
 
     async createIMChannel(user: User): Promise<Channel | undefined> {
-        // We are saving a slightly old readTimestamp, so that the unread 
+        // We are saving a slightly old readTimestamp, so that the unread
         // notification can be triggered correctly. As the IM channels can be created
         // at the same time as the message is received, we don't want to simply do a now()
-        const oneMinuteAgo = (+new Date() / 1000.0) - 60;
+        const oneMinuteAgo = +new Date() / 1000.0 - 60;
         const channel = {
             id: user.id,
             name: user.fullName,
             type: ChannelType.im,
             readTimestamp: oneMinuteAgo.toString(),
             unreadCount: 0
-        }
+        };
 
         // Save imChannels so fetchChannels can return them
         if (!this.imChannels.find(item => item.id === user.id)) {
-            this.imChannels = [...this.imChannels, channel]
+            this.imChannels = [...this.imChannels, channel];
         }
 
         return channel;
