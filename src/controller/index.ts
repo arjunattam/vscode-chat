@@ -109,6 +109,13 @@ class ViewController {
             });
         }
 
+        if (text === "/invite") {
+            return vscode.commands.executeCommand(SelfCommands.INVITE_LIVE_SHARE_CONTACT, {
+                channelId: this.currentChannelId,
+                provider: this.currentProvider
+            });
+        }
+
         if (this.isValidReverseCommand(text)) {
             return this.sendTextMessage(text);
         }

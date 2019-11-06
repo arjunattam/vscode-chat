@@ -135,6 +135,11 @@ const enum ChannelType {
     im = "im"
 }
 
+interface IContactMetadata {
+    id: string;
+    email: string;
+}
+
 interface Channel {
     id: string;
     name: string;
@@ -142,6 +147,7 @@ interface Channel {
     readTimestamp: string | undefined;
     unreadCount: number;
     categoryName?: string; // for Discord
+    contactMetadata?: IContactMetadata; // for Live Share DMs
 }
 
 interface ChannelLabel {
@@ -265,7 +271,7 @@ const enum EventType {
     channelChanged = "channel_changed",
     authStarted = "auth_started",
     activationStarted = "activation_started",
-    activationEnded = "activation_ended",
+    activationEnded = "activation_ended"
 }
 
 interface EventProperties {
