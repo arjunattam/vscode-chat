@@ -2,6 +2,12 @@
 
 All notable changes to the Live Share Chat extension will be documented in this file. This follows the [Keep a Changelog](http://keepachangelog.com/) format.
 
+## [0.30.0] - 2019-12-19
+
+### Fixed
+
+-   Fixes to initialization for Live Share Chat that increase reliability of the experience.
+
 ## [0.29.0] - 2019-11-06
 
 ### Added
