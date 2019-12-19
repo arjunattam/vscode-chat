@@ -4,7 +4,6 @@ import {
     VSLS_CHAT_CHANNEL,
     getVslsChatServiceName,
     isLiveshareProvider,
-    toBaseMessage,
     userFromContact,
     defaultAvatar,
     onPropertyChanged,
@@ -21,6 +20,7 @@ export class VslsChatProvider implements IChatProvider {
     liveshare: vsls.LiveShare | undefined;
     hostService: VslsHostService | undefined;
     guestService: VslsGuestService | undefined;
+    hasInitialized: boolean = false;
 
     presenceProvider: any;
     imChannels: Channel[] = [];
@@ -39,16 +39,18 @@ export class VslsChatProvider implements IChatProvider {
             return undefined;
         }
 
-        if (!!this.liveshare) {
+        if (this.hasInitialized) {
             // We have already initialized, and we don't want to
             // attach the event listeners again.
             // (This overrides the connect() logic inside ChatProviderManager)
-            if (this.liveshare.session.user) {
-                return this.getCurrentUser(this.liveshare);
+            if (liveshare.session.user) {
+                this.currentUser = this.liveShareUser(liveshare.session.user);
+                return this.userToCurrentUser(this.currentUser);
             }
         }
 
         this.liveshare = liveshare;
+        this.hasInitialized = true;
 
         this.liveshare.onDidChangePeers(({ added, removed }) => {
             if (!!this.hostService) {
@@ -62,8 +64,14 @@ export class VslsChatProvider implements IChatProvider {
             const { id: sessionId, role } = session;
             const isSessionActive = !!sessionId;
 
+            if (!this.currentUser) {
+                // Hmm, this should never happen, because LS session
+                // can only be started if the user is available.
+                return;
+            }
+
             if (isSessionActive) {
-                await this.initializeChatService();
+                await this.initializeChatService(this.currentUser);
 
                 if (!!this.hostService) {
                     this.hostService.sendStartedMessage();
@@ -78,7 +86,7 @@ export class VslsChatProvider implements IChatProvider {
 
             vscode.commands.executeCommand(SelfCommands.LIVE_SHARE_SESSION_CHANGED, {
                 isSessionActive,
-                currentUser: this.getCurrentUser(this.liveshare!)
+                currentUser: this.userToCurrentUser(this.currentUser)
             });
         });
 
@@ -96,12 +104,69 @@ export class VslsChatProvider implements IChatProvider {
             this.initializePresenceProvider(provider);
         }
 
-        return new Promise((resolve, reject) => {
+        return new Promise(resolve => {
             // @ts-ignore (session is a readonly property)
-            liveshare.session = onPropertyChanged(liveshare.session, "user", () => {
-                resolve(this.getCurrentUser(liveshare));
+            this.liveshare.session = onPropertyChanged(this.liveshare.session, "user", () => {
+                console.log('user changed on live share');
+                if (this.liveshare) {
+                    console.log(this.liveshare.session.user)
+                }
+
+                if (this.liveshare && this.liveshare.session.user) {
+                    this.currentUser = this.liveShareUser(this.liveshare.session.user);
+                    resolve(this.userToCurrentUser(this.currentUser));
+                }
             });
         });
+    }
+
+    async initializeChatService(currentUser: User): Promise<CurrentUser | undefined> {
+        // This assumes live share session is available
+        const liveshare = <vsls.LiveShare>await vsls.getApi();
+        const { role, id: sessionId, peerNumber, user } = liveshare.session;
+
+        if (!user || !sessionId) {
+            return undefined;
+        }
+
+        const serviceName = getVslsChatServiceName(sessionId);
+
+        if (role === vsls.Role.Host) {
+            const sharedService = await liveshare.shareService(serviceName);
+
+            if (!sharedService) {
+                throw new Error("Error sharing service for Live Share Chat.");
+            }
+
+            this.hostService = new VslsHostService(liveshare, sharedService, currentUser, serviceName);
+        } else if (role === vsls.Role.Guest) {
+            const serviceProxy = await liveshare.getSharedService(serviceName);
+
+            if (!serviceProxy) {
+                throw new Error("Error getting shared service for Live Share Chat.");
+            }
+
+            if (!serviceProxy.isServiceAvailable) {
+                vscode.window.showWarningMessage(str.NO_LIVE_SHARE_CHAT_ON_HOST);
+                return;
+            } else {
+                this.guestService = new VslsGuestService(liveshare, serviceProxy, currentUser, <vsls.Peer>(
+                    liveshare.session
+                ));
+            }
+        }
+
+        return this.userToCurrentUser(currentUser);
+    }
+
+    isConnected(): boolean {
+        if (!!this.hostService) {
+            return this.hostService.isConnected();
+        } else if (!!this.guestService) {
+            return this.guestService.isConnected();
+        }
+
+        return false;
     }
 
     private initializePresenceProvider(presenceProvider: any) {
@@ -163,24 +228,26 @@ export class VslsChatProvider implements IChatProvider {
         }
     }
 
-    private getCurrentUser(api: vsls.LiveShare): CurrentUser {
-        const user = api.session.user!;
-        this.currentUser = {
-            id: user.id,
-            email: user.emailAddress!,
-            name: user.displayName,
-            fullName: user.displayName,
+    private liveShareUser(userInfo: vsls.UserInfo): User {
+        return {
+            id: userInfo.id,
+            email: userInfo.emailAddress!,
+            name: userInfo.displayName,
+            fullName: userInfo.displayName,
             presence: UserPresence.unknown,
             // TODO: Instead of using default avatar, we can use the
             // avatar stored in the LS contact model. Unfortunately, the avatar
             // is not available in the LS user model, so we would need to
             // convert the user into the contact.
-            imageUrl: defaultAvatar(user.emailAddress!),
-            smallImageUrl: defaultAvatar(user.emailAddress!)
-        };
+            imageUrl: defaultAvatar(userInfo.emailAddress!),
+            smallImageUrl: defaultAvatar(userInfo.emailAddress!)
+        }
+    }
+
+    private userToCurrentUser(user: User): CurrentUser {
         return {
             id: user.id,
-            name: user.displayName,
+            name: user.name,
             teams: [
                 {
                     id: VSLS_CHAT_CHANNEL.id,
@@ -189,46 +256,7 @@ export class VslsChatProvider implements IChatProvider {
             ],
             currentTeamId: VSLS_CHAT_CHANNEL.id,
             provider: Providers.vsls
-        };
-    }
-
-    async initializeChatService(): Promise<CurrentUser | undefined> {
-        // This assumes live share session is available
-        const liveshare = <vsls.LiveShare>await vsls.getApi();
-        const { role, id: sessionId, peerNumber, user } = liveshare.session;
-
-        if (!user || !sessionId) {
-            return undefined;
         }
-
-        const serviceName = getVslsChatServiceName(sessionId);
-
-        if (role === vsls.Role.Host) {
-            const sharedService = await liveshare.shareService(serviceName);
-
-            if (!sharedService) {
-                throw new Error("Error sharing service for Live Share Chat.");
-            }
-
-            this.hostService = new VslsHostService(liveshare, sharedService, this.currentUser!, serviceName);
-        } else if (role === vsls.Role.Guest) {
-            const serviceProxy = await liveshare.getSharedService(serviceName);
-
-            if (!serviceProxy) {
-                throw new Error("Error getting shared service for Live Share Chat.");
-            }
-
-            if (!serviceProxy.isServiceAvailable) {
-                vscode.window.showWarningMessage(str.NO_LIVE_SHARE_CHAT_ON_HOST);
-                return;
-            } else {
-                this.guestService = new VslsGuestService(liveshare, serviceProxy, this.currentUser!, <vsls.Peer>(
-                    liveshare.session
-                ));
-            }
-        }
-
-        return this.getCurrentUser(liveshare);
     }
 
     async clearSession() {
@@ -242,16 +270,6 @@ export class VslsChatProvider implements IChatProvider {
 
         this.hostService = undefined;
         this.guestService = undefined;
-    }
-
-    isConnected(): boolean {
-        if (!!this.hostService) {
-            return this.hostService.isConnected();
-        } else if (!!this.guestService) {
-            return this.guestService.isConnected();
-        }
-
-        return false;
     }
 
     async fetchUsers(): Promise<Users> {
@@ -312,11 +330,11 @@ export class VslsChatProvider implements IChatProvider {
     async sendTyping(currentUserId: string, channelId: string) {
         const isSessionChannel = channelId === VSLS_CHAT_CHANNEL.id;
 
-        if (isSessionChannel) {
+        if (isSessionChannel && this.currentUser) {
             if (this.hostService) {
-                this.hostService.sendTyping(this.currentUser!.id);
+                this.hostService.sendTyping(this.currentUser.id);
             } else if (this.guestService) {
-                this.guestService.sendTyping(this.currentUser!.id);
+                this.guestService.sendTyping(this.currentUser.id);
             }
         } else {
             // This is in a DM, will only go to one contact
