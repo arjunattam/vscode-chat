@@ -49,6 +49,10 @@ export class VslsChatProvider implements IChatProvider {
             }
         }
 
+        if (liveshare.session.user) {
+            this.currentUser = this.liveShareUser(liveshare.session.user);
+        }
+
         this.liveshare = liveshare;
         this.hasInitialized = true;
 
@@ -107,11 +111,6 @@ export class VslsChatProvider implements IChatProvider {
         return new Promise(resolve => {
             // @ts-ignore (session is a readonly property)
             this.liveshare.session = onPropertyChanged(this.liveshare.session, "user", () => {
-                console.log('user changed on live share');
-                if (this.liveshare) {
-                    console.log(this.liveshare.session.user)
-                }
-
                 if (this.liveshare && this.liveshare.session.user) {
                     this.currentUser = this.liveShareUser(this.liveshare.session.user);
                     resolve(this.userToCurrentUser(this.currentUser));

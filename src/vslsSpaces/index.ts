@@ -10,6 +10,11 @@ interface IMessage {
     sender: string;
 }
 
+interface IUser {
+    name: string;
+    email: string;
+}
+
 const toMessage = (msg: IMessage) => ({
     timestamp: (Date.parse(msg.timestamp) / 1000.0).toString(),
     userId: msg.sender,
@@ -25,6 +30,7 @@ function sleep(ms: number) {
 
 export class VslsSpacesProvider implements IChatProvider {
     isListenerSetup: boolean = false;
+    currentUser: IUser | undefined;
 
     constructor() {
         // Waiting for the extension to get activated
@@ -46,6 +52,9 @@ export class VslsSpacesProvider implements IChatProvider {
             });
             exports.setClearMessagesCallback((name: string) => {
                 this.onClearMessages(name);
+            });
+            exports.setUserChangedCallback(({ name, email }: IUser) => {
+                this.connect();
             });
 
             this.isListenerSetup = true;
@@ -73,15 +82,19 @@ export class VslsSpacesProvider implements IChatProvider {
         const api = await this.getApi();
 
         if (api) {
-            const { name, email } = api.getUserInfo();
-            // TODO: this is erroring out since getUserInfo returns undefined
-            return {
-                id: email,
-                name,
-                teams: [],
-                currentTeamId: undefined,
-                provider: Providers.vslsSpaces
-            };
+            const userInfo: IUser | undefined = api.getUserInfo();
+
+            if (userInfo) {
+                const { name, email } = userInfo;
+                this.currentUser = userInfo;
+                return {
+                    id: email,
+                    name,
+                    teams: [],
+                    currentTeamId: undefined,
+                    provider: Providers.vslsSpaces
+                };
+            }
         }
     }
 
@@ -113,7 +126,7 @@ export class VslsSpacesProvider implements IChatProvider {
     }
 
     isConnected(): boolean {
-        return this.isListenerSetup;
+        return !!this.currentUser;
     }
 
     async sendMessage(text: string, currentUserId: string, channelId: string) {
