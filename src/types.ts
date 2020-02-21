@@ -17,6 +17,10 @@ interface IChatProvider {
     subscribePresence: (users: Users) => void;
     createIMChannel: (user: User) => Promise<Channel | undefined>;
     destroy: () => Promise<void>;
+
+
+
+
 }
 
 const enum UserPresence {
