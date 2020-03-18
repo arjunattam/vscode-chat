@@ -1,5 +1,4 @@
 import { isSuperset, difference, toTitleCase } from "../utils";
-import { VSLS_CHAT_CHANNEL } from "../vslsChat/utils";
 
 export class ChatProviderManager {
     messages: Messages = {};
@@ -105,12 +104,6 @@ export class ChatProviderManager {
             if (presence !== existingPresence) {
                 this.parentManager.updateTreeViewsForProvider(this.providerName);
             }
-
-            if (!!this.parentManager.vslsContactProvider) {
-                this.parentManager.vslsContactProvider.notifyPresenceChanged(
-                    this.store.getUser(this.providerName, userId)
-                );
-            }
         }
     };
 
@@ -136,11 +129,6 @@ export class ChatProviderManager {
         Object.keys(existingMessages).forEach((ts: string) => {
             deletedMessages[ts] = undefined;
         });
-
-        // For DM channels in vsls, we store history (and so we need to clear it)
-        if (this.providerName === 'vsls' && channelId !== VSLS_CHAT_CHANNEL.id) {
-            this.store.updateMessageHistory(channelId, {})
-        }
 
         return this.updateMessages(channelId, deletedMessages);
     };
@@ -186,11 +174,6 @@ export class ChatProviderManager {
         this.updateWebviewForLastChannel();
         this.parentManager.updateStatusItemsForProvider(this.providerName);
         this.parentManager.updateTreeViewsForProvider(this.providerName);
-
-        // For DM channels on vsls, we want to store the message history
-        if (this.providerName === 'vsls' && channelId !== VSLS_CHAT_CHANNEL.id) {
-            this.store.updateMessageHistory(channelId, newMessages)
-        }
     };
 
     sendTyping = (channelId: string) => {

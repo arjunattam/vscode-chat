@@ -49,7 +49,6 @@ interface UserPreferences {
 const enum Providers {
     slack = "slack",
     discord = "discord",
-    vsls = "vsls",
     vslsSpaces = "vslsSpaces"
 }
 
@@ -221,7 +220,6 @@ interface IStore {
 interface IManager {
     isTokenInitialized: boolean;
     store: IStore;
-    vslsContactProvider: any;
     isAuthenticated: (provider: string) => boolean;
     getChannel: (provider: string, channelId: string | undefined) => Channel | undefined;
     getIMChannel: (provider: string, user: User) => Channel | undefined;

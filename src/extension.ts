@@ -9,7 +9,6 @@ import {
     SelfCommands,
     SLACK_OAUTH,
     DISCORD_OAUTH,
-    LIVE_SHARE_BASE_URL,
     CONFIG_ROOT,
     CONFIG_AUTO_LAUNCH,
     TRAVIS_SCHEME,
@@ -22,16 +21,12 @@ import { askForAuth } from "./onboarding";
 import { ConfigHelper } from "./config";
 import TelemetryReporter from "./telemetry";
 import IssueReporter from "./issues";
-import { VSLS_CHAT_CHANNEL, userFromContact } from "./vslsChat/utils";
 
 let store: Store;
 let manager: Manager;
 let controller: ViewController;
 let telemetry: TelemetryReporter;
 let typingTimers: { [key: string]: NodeJS.Timer | undefined } = {};
-
-// Auto-start chat window config -> persists per activation
-let autoLaunchVslsChatInSession = true;
 
 export function activate(context: vscode.ExtensionContext) {
     Logger.log("Activating vscode-chat");
@@ -109,7 +104,6 @@ export function activate(context: vscode.ExtensionContext) {
         manager.updateUserPrefsForAll(); // async update
         await manager.initializeStateForAll();
         manager.subscribePresenceForAll();
-        return manager.initializeVslsContactProvider();
     };
 
     const sendMessage = (providerName: string, text: string, parentTimestamp: string | undefined) => {
@@ -132,18 +126,14 @@ export function activate(context: vscode.ExtensionContext) {
         let channelList = manager.getChannelLabels(providerName).sort((a, b) => b.unread - a.unread);
 
         const quickpickItems: vscode.QuickPickItem[] = channelList.map(channelLabel => {
-            const description =
-                providerName === "vsls"
-                    ? channelLabel.teamName
-                    : `${channelLabel.providerName} · ${channelLabel.teamName}`;
+            const description = `${channelLabel.providerName} · ${channelLabel.teamName}`;
             return {
                 label: channelLabel.label,
                 detail: channelLabel.channel.categoryName,
                 description
             };
         });
-        const finalList =
-            providerName === "vsls" ? quickpickItems : [...quickpickItems, { label: str.RELOAD_CHANNELS }];
+        const finalList = [...quickpickItems, { label: str.RELOAD_CHANNELS }];
         const selected = await vscode.window.showQuickPick(finalList, {
             placeHolder: str.CHANGE_CHANNEL_TITLE,
             matchOnDetail: true,
@@ -203,9 +193,6 @@ export function activate(context: vscode.ExtensionContext) {
     };
 
     const onUIDispose = (provider: string | undefined, openSource: EventSource | undefined) => {
-        if (provider === "vsls" && openSource === EventSource.vslsStarted) {
-            autoLaunchVslsChatInSession = false;
-        }
     };
 
     const askForWorkspace = async (provider: string): Promise<Team | undefined> => {
@@ -412,7 +399,9 @@ export function activate(context: vscode.ExtensionContext) {
     };
 
     const askForProvider = async (enabledProviders: string[]) => {
-        const values = enabledProviders.map(name => utils.toTitleCase(name));
+        // VSLS providers are no longer supported. The user can still have these in their store.
+        // Remove these from the list.
+        const values = (enabledProviders.map(name => utils.toTitleCase(name))).filter(p => p !== 'Vsls');
         const selection = await vscode.window.showQuickPick(values, {
             placeHolder: str.CHANGE_PROVIDER_TITLE
         });
@@ -471,43 +460,6 @@ export function activate(context: vscode.ExtensionContext) {
         }
 
         return contact;
-    };
-
-    const chatWithVslsContact = async (item: any) => {
-        const contact = await getContactFromItem(item);
-
-        if (contact) {
-            const user = userFromContact(contact);
-            const providerName = "vsls";
-            let imChannel = manager.getIMChannel(providerName, user);
-
-            if (!imChannel) {
-                imChannel = await manager.createIMChannel(providerName, user);
-            }
-
-            // Adding this user to the store so we can use in the UI
-            manager.store.updateUser(providerName, user.id, user);
-
-            if (imChannel) {
-                manager.store.updateLastChannelId(providerName, imChannel.id);
-                openChatWebview({
-                    providerName,
-                    channelId: imChannel.id,
-                    user,
-                    source: EventSource.vslsContacts
-                });
-            }
-        }
-    };
-
-    const inviteLiveShareContact = async (emails: string[], useEmail: boolean = false) => {
-        const api = await vsls.getApi();
-        if (api) {
-            const { contacts } = await api.getContacts(emails);
-            for (let email in contacts) {
-                await contacts[email].invite({ useEmail });
-            }
-        }
     };
 
     const openVslsSpaceChat = async (spaceName: string) => {
@@ -580,31 +532,6 @@ export function activate(context: vscode.ExtensionContext) {
 
                 const eventType = isSessionActive ? EventType.vslsStarted : EventType.vslsEnded;
                 telemetry.record(eventType, undefined, undefined, undefined);
-
-                if (enabledProviders.indexOf("vsls") >= 0) {
-                    manager.store.updateCurrentUser("vsls", currentUser);
-
-                    // Re-fetch channels so that we can add/remove the session channel
-                    const vslsProvider = manager.chatProviders.get("vsls" as Providers);
-                    await vslsProvider!.fetchChannels();
-
-                    // Now that we have teams for vsls chat -> we initialize status item
-                    manager.initializeViewsManager();
-                    manager.updateAllUI();
-
-                    // Auto-start the chat window for discoverability
-                    const autoLaunchVslsChatConfig = ConfigHelper.getAutoLaunchLiveShareChat();
-                    const isChatVisible = controller.ui ? controller.ui.isVisible() : false;
-                    const autoLaunchVslsChat = autoLaunchVslsChatInSession && autoLaunchVslsChatConfig;
-
-                    if (isSessionActive && autoLaunchVslsChat && !isChatVisible) {
-                        openChatWebview({
-                            providerName: "vsls",
-                            channelId: VSLS_CHAT_CHANNEL.id,
-                            source: EventSource.vslsStarted
-                        });
-                    }
-                }
             }
         ),
         vscode.commands.registerCommand(SelfCommands.FETCH_REPLIES, ({ parentTimestamp, provider }) =>
@@ -636,7 +563,6 @@ export function activate(context: vscode.ExtensionContext) {
             // Disabled to test auto-away fix
             // updateSelfPresence(provider, presence)
         }),
-        vscode.commands.registerCommand(SelfCommands.CHAT_WITH_VSLS_CONTACT, item => chatWithVslsContact(item)),
         vscode.commands.registerCommand(
             SelfCommands.CHANNEL_MARKED,
             ({ channelId, readTimestamp, unreadCount, provider }) => {
@@ -649,25 +575,6 @@ export function activate(context: vscode.ExtensionContext) {
                 manager.updateMessageReply(provider, parentTimestamp, channelId, reply);
             }
         ),
-        vscode.commands.registerCommand(SelfCommands.HANDLE_INCOMING_LINKS, ({ uri, senderId, provider }) => {
-            if (uri.authority === LIVE_SHARE_BASE_URL) {
-                const currentUser = manager.getCurrentUserFor(provider);
-                const isSomeoneElse = !!currentUser ? currentUser.id !== senderId : false;
-
-                if (!!manager.vslsContactProvider && isSomeoneElse) {
-                    manager.vslsContactProvider.notifyInviteReceived(senderId, uri);
-                }
-            }
-        }),
-        vscode.commands.registerCommand(SelfCommands.SEND_TYPING, ({ provider, channelId }) => {
-            if (provider === "vsls") {
-                const vslsProvider = manager.chatProviders.get("vsls" as Providers);
-
-                if (vslsProvider) {
-                    vslsProvider.sendTyping(channelId);
-                }
-            }
-        }),
         vscode.commands.registerCommand(SelfCommands.SHOW_TYPING, ({ provider, typingUserId, channelId }) => {
             manager.updateWebviewForProvider(provider, channelId, typingUserId);
             const key = `${channelId}:${typingUserId}`;
@@ -685,16 +592,6 @@ export function activate(context: vscode.ExtensionContext) {
             }, 5000);
 
             typingTimers[key] = newTimer;
-        }),
-        vscode.commands.registerCommand(SelfCommands.INVITE_LIVE_SHARE_CONTACT, async ({ provider, channelId }) => {
-            // Enabled only for Live Share DMs
-            if (provider === "vsls" && channelId) {
-                const channel = manager.getChannel(provider, channelId);
-                if (channel && channel.contactMetadata) {
-                    const { email } = channel.contactMetadata;
-                    await inviteLiveShareContact([email]);
-                }
-            }
         }),
         vscode.commands.registerCommand(SelfCommands.SEND_TO_WEBVIEW, ({ uiMessage }) =>
             controller.sendToUI(uiMessage)

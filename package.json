@@ -1,8 +1,8 @@
 {
     "name": "chat",
-    "displayName": "Live Share Chat",
-    "description": "Chat with your team while you collaborate over code using VS Live Share",
-    "version": "0.31.0",
+    "displayName": "Chat",
+    "description": "Chat with your team & contacts from within VS Code",
+    "version": "1.0.0",
     "homepage": "https://github.com/vsls-contrib/chat",
     "license": "SEE LICENSE IN LICENSE",
     "repository": {
@@ -33,9 +33,6 @@
     ],
     "activationEvents": [
         "*"
-    ],
-    "extensionDependencies": [
-        "ms-vsliveshare.vsliveshare"
     ],
     "main": "./out/extension",
     "contributes": {
@@ -74,12 +71,12 @@
             {
                 "command": "extension.chat.openChatPanel",
                 "title": "Open",
-                "category": "Live Share Chat"
+                "category": "Chat"
             },
             {
                 "command": "extension.chat.changeChannel",
                 "title": "Change Channel",
-                "category": "Live Share Chat",
+                "category": "Chat",
                 "icon": {
                     "light": "public/icons/light/search.svg",
                     "dark": "public/icons/dark/search.svg"
@@ -88,50 +85,41 @@
             {
                 "command": "extension.chat.changeWorkspace",
                 "title": "Change Workspace",
-                "category": "Live Share Chat"
+                "category": "Chat"
             },
             {
                 "command": "extension.chat.authenticate",
                 "title": "Sign In with Slack",
-                "category": "Live Share Chat"
+                "category": "Chat"
             },
             {
                 "command": "extension.chat.signout",
                 "title": "Sign Out",
-                "category": "Live Share Chat"
+                "category": "Chat"
             },
             {
                 "command": "extension.chat.configureToken",
                 "title": "Configure Access Token",
-                "category": "Live Share Chat"
+                "category": "Chat"
             },
             {
                 "command": "extension.chat.updateSelfPresence",
                 "title": "Update your presence status",
-                "category": "Live Share Chat"
+                "category": "Chat"
             },
             {
                 "command": "extension.chat.startLiveShare",
                 "title": "Invite to Live Share",
-                "category": "Live Share Chat",
+                "category": "Chat",
                 "icon": {
                     "light": "public/icons/light/share.svg",
                     "dark": "public/icons/dark/share.svg"
                 }
             },
             {
-                "command": "extension.chat.startChatWithVslsContact",
-                "title": "Chat with this user",
-                "category": "Live Share Chat",
-                "icon": {
-                    "light": "public/icons/light/chat.svg",
-                    "dark": "public/icons/dark/chat.svg"
-                }
-            },
-            {
                 "command": "extension.chat.chatWithSpace",
                 "title": "Open Chat",
-                "category": "Live Share Chat",
+                "category": "Chat",
                 "icon": {
                     "light": "public/icons/light/chat.svg",
                     "dark": "public/icons/dark/chat.svg"
@@ -218,15 +206,6 @@
                     "group": "inline"
                 },
                 {
-                    "command": "extension.chat.startChatWithVslsContact",
-                    "when": "chat:vslsEnabled && viewItem == contacts.recentContact || viewItem == contacts.recentContact.invited || viewItem == contacts.invited || viewItem == contacts.contact || viewItem =~ /^member.online/",
-                    "group": "inline"
-                },
-                {
-                    "command": "extension.chat.startChatWithVslsContact",
-                    "when": "chat:vslsEnabled && viewItem == contacts.recentContact || viewItem == contacts.recentContact.invited || viewItem == contacts.invited || viewItem == contacts.contact || viewItem =~ /^member.online/"
-                },
-                {
                     "command": "extension.chat.chatWithSpace",
                     "when": "view == liveshare.spaces && viewItem =~ /^space/",
                     "group": "chat@1"
@@ -242,6 +221,24 @@
                     "command": "extension.chat.changeChannel",
                     "when": "view =~ /^chat.treeView(?!.onboarding)/",
                     "group": "navigation@1"
+                }
+            ],
+            "commandPalette": [
+                {
+                    "command": "extension.chat.openChatPanel",
+                    "when": "false"
+                },
+                {
+                    "command": "extension.chat.updateSelfPresence",
+                    "when": "false"
+                },
+                {
+                    "command": "extension.chat.startLiveShare",
+                    "when": "false"
+                },
+                {
+                    "command": "extension.chat.chatWithSpace",
+                    "when": "false"
                 }
             ]
         }

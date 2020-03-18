@@ -141,7 +141,7 @@ export const parseSlackLinks = (messages: ChannelMessages): ChannelMessages => {
 
 const transformChain = (uiMessage: UIMessage): UIMessage => {
     const { messages } = parseUsernames(uiMessage);
-    const linkParser = uiMessage.provider === "vsls" || uiMessage.provider === "vslsSpaces" ? parseSimpleLinks : parseSlackLinks;
+    const linkParser = uiMessage.provider === "vslsSpaces" ? parseSimpleLinks : parseSlackLinks;
     return {
         ...uiMessage,
         messages: linkParser(emojify(messages))

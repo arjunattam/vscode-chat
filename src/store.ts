@@ -131,19 +131,6 @@ export class Store implements IStore {
     updateUsers = (provider: string, users: Users): Thenable<void> => {
         let newUsers = users;
 
-        if (provider === 'vsls') {
-            // For vsls provider, we want to append the users, not replace them
-            // This is because the chat provider does not have the knowledge of all contacts
-            // Contacts are known when the user clicks on the "chat with vsls contact" action
-            // And are updated via extension.ts -- which is a layer above the vsls chat provider
-
-            // Because the vsls chat provider does not know about these contacts,
-            // doing a fetchUsers() replaces the info we have, and we end up with unknown users in the
-            // chat UI, which is a problem.
-            const existingUsers = this.users[provider];
-            newUsers = {...users, ...existingUsers}
-        }
-
         this.users = {
             ...this.users,
             [provider]: newUsers
@@ -152,9 +139,8 @@ export class Store implements IStore {
             .map(usersObject => Object.keys(usersObject).length)
             .reduce((acc, curr) => acc + curr);
         const isUnderCacheSizeLimit = totalUserCount <= VALUE_LENGTH_LIMIT;
-        const isNotVslsProvider = provider !== 'vsls'; // Disable caching for vsls
 
-        if (isUnderCacheSizeLimit && isNotVslsProvider) {
+        if (isUnderCacheSizeLimit) {
             return this.context.globalState.update(stateKeys.USERS, this.users);
         }
 
@@ -179,9 +165,8 @@ export class Store implements IStore {
             .map(channels => channels.length)
             .reduce((acc, curr) => acc + curr);
         const isUnderCacheSizeLimit = totalChannelCount <= VALUE_LENGTH_LIMIT;
-        const isNotVslsProvider = provider !== 'vsls'; // Disable caching for vsls
 
-        if (isUnderCacheSizeLimit && isNotVslsProvider) {
+        if (isUnderCacheSizeLimit) {
             return this.context.globalState.update(stateKeys.CHANNELS, this.channels);
         }
 

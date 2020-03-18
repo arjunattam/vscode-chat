@@ -3,8 +3,6 @@ import { TreeViewManager } from "./treeView";
 import { BaseStatusItem, UnreadsStatusItem } from "../status";
 import { OnboardingTreeProvider } from "../onboarding";
 import { SelfCommands } from "../constants";
-import { VslsSessionTreeProvider } from "../tree/vsls";
-import { VSLS_CHAT_CHANNEL } from "../vslsChat/utils";
 import { setVsContext, difference } from "../utils";
 
 const PROVIDERS_WITH_TREE = ["slack", "discord"];
@@ -17,18 +15,10 @@ export class ViewsManager implements vscode.Disposable {
     statusItems: Map<string, BaseStatusItem> = new Map();
     treeViews: Map<string, TreeViewManager> = new Map();
     onboardingTree: OnboardingTreeProvider | undefined;
-    vslsSessionTreeProvider: VslsSessionTreeProvider | undefined; // for vsls chat tree item
 
     constructor(private parentManager: IManager) {}
 
     initialize(enabledProviders: string[], providerTeams: { [providerName: string]: Team[] }) {
-        const hasVslsEnabled = enabledProviders.indexOf("vsls") >= 0;
-
-        if (hasVslsEnabled && !this.vslsSessionTreeProvider) {
-            this.vslsSessionTreeProvider = new VslsSessionTreeProvider();
-            this.vslsSessionTreeProvider.register();
-        }
-
         const statusItemKeys = new Map<string, { provider: string; team: Team }>();
         enabledProviders.forEach(provider => {
             const teams = providerTeams[provider];
@@ -41,8 +31,6 @@ export class ViewsManager implements vscode.Disposable {
         });
         this.initializeStatusItems(statusItemKeys);
         this.initializeTreeViews(enabledProviders);
-
-        const nonVslsProviders = enabledProviders.filter(provider => provider !== "vsls");
 
         const showOnboarding = false;
         // Overriding showOnboarding to be always false, so that vsls extension
@@ -134,15 +122,6 @@ export class ViewsManager implements vscode.Disposable {
                 treeViewForProvider.updateData(currentUserInfo, channelLabels);
             }
         }
-
-        if (!!this.vslsSessionTreeProvider) {
-            const vslsChatChannel = this.parentManager.getChannel("vsls", VSLS_CHAT_CHANNEL.id);
-
-            if (!!vslsChatChannel) {
-                const unreads = this.parentManager.getUnreadCount(provider, vslsChatChannel);
-                this.vslsSessionTreeProvider.updateUnreadCount(unreads);
-            }
-        }
     }
 
     updateWebview(
@@ -190,10 +169,6 @@ export class ViewsManager implements vscode.Disposable {
 
         if (!!this.onboardingTree) {
             this.onboardingTree.dispose();
-        }
-
-        if (!!this.vslsSessionTreeProvider) {
-            this.vslsSessionTreeProvider.dispose();
         }
     }
 }

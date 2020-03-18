@@ -1,6 +1,6 @@
-<h1 align="center">Live Share Chat</h1>
+<h1 align="center">Chat</h1>
 
-<h3 align="center">Chat with your team while you collaborate over code using VS Live Share</h3>
+<h3 align="center">Chat with your team & contacts from within VS Code</h3>
 
 <p align="center"><img src="https://raw.githubusercontent.com/karigari/vscode-chat/master/readme/Live Share Chat.gif" alt="Screenshot" width="800" /></p>
 
@@ -12,11 +12,7 @@
 
 # Get started
 
-Live Share Chat is a companion extension for [Visual Studio Live Share](https://aka.ms/vsls), which enables you to collaboratively edit and debug code with others, in real time.
-
-1. Install the [Live Share Extension Pack](https://marketplace.visualstudio.com/items?itemName=MS-vsliveshare.vsliveshare-pack), which packages VS Live Share with support for **audio and text chat**.
-1. **Direct Messages**: DM your Live Share contacts, within or outside Live Share sessions.
-1. **Session Messages**: Chat with participants, within a Live Share session
+_Chat_ is powered by Live Share [Visual Studio Live Share](https://aka.ms/vsls). It allows you to use your existing team chat apps (Slack, Discord, Spaces) in VS Code so your team communication isn't fragmented.
 
 # Features
 
@@ -31,8 +27,6 @@ Live Share Chat is a companion extension for [Visual Studio Live Share](https://
 </p>
 
 # Integrations for chat apps
-
-Optionally, you can integrate Live Share Chat with your existing team chat apps, so your team communication is not fragmented.
 
 ## Slack
 

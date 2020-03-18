@@ -1,11 +1,9 @@
 import * as vscode from "vscode";
-import { hasVslsExtension, hasVslsSpacesExtension } from "../utils";
+import { hasVslsSpacesExtension } from "../utils";
 import { DiscordChatProvider } from "../discord";
 import { SlackChatProvider } from "../slack";
-import { VslsChatProvider } from "../vslsChat";
 import { ViewsManager } from "./views";
 import { ConfigHelper } from "../config";
-import { VslsContactProvider } from "./vslsContactProvider";
 import { ChatProviderManager } from "./chatManager";
 import { SelfCommands } from "../constants";
 import { VslsSpacesProvider } from "../vslsSpaces";
@@ -13,7 +11,6 @@ import { VslsSpacesProvider } from "../vslsSpaces";
 export default class Manager implements IManager, vscode.Disposable {
     isTokenInitialized: boolean = false;
     viewsManager: ViewsManager;
-    vslsContactProvider: VslsContactProvider | undefined;
     chatProviders = new Map<Providers, ChatProviderManager>();
 
     constructor(public store: IStore) {
@@ -28,17 +25,11 @@ export default class Manager implements IManager, vscode.Disposable {
         currentUserInfos.forEach(currentUser => {
             const { provider } = currentUser;
 
-            if (provider !== "vsls" && provider !== "vslsSpaces") {
-                // These 2 providers are dependent on installed extensions, not the user state
+            if (provider !== "vslsSpaces") {
+                // This provider is dependent on installed extensions, not the user state
                 providerTeamIds[currentUser.provider] = currentUser.currentTeamId;
             }
         });
-
-        const hasVsls = hasVslsExtension();
-
-        if (hasVsls) {
-            providerTeamIds[Providers.vsls] = undefined;
-        }
 
         const hasVslsSpaces = hasVslsSpacesExtension();
 
@@ -84,8 +75,6 @@ export default class Manager implements IManager, vscode.Disposable {
                 return new DiscordChatProvider(token, this);
             case "slack":
                 return new SlackChatProvider(token, this);
-            case "vsls":
-                return new VslsChatProvider(this.store);
             case "vslsSpaces":
                 return new VslsSpacesProvider();
             default:
@@ -207,32 +196,6 @@ export default class Manager implements IManager, vscode.Disposable {
         }
     }
 
-    initializeVslsContactProvider = async (): Promise<any> => {
-        // This method is called after the users state has been initialized, since
-        // the vsls contact provider uses list of users to match with vsls contacts.
-        const enabledProviders = this.getEnabledProviders().map(e => e.provider);
-        const PRESENCE_PROVIDERS = ["slack", "discord"];
-        const presenceProviders = enabledProviders.filter(provider => PRESENCE_PROVIDERS.indexOf(provider) >= 0);
-
-        if (hasVslsExtension() && presenceProviders.length > 0) {
-            const presenceProvider = presenceProviders[0]; // we are restricting this to only one
-            const isNotAlreadyInit = !this.vslsContactProvider || !this.vslsContactProvider.isInitialized;
-
-            const currentUserInfo = this.store.getCurrentUser(presenceProvider);
-            const users = this.store.getUsers(presenceProvider);
-
-            if (isNotAlreadyInit && !!currentUserInfo) {
-                this.vslsContactProvider = new VslsContactProvider(presenceProvider, this);
-                await this.vslsContactProvider.register();
-
-                const userId = currentUserInfo.id;
-                const currentUser = users[userId];
-                this.vslsContactProvider.notifySelfContact(currentUser);
-                this.vslsContactProvider.notifyAvailableUsers(userId, users);
-            }
-        }
-    };
-
     async signout() {
         // This will sign out of slack and discord. vsls depends only on whether
         // the vsls extension has been installed.
@@ -240,11 +203,8 @@ export default class Manager implements IManager, vscode.Disposable {
 
         for (let entry of Array.from(this.chatProviders.entries())) {
             let providerName = entry[0];
-
-            if (providerName !== "vsls") {
-                await ConfigHelper.clearToken(providerName);
-                hasSignedOut = true;
-            }
+            await ConfigHelper.clearToken(providerName);
+            hasSignedOut = true;
         }
 
         if (hasSignedOut) {
@@ -260,16 +220,12 @@ export default class Manager implements IManager, vscode.Disposable {
         const enabledProviders = Array.from(this.chatProviders.keys());
 
         enabledProviders.forEach(provider => {
-            const isNotVsls = provider !== "vsls";
+            this.store.clearProviderState(provider);
+            const chatProvider = this.chatProviders.get(provider);
 
-            if (isNotVsls) {
-                this.store.clearProviderState(provider);
-                const chatProvider = this.chatProviders.get(provider);
-
-                if (!!chatProvider) {
-                    chatProvider.destroy();
-                    this.chatProviders.delete(provider);
-                }
+            if (!!chatProvider) {
+                chatProvider.destroy();
+                this.chatProviders.delete(provider);
             }
         });
 
