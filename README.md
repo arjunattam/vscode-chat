@@ -1,6 +1,6 @@
-<h1 align="center">Chat</h1>
+<h1 align="center">Chat for VS Code</h1>
 
-<h3 align="center">Chat with your team & contacts from within VS Code</h3>
+<h3 align="center">Chat with your Slack/Discord teams from within VS Code</h3>
 
 <p align="center"><img src="https://raw.githubusercontent.com/karigari/vscode-chat/master/readme/Live Share Chat.gif" alt="Screenshot" width="800" /></p>
 
@@ -10,9 +10,9 @@
     <a href="https://aka.ms/vsls"><img src="https://aka.ms/vsls-badge" alt="Live Share enabled" /></a>
 </p>
 
-# Get started
-
-_Chat_ is powered by Live Share [Visual Studio Live Share](https://aka.ms/vsls). It allows you to use your existing team chat apps (Slack, Discord, Spaces) in VS Code so your team communication isn't fragmented.
+> **0.32.0**: With this release, the integration with VS Live Share has now moved into the core VS Live Share extension! Thanks to everyone who tried it out, and helped make it a core experience for using Live Share.
+> 
+> The extension now only supports Slack, Discord and Live Share Spaces as chat providers.
 
 # Features
 
@@ -26,7 +26,7 @@ _Chat_ is powered by Live Share [Visual Studio Live Share](https://aka.ms/vsls).
     <img src="https://raw.githubusercontent.com/karigari/vscode-chat/master/readme/feature-3.png" alt="Theme and grid layout" width="290" />
 </p>
 
-# Integrations for chat apps
+# Get started with chat
 
 ## Slack
 
