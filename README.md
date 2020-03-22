@@ -1,6 +1,6 @@
 <h1 align="center">Chat for VS Code</h1>
 
-<h3 align="center">Chat with your Slack/Discord teams from within VS Code</h3>
+<h3 align="center">Chat with your Slack and Discord teams from within VS Code</h3>
 
 <p align="center"><img src="https://raw.githubusercontent.com/karigari/vscode-chat/master/readme/Live Share Chat.gif" alt="Screenshot" width="800" /></p>
 
