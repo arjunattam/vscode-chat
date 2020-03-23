@@ -2,6 +2,14 @@
 
 All notable changes to the Live Share Chat extension will be documented in this file. This follows the [Keep a Changelog](http://keepachangelog.com/) format.
 
+## [0.34.0] - TBD
+
+## [0.33.0] - 2020-03-23		
+
+### Fixed
+
+-   Recovery build: Bringing back Live Share integration for now. Will revert the recovery build once the new version of Live Share is released.
+
 ## [0.32.0] - 2020-03-22
 
 ### Removed
