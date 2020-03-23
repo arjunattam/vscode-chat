@@ -2,7 +2,7 @@
     "name": "chat",
     "displayName": "Live Share Chat",
     "description": "Chat with your team while you collaborate over code using VS Live Share",
-    "version": "0.31.0",
+    "version": "0.33.0",
     "homepage": "https://github.com/vsls-contrib/chat",
     "license": "SEE LICENSE IN LICENSE",
     "repository": {
