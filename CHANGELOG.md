@@ -2,7 +2,9 @@
 
 All notable changes to the Live Share Chat extension will be documented in this file. This follows the [Keep a Changelog](http://keepachangelog.com/) format.
 
-## [0.34.0] - TBD
+## [0.34.0] - 2020-06-03
+
+-   This version removes the VS Live Share integration bits, which have been now added to the main VS Live Share extension.
 
 ## [0.33.0] - 2020-03-23		
 
