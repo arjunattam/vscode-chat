@@ -4,7 +4,7 @@
   "version": "1.0.0",
   "main": "handler.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "npx serverless offline start"
   },
   "dependencies": {
     "request": "^2.88.0",

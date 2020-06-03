@@ -26,7 +26,9 @@ const getSlackToken = async (code: string): Promise<TokenAPIResponse> => {
     qs: {
       client_id: process.env.SLACK_CLIENT_ID,
       client_secret: process.env.SLACK_CLIENT_SECRET,
-      code
+      code,
+      // When testing locally, pass the redirect_uri to slack
+      // redirect_uri: "http://localhost:3000/slack_redirect"
     }
   };
 
