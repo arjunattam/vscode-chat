@@ -10,7 +10,7 @@
     <a href="https://aka.ms/vsls"><img src="https://aka.ms/vsls-badge" alt="Live Share enabled" /></a>
 </p>
 
-> **0.32.0**: With this release, the integration with VS Live Share has now moved into the core VS Live Share extension! Thanks to everyone who tried it out, and helped make it a core experience for using Live Share.
+> **0.34.0**: With this release, the integration with VS Live Share has now moved into the core VS Live Share extension! Thanks to everyone who tried it out, and helped make it a core experience for using Live Share.
 > 
 > The extension now only supports Slack, Discord and Live Share Spaces as chat providers.
 
