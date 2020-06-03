@@ -1,6 +1,6 @@
 {
     "name": "chat",
-    "displayName": "Chat for VS Code",
+    "displayName": "Chat",
     "description": "Chat with your Slack and Discord teams from within VS Code",
     "version": "0.34.0",
     "homepage": "https://github.com/vsls-contrib/chat",
