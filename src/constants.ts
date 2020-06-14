@@ -75,9 +75,9 @@ export const TRAVIS_BASE_URL = `travis-ci.org`;
 export const TRAVIS_SCHEME = "chat-travis-ci";
 
 // Slack App
-export const LOCALHOST_REDIRECT_URI = `http://localhost:3000/slack_redirect`
-export const SLACK_OAUTH = `https://slack.com/oauth/authorize?scope=client&client_id=282186700213.419156835749`;
-export const SLACK_OAUTH_LOCALHOST = `${SLACK_OAUTH}&redirect_uri=${LOCALHOST_REDIRECT_URI}`
+const REDIRECT_URI = `https://us-central1-eco-theater-119616.cloudfunctions.net/slackRedirect`
+const SLACK_OAUTH_BASE = `https://slack.com/oauth/authorize?scope=client&client_id=282186700213.419156835749`;
+export const SLACK_OAUTH = `${SLACK_OAUTH_BASE}&redirect_uri=${REDIRECT_URI}`
 
 // Discord
 const DISCORD_SCOPES = ["identify", "rpc.api", "messages.read", "guilds"];

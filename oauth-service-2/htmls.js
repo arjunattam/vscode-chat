@@ -1,0 +1,91 @@
+exports.success = `
+<!doctype html>
+<html lang="en">
+
+<head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css" integrity="sha384-MCw98/SFnGE8fJT3GXwEOngsV7Zt27NXFoaoApmYm81iuXoPkFOJwJ8ERdknLPMO"
+        crossorigin="anonymous">
+
+    <title>Slack Chat for VS Code</title>
+</head>
+
+<body>
+    <iframe width="0" height="0" src="{{redirect}}"></iframe>
+    <div class="container my-4 text-center">
+        <p class="h3">Redirecting to VS Code...</p>
+        <p class="my-4">Unable to redirect? Configure manually.</p>
+        <div class="modal-dialog text-left">
+            <div class="modal-content">
+                <div class="modal-title">
+                    <div class="d-flex align-items-center justify-content-center m-3">
+                        <code id="code-token" style="height: 0; width: 1px; opacity: 0;">{{token}}</code>
+                        <button type="button" class="btn btn-secondary btn-sm mx-2" onclick="runCopy()" id="copy-button">Copy
+                            token
+                        </button>
+                    </div>
+                </div>
+                <div class="modal-body">
+                    <ol>
+                        <li class="my-1">Copy the token to clipboard.</li>
+                        <li class="my-1">Inside VS Code, open the Command Palette.</li>
+                        <li class="my-1">Pick <strong>Chat: Configure Slack Access Token</strong>.</li>
+                        <li class="my-1">Paste the token.</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+        <p><a href="https://github.com/karigari/vscode-chat/issues">Report an issue</a></p>
+    </div>
+</body>
+
+<script type="text/javascript">
+    function runCopy() {
+        var code = document.getElementById("code-token")
+        var range = document.createRange();
+        range.selectNode(code);
+        window.getSelection().removeAllRanges();
+        window.getSelection().addRange(range);
+        var button = document.getElementById('copy-button')
+        try {
+            document.execCommand("copy");
+            button.textContent = "Copied!"
+        } catch (err) {
+            button.textContent = "Failed to copy"
+        }
+    }
+</script>
+
+</html>
+`
+
+exports.error = `
+<!doctype html>
+<html lang="en">
+
+<head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css" integrity="sha384-MCw98/SFnGE8fJT3GXwEOngsV7Zt27NXFoaoApmYm81iuXoPkFOJwJ8ERdknLPMO"
+        crossorigin="anonymous">
+
+    <title>Slack Chat for VS Code</title>
+</head>
+
+<body>
+    <iframe width="0" height="0" src="{{redirect}}"></iframe>
+    <div class="container my-4 text-center">
+        <p>We have run into an error: <strong>{{error}}</strong></p>
+        <p>If this is not right, please <a href="{{issues}}">report an issue</a></p>
+    </div>
+</body>
+
+</html>
+`

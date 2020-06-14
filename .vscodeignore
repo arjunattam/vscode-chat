@@ -9,6 +9,7 @@ tsconfig.json
 tslint.json
 tokens
 oauth-service/**
+oauth-service-2/**
 node_modules/**
 readme/**
 webview/**
