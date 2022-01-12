@@ -9,7 +9,7 @@
   },
   "dependencies": {
     "core-js": "^2.6.5",
-    "markdown-it": "^10.0.0",
+    "markdown-it": "^12.3.2",
     "markdown-it-slack": "^1.2.0",
     "tributejs": "^3.7.3",
     "vue": "^2.6.10",
